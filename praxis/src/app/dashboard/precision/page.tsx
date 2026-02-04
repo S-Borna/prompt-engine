@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import {
-    Target, ChevronRight, Sparkles, Check, ArrowRight,
-    MessageSquare, Users, FileText, Lightbulb, Zap, Copy
+    Target, Sparkles, Check, ArrowRight,
+    MessageSquare, Users, FileText, Lightbulb, Loader2
 } from 'lucide-react';
-import { EnhancedPromptRenderer } from '@/components/ui/TypeWriter';
+import { EnhancedPromptOutput, EnhancedPromptResult } from '@/components/ui/EnhancedPromptOutput';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRECISION - Goal-Driven Prompt Optimizer
@@ -43,7 +43,7 @@ export default function PrecisionPage() {
     const [format, setFormat] = useState('');
     const [tone, setTone] = useState('');
     const [constraints, setConstraints] = useState('');
-    const [generatedPrompt, setGeneratedPrompt] = useState('');
+    const [result, setResult] = useState<EnhancedPromptResult | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [shouldAnimate, setShouldAnimate] = useState(false);
 
@@ -57,34 +57,43 @@ export default function PrecisionPage() {
 
     const handleGenerate = () => {
         setIsGenerating(true);
+        setShouldAnimate(true);
+        
         setTimeout(() => {
-            const prompt = `**Goal:** ${goals.find(g => g.id === goal)?.name} - ${topic}
-
-**Persona:** You are an expert communicator specializing in ${goals.find(g => g.id === goal)?.desc.toLowerCase()}. Your audience is ${audience.toLowerCase()}.
-
-**Communication Style:**
-- Tone: ${tone}
-- Format: ${format}
-${constraints ? `- Additional requirements: ${constraints}` : ''}
-
-**Your Task:**
-${goal === 'persuade' ? `Craft a compelling argument that convinces ${audience.toLowerCase()} about ${topic}. Use evidence, emotional appeals, and clear logic.` : ''}
-${goal === 'educate' ? `Create an educational piece that helps ${audience.toLowerCase()} understand ${topic}. Break down complex concepts and use relatable examples.` : ''}
-${goal === 'create' ? `Generate original content about ${topic} that resonates with ${audience.toLowerCase()}. Be creative while maintaining relevance.` : ''}
-${goal === 'solve' ? `Analyze the problem of ${topic} and provide actionable solutions for ${audience.toLowerCase()}. Be thorough and practical.` : ''}
-${goal === 'engage' ? `Start an engaging dialogue about ${topic} with ${audience.toLowerCase()}. Ask thought-provoking questions and encourage interaction.` : ''}
-
-**Success Criteria:**
-- Message is clear and appropriate for the target audience
-- Tone remains consistent throughout
-- Key points are memorable and actionable
-- Format enhances readability and engagement`;
-
-            setShouldAnimate(true);
-            setGeneratedPrompt(prompt);
+            const goalInfo = goals.find(g => g.id === goal);
+            
+            // Build CLEAN enhanced prompt - no meta headers, no system instructions
+            let enhancedPrompt = '';
+            
+            if (goal === 'persuade') {
+                enhancedPrompt = `Write a persuasive ${format.toLowerCase()} about ${topic} for ${audience.toLowerCase()}. Use a ${tone.toLowerCase()} tone, incorporate compelling evidence and clear reasoning. Make it memorable and actionable.${constraints ? ` Additional context: ${constraints}` : ''}`;
+            } else if (goal === 'educate') {
+                enhancedPrompt = `Create an educational ${format.toLowerCase()} explaining ${topic} for ${audience.toLowerCase()}. Use a ${tone.toLowerCase()} tone, break down complex concepts with relatable examples, and ensure the key takeaways are clear.${constraints ? ` Additional context: ${constraints}` : ''}`;
+            } else if (goal === 'create') {
+                enhancedPrompt = `Generate creative ${format.toLowerCase()} content about ${topic} for ${audience.toLowerCase()}. Use a ${tone.toLowerCase()} tone, be original and engaging while maintaining relevance to the audience.${constraints ? ` Additional context: ${constraints}` : ''}`;
+            } else if (goal === 'solve') {
+                enhancedPrompt = `Analyze and solve the problem of ${topic} for ${audience.toLowerCase()}. Present the solution as a ${format.toLowerCase()} with a ${tone.toLowerCase()} tone. Be thorough, practical, and provide actionable next steps.${constraints ? ` Additional context: ${constraints}` : ''}`;
+            } else {
+                enhancedPrompt = `Start an engaging conversation about ${topic} with ${audience.toLowerCase()}. Use a ${format.toLowerCase()} format and ${tone.toLowerCase()} tone. Ask thought-provoking questions and encourage interaction.${constraints ? ` Additional context: ${constraints}` : ''}`;
+            }
+            
+            setResult({
+                originalPrompt: `${goalInfo?.name}: ${topic}`,
+                enhancedPrompt,
+                explanation: [
+                    `Optimized for ${goalInfo?.name.toLowerCase()} goal`,
+                    `Tailored to ${audience.toLowerCase()}`,
+                    `${tone} tone applied`,
+                    `${format} format specified`,
+                ],
+                meta: {
+                    score: 85,
+                    rulesUsed: [goal, audience, format, tone],
+                },
+            });
             setIsGenerating(false);
             setStep(5);
-        }, 1500);
+        }, 1000);
     };
 
     const renderStep = () => {
@@ -260,51 +269,21 @@ ${goal === 'engage' ? `Start an engaging dialogue about ${topic} with ${audience
             case 5:
                 return (
                     <div className="space-y-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h2 className="text-xl font-bold text-white mb-1">Your Precision Prompt</h2>
-                                <p className="text-white/50">Optimized for your specific goals</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => navigator.clipboard.writeText(generatedPrompt)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/10 rounded-xl hover:bg-white/15 text-white"
-                                >
-                                    <Copy className="w-4 h-4" />
-                                    Copy
-                                </button>
-                            </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-white mb-1">Your Precision Prompt</h2>
+                            <p className="text-white/50">Optimized for your specific goals</p>
                         </div>
 
-                        <div className="bg-white/5 rounded-xl border border-white/10 p-6">
-                            <EnhancedPromptRenderer
-                                content={generatedPrompt}
-                                animate={shouldAnimate}
-                                onAnimationComplete={() => setShouldAnimate(false)}
-                                className="text-white/80 text-sm leading-relaxed"
-                                speed={55}
-                            />
-                        </div>
-
-                        <div className="bg-gradient-to-r from-red-500/10 to-pink-500/10 rounded-xl border border-red-500/20 p-5">
-                            <div className="flex items-start gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-400 to-pink-500 flex items-center justify-center">
-                                    <Check className="w-5 h-5 text-white" />
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold text-red-400">Optimization Summary</h3>
-                                    <ul className="mt-2 space-y-1 text-sm text-white/60">
-                                        <li>✓ Goal: {goals.find(g => g.id === goal)?.name}</li>
-                                        <li>✓ Audience: {audience}</li>
-                                        <li>✓ Format: {format}</li>
-                                        <li>✓ Tone: {tone}</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
+                        {/* Uses Global EnhancedPromptOutput */}
+                        <EnhancedPromptOutput
+                            result={result}
+                            animate={shouldAnimate}
+                            onAnimationComplete={() => setShouldAnimate(false)}
+                            showSave={false}
+                        />
 
                         <button
-                            onClick={() => { setStep(1); setGeneratedPrompt(''); setShouldAnimate(false); }}
+                            onClick={() => { setStep(1); setResult(null); setShouldAnimate(false); }}
                             className="text-white/50 hover:text-white/70"
                         >
                             ← Start Over

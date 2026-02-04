@@ -2,16 +2,15 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
-    Sparkles, Copy, Save, Check, ArrowRight,
-    Zap, Star, Loader2, AlertCircle, Settings, ChevronRight, ChevronDown, Lightbulb
+    Sparkles, ArrowRight, Zap, Star, Loader2, AlertCircle, Settings
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usePromptStore } from '@/lib/prompt-store';
-import { EnhancedPromptRenderer } from '@/components/ui/TypeWriter';
+import { EnhancedPromptOutput, EnhancedPromptResult } from '@/components/ui/EnhancedPromptOutput';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SPARK — Flagship Prompt Enhancement Experience
-// Premium workspace with elastic Input → Output flow
+// Uses the global EnhancedPromptOutput contract
 // ═══════════════════════════════════════════════════════════════════════════
 
 const models = [
@@ -34,21 +33,15 @@ const examplePrompts = [
 
 export default function SparkPage() {
     const [input, setInput] = useState('');
-    const [output, setOutput] = useState('');
+    const [result, setResult] = useState<EnhancedPromptResult | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [selectedModel, setSelectedModel] = useState('gpt4');
     const [selectedModifier, setSelectedModifier] = useState<string | null>(null);
-    const [copied, setCopied] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [qualityScore, setQualityScore] = useState<{ before: number; after: number } | null>(null);
     const [showSettings, setShowSettings] = useState(false);
-    const [showOriginal, setShowOriginal] = useState(false);
-    const [showWhyBetter, setShowWhyBetter] = useState(false);
-    const [improvements, setImprovements] = useState<string[]>([]);
     const [shouldAnimate, setShouldAnimate] = useState(false);
     
     const inputRef = useRef<HTMLTextAreaElement>(null);
-    const outputRef = useRef<HTMLDivElement>(null);
 
     const { addPrompt, addToHistory } = usePromptStore();
 
@@ -70,10 +63,9 @@ export default function SparkPage() {
     // Auto-resize textarea
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setInput(e.target.value);
-        // Auto-resize
         if (inputRef.current) {
             inputRef.current.style.height = 'auto';
-            inputRef.current.style.height = Math.max(200, inputRef.current.scrollHeight) + 'px';
+            inputRef.current.style.height = Math.max(180, inputRef.current.scrollHeight) + 'px';
         }
     };
 
@@ -85,12 +77,9 @@ export default function SparkPage() {
 
         setIsProcessing(true);
         setError(null);
+        setShouldAnimate(true);
 
         const effectiveMode = selectedModifier || 'enhance';
-
-        // Reset section visibility
-        setShowOriginal(false);
-        setShowWhyBetter(false);
 
         try {
             const response = await fetch('/api/ai/enhance', {
@@ -108,70 +97,77 @@ export default function SparkPage() {
             }
 
             const data = await response.json();
-            setShouldAnimate(true);
-            setOutput(data.enhanced || data.result);
-            setQualityScore(data.scores || { before: 35, after: 85 });
-            setImprovements(data.improvements || getDefaultImprovements(effectiveMode));
+            
+            // Build the result per contract
+            const promptResult: EnhancedPromptResult = {
+                originalPrompt: input,
+                enhancedPrompt: data.enhanced || data.result,
+                explanation: data.improvements || getDefaultExplanation(effectiveMode),
+                meta: {
+                    score: data.scores?.after || 85,
+                    model: selectedModel,
+                    mode: effectiveMode,
+                },
+            };
+
+            setResult(promptResult);
 
             addToHistory({
                 tool: 'spark',
                 action: `${selectedModifier || 'Spark'} enhancement`,
                 input: input.slice(0, 100) + (input.length > 100 ? '...' : ''),
-                output: (data.enhanced || data.result).slice(0, 100) + '...',
+                output: promptResult.enhancedPrompt.slice(0, 100) + '...',
             });
 
-            toast.success('Enhanced!');
         } catch {
-            const result = generateLocalEnhancement(input, effectiveMode);
-            setShouldAnimate(true);
-            setOutput(result.enhanced);
-            setQualityScore({ before: 35, after: 78 });
-            setImprovements(result.improvements);
+            // Fallback to local enhancement
+            const enhanced = generateLocalEnhancement(input, effectiveMode);
+            
+            const promptResult: EnhancedPromptResult = {
+                originalPrompt: input,
+                enhancedPrompt: enhanced,
+                explanation: getDefaultExplanation(effectiveMode),
+                meta: {
+                    score: 78,
+                    model: selectedModel,
+                    mode: effectiveMode,
+                },
+            };
+
+            setResult(promptResult);
 
             addToHistory({
                 tool: 'spark',
                 action: `${selectedModifier || 'Spark'} enhancement`,
                 input: input.slice(0, 100) + (input.length > 100 ? '...' : ''),
-                output: result.enhanced.slice(0, 100) + '...',
+                output: enhanced.slice(0, 100) + '...',
             });
-
-            toast.success('Enhanced!');
         } finally {
             setIsProcessing(false);
         }
     }, [input, selectedModifier, selectedModel, addToHistory]);
 
-    const handleCopy = useCallback(() => {
-        navigator.clipboard.writeText(output);
-        setCopied(true);
-        toast.success('Copied!');
-        setTimeout(() => setCopied(false), 2000);
-    }, [output]);
-
     const handleSave = useCallback(() => {
-        if (!output) return;
+        if (!result) return;
 
         addPrompt({
             title: input.slice(0, 50) + (input.length > 50 ? '...' : ''),
-            content: input,
-            enhancedContent: output,
+            content: result.originalPrompt,
+            enhancedContent: result.enhancedPrompt,
             tags: selectedModifier ? [selectedModifier, selectedModel] : [selectedModel],
             folder: 'Personal',
             starred: false,
             tool: 'spark',
-            metadata: { model: selectedModel, mode: selectedModifier || 'enhance' },
+            metadata: result.meta,
         });
 
         toast.success('Saved to Library!');
-    }, [input, output, selectedModifier, selectedModel, addPrompt]);
+    }, [input, result, selectedModifier, selectedModel, addPrompt]);
 
     const handleClear = () => {
         setInput('');
-        setOutput('');
-        setQualityScore(null);
-        setImprovements([]);
-        setShowOriginal(false);
-        setShowWhyBetter(false);
+        setResult(null);
+        setError(null);
         setShouldAnimate(false);
         if (inputRef.current) {
             inputRef.current.style.height = 'auto';
@@ -191,10 +187,8 @@ export default function SparkPage() {
 
     return (
         <div className="min-h-[calc(100vh-140px)] flex flex-col">
-            {/* ═══════════════════════════════════════════════════════════════
-                HEADER — Minimal, purposeful
-            ═══════════════════════════════════════════════════════════════ */}
-            <div className="flex items-center justify-between mb-8">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-2xl font-semibold text-white tracking-tight mb-1">
                         Transform your prompts
@@ -204,7 +198,6 @@ export default function SparkPage() {
                     </p>
                 </div>
 
-                {/* Settings Toggle */}
                 <button
                     onClick={() => setShowSettings(!showSettings)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all ${
@@ -218,11 +211,10 @@ export default function SparkPage() {
                 </button>
             </div>
 
-            {/* Settings Panel (collapsed by default) */}
+            {/* Settings Panel */}
             {showSettings && (
                 <div className="mb-6 p-5 bg-white/[0.02] rounded-2xl border border-white/[0.04]">
                     <div className="flex flex-wrap items-center gap-6">
-                        {/* Modifier Selection */}
                         <div className="flex items-center gap-3">
                             <span className="text-xs text-white/30 uppercase tracking-wider">Style</span>
                             <div className="flex items-center gap-1">
@@ -243,7 +235,6 @@ export default function SparkPage() {
                             </div>
                         </div>
 
-                        {/* Model Selection */}
                         <div className="flex items-center gap-3">
                             <span className="text-xs text-white/30 uppercase tracking-wider">Model</span>
                             <div className="flex items-center gap-1">
@@ -267,13 +258,10 @@ export default function SparkPage() {
                 </div>
             )}
 
-            {/* ═══════════════════════════════════════════════════════════════
-                MAIN WORKSPACE — Input → Output Flow
-            ═══════════════════════════════════════════════════════════════ */}
+            {/* Main Workspace */}
             <div className="flex-1 grid lg:grid-cols-2 gap-6 lg:gap-8">
                 {/* INPUT PANEL */}
                 <div className="flex flex-col">
-                    {/* Panel Label */}
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-amber-400/70" />
@@ -289,18 +277,15 @@ export default function SparkPage() {
                         )}
                     </div>
 
-                    {/* Input Area */}
                     <div className="flex-1 relative">
                         <textarea
                             ref={inputRef}
                             value={input}
                             onChange={handleInputChange}
                             placeholder="Type or paste your prompt here..."
-                            className="w-full min-h-[200px] p-6 bg-white/[0.02] border border-white/[0.06] rounded-2xl text-white/90 placeholder-white/20 resize-none focus:outline-none focus:border-white/[0.1] focus:bg-white/[0.03] transition-all text-[15px] leading-relaxed"
-                            style={{ height: 'auto' }}
+                            className="w-full min-h-[180px] p-5 bg-white/[0.02] border border-white/[0.06] rounded-2xl text-white/90 placeholder-white/20 resize-none focus:outline-none focus:border-white/[0.1] focus:bg-white/[0.03] transition-all text-[15px] leading-relaxed"
                         />
 
-                        {/* Examples — Only when empty */}
                         {!input && (
                             <div className="absolute bottom-4 left-4 right-4">
                                 <div className="flex flex-wrap gap-2">
@@ -321,7 +306,6 @@ export default function SparkPage() {
                         )}
                     </div>
 
-                    {/* Spark Button */}
                     <div className="mt-4">
                         <button
                             onClick={handleSpark}
@@ -344,114 +328,15 @@ export default function SparkPage() {
                     </div>
                 </div>
 
-                {/* TRANSFORMATION INDICATOR (Mobile) */}
-                <div className="flex lg:hidden items-center justify-center py-2">
-                    <ChevronRight className="w-6 h-6 text-white/20 rotate-90" />
-                </div>
-
-                {/* OUTPUT PANEL */}
+                {/* OUTPUT PANEL — Uses Global EnhancedPromptOutput */}
                 <div className="flex flex-col">
-                    {/* Panel Label */}
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full transition-colors ${output ? 'bg-emerald-400' : 'bg-white/20'}`} />
-                            <span className="text-sm text-white/50 font-medium">Enhanced prompt</span>
-                            {qualityScore && output && (
-                                <span className="px-2 py-0.5 text-xs font-medium text-emerald-400 bg-emerald-500/10 rounded-full">
-                                    +{qualityScore.after - qualityScore.before}% better
-                                </span>
-                            )}
-                        </div>
-                        {output && (
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={handleCopy}
-                                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-white/40 hover:text-white/60 hover:bg-white/[0.04] rounded-lg transition-colors"
-                                >
-                                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                                    {copied ? 'Copied' : 'Copy'}
-                                </button>
-                                <button
-                                    onClick={handleSave}
-                                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-violet-400/70 hover:text-violet-300 hover:bg-violet-500/10 rounded-lg transition-colors"
-                                >
-                                    <Save className="w-3.5 h-3.5" />
-                                    Save
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Output Area — Collapsible Sections */}
-                    <div ref={outputRef} className="flex-1 flex flex-col gap-3">
-                        {output ? (
-                            <>
-                                {/* SECTION 1: Original Prompt (Collapsed by default) */}
-                                <div className="rounded-xl border border-white/[0.04] overflow-hidden">
-                                    <button
-                                        onClick={() => setShowOriginal(!showOriginal)}
-                                        className="w-full flex items-center justify-between px-4 py-3 bg-white/[0.02] hover:bg-white/[0.03] transition-colors"
-                                    >
-                                        <span className="text-xs text-white/40 uppercase tracking-wider">Original Prompt</span>
-                                        <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${showOriginal ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {showOriginal && (
-                                        <div className="px-4 py-3 border-t border-white/[0.04]">
-                                            <p className="text-white/50 text-sm leading-relaxed">{input}</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* SECTION 2: Enhanced Prompt (Primary — Always Expanded, Animated) */}
-                                <div className="flex-1 min-h-[200px] p-6 rounded-2xl bg-gradient-to-br from-violet-500/[0.04] to-indigo-500/[0.02] border border-violet-500/10">
-                                    <EnhancedPromptRenderer
-                                        content={output}
-                                        animate={shouldAnimate}
-                                        onAnimationComplete={() => setShouldAnimate(false)}
-                                        className="text-white/90 text-[15px] leading-relaxed"
-                                        speed={50}
-                                    />
-                                </div>
-
-                                {/* SECTION 3: Why This Is Better (Collapsed by default) */}
-                                {improvements.length > 0 && (
-                                    <div className="rounded-xl border border-white/[0.04] overflow-hidden">
-                                        <button
-                                            onClick={() => setShowWhyBetter(!showWhyBetter)}
-                                            className="w-full flex items-center justify-between px-4 py-3 bg-white/[0.02] hover:bg-white/[0.03] transition-colors"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <Lightbulb className="w-3.5 h-3.5 text-amber-400/60" />
-                                                <span className="text-xs text-white/40 uppercase tracking-wider">Why This Is Better</span>
-                                            </div>
-                                            <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${showWhyBetter ? 'rotate-180' : ''}`} />
-                                        </button>
-                                        {showWhyBetter && (
-                                            <div className="px-4 py-3 border-t border-white/[0.04]">
-                                                <ul className="space-y-1.5">
-                                                    {improvements.map((imp, i) => (
-                                                        <li key={i} className="flex items-start gap-2 text-sm text-white/50">
-                                                            <span className="text-emerald-400 mt-0.5">✓</span>
-                                                            <span>{imp}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <div className="flex-1 min-h-[200px] p-6 rounded-2xl bg-white/[0.01] border border-white/[0.04] border-dashed flex flex-col items-center justify-center">
-                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 flex items-center justify-center mb-4">
-                                    <Sparkles className="w-6 h-6 text-violet-400/30" />
-                                </div>
-                                <p className="text-white/20 text-sm text-center">
-                                    Your enhanced prompt will appear here
-                                </p>
-                            </div>
-                        )}
-                    </div>
+                    <EnhancedPromptOutput
+                        result={result}
+                        animate={shouldAnimate}
+                        onAnimationComplete={() => setShouldAnimate(false)}
+                        onSave={handleSave}
+                        showSave={true}
+                    />
                 </div>
             </div>
 
@@ -467,11 +352,11 @@ export default function SparkPage() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Local Enhancement (Fallback) — Returns ENHANCED PROMPT, not meta instructions
+// Local Enhancement Logic
 // ═══════════════════════════════════════════════════════════════════════════
 
-function getDefaultImprovements(mode: string): string[] {
-    const improvementSets: Record<string, string[]> = {
+function getDefaultExplanation(mode: string): string[] {
+    const explanations: Record<string, string[]> = {
         enhance: [
             'Added clear context and scope',
             'Specified desired output format',
@@ -496,69 +381,45 @@ function getDefaultImprovements(mode: string): string[] {
             'Included actionable outcomes',
         ],
     };
-    return improvementSets[mode] || improvementSets.enhance;
+    return explanations[mode] || explanations.enhance;
 }
 
-function generateLocalEnhancement(input: string, mode: string): { enhanced: string; improvements: string[] } {
+function generateLocalEnhancement(input: string, mode: string): string {
     const inputLower = input.toLowerCase();
     const trimmed = input.trim();
-    
-    // ═══════════════════════════════════════════════════════════════════════
-    // ENHANCED PROMPT ONLY — No meta instructions, no system guidance
-    // Output is the FINAL prompt text the user will copy and use
-    // ═══════════════════════════════════════════════════════════════════════
-    
-    const enhance = (prompt: string): string => {
-        // Rewrite the prompt with added clarity and structure
-        if (inputLower.includes('write') || inputLower.includes('create')) {
-            // Extract the subject
-            const subject = prompt.replace(/^(write|create)\s+(a|an|the)?\s*/i, '').trim();
-            return `Write a well-structured ${subject} that is clear, engaging, and formatted with appropriate sections. Include relevant examples where helpful and maintain a consistent professional tone throughout.`;
-        }
-        
-        if (inputLower.includes('explain') || inputLower.includes('what is')) {
-            const topic = prompt.replace(/^(explain|what is|what are)\s+(a|an|the)?\s*/i, '').trim();
-            return `Explain ${topic} clearly, starting with a concise 2-3 sentence summary. Break down complex concepts into digestible parts, use real-world analogies, and conclude with the key takeaways.`;
-        }
-        
-        if (inputLower.includes('code') || inputLower.includes('function') || inputLower.includes('program')) {
-            return `${prompt}. Include clear comments explaining the logic, handle edge cases properly, follow language best practices, and provide a usage example.`;
-        }
-        
-        if (inputLower.includes('email') || inputLower.includes('message') || inputLower.includes('letter')) {
-            const purpose = prompt.replace(/^(write|create|draft)\s+(a|an|the)?\s*(email|message|letter)\s*/i, '').trim();
-            return `Draft a professional email about ${purpose || 'this topic'}. Open with a clear purpose statement, maintain an appropriate tone, include a specific call-to-action, and keep it concise.`;
-        }
-        
-        // Generic: Make it more specific and actionable
-        return `${prompt}. Provide a clear, well-organized response with specific actionable recommendations. Be comprehensive yet concise.`;
-    };
 
-    const expand = (prompt: string): string => {
-        return `Provide a comprehensive, in-depth analysis of: ${prompt}. Cover all relevant aspects thoroughly, include background context, explore multiple perspectives with detailed examples and case studies, address edge cases, reference best practices, and conclude with actionable recommendations. Use clear headings and organized sections.`;
-    };
+    if (mode === 'expand') {
+        return `Provide a comprehensive, in-depth analysis of: ${trimmed}. Cover all relevant aspects thoroughly, include background context, explore multiple perspectives with detailed examples and case studies, address edge cases, reference best practices, and conclude with actionable recommendations. Use clear headings and organized sections.`;
+    }
 
-    const simplify = (prompt: string): string => {
-        // Make the prompt direct and focused
+    if (mode === 'simplify') {
         const core = trimmed.replace(/please\s+/gi, '').replace(/could you\s+/gi, '').replace(/can you\s+/gi, '');
         return `${core}. Be brief and direct—focus only on the essentials.`;
-    };
+    }
 
-    const professional = (prompt: string): string => {
-        return `${prompt}. Structure the response as an executive briefing: lead with a summary, support points with evidence, use formal business language, include strategic recommendations, and conclude with clear next steps.`;
-    };
+    if (mode === 'professional') {
+        return `${trimmed}. Structure the response as an executive briefing: lead with a summary, support points with evidence, use formal business language, include strategic recommendations, and conclude with clear next steps.`;
+    }
 
-    const generators: Record<string, (p: string) => string> = {
-        enhance,
-        expand,
-        simplify,
-        professional,
-    };
+    // Default enhance mode
+    if (inputLower.includes('write') || inputLower.includes('create')) {
+        const subject = trimmed.replace(/^(write|create)\s+(a|an|the)?\s*/i, '').trim();
+        return `Write a well-structured ${subject} that is clear, engaging, and formatted with appropriate sections. Include relevant examples where helpful and maintain a consistent professional tone throughout.`;
+    }
 
-    const generator = generators[mode] || enhance;
-    
-    return {
-        enhanced: generator(trimmed),
-        improvements: getDefaultImprovements(mode),
-    };
+    if (inputLower.includes('explain') || inputLower.includes('what is')) {
+        const topic = trimmed.replace(/^(explain|what is|what are)\s+(a|an|the)?\s*/i, '').trim();
+        return `Explain ${topic} clearly, starting with a concise 2-3 sentence summary. Break down complex concepts into digestible parts, use real-world analogies, and conclude with the key takeaways.`;
+    }
+
+    if (inputLower.includes('code') || inputLower.includes('function') || inputLower.includes('program')) {
+        return `${trimmed}. Include clear comments explaining the logic, handle edge cases properly, follow language best practices, and provide a usage example.`;
+    }
+
+    if (inputLower.includes('email') || inputLower.includes('message') || inputLower.includes('letter')) {
+        const purpose = trimmed.replace(/^(write|create|draft)\s+(a|an|the)?\s*(email|message|letter)\s*/i, '').trim();
+        return `Draft a professional email about ${purpose || 'this topic'}. Open with a clear purpose statement, maintain an appropriate tone, include a specific call-to-action, and keep it concise.`;
+    }
+
+    return `${trimmed}. Provide a clear, well-organized response with specific actionable recommendations. Be comprehensive yet concise.`;
 }

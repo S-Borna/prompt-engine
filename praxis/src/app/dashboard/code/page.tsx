@@ -2,11 +2,10 @@
 
 import { useState } from 'react';
 import {
-    Code, Play, Copy, Check, Settings2, Sparkles,
-    FileCode, Bug, TestTube, BookOpen, Terminal, GitBranch,
-    ChevronDown, Zap, Download, Share2
+    Code, Sparkles, Bug, TestTube, BookOpen, Terminal, GitBranch, FileCode,
+    ChevronDown, Zap, Loader2
 } from 'lucide-react';
-import { EnhancedPromptRenderer } from '@/components/ui/TypeWriter';
+import { EnhancedPromptOutput, EnhancedPromptResult } from '@/components/ui/EnhancedPromptOutput';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CODE WHISPER - Developer-Focused Prompt Generation
@@ -35,88 +34,57 @@ export default function CodeWhisperPage() {
     const [mode, setMode] = useState('explain');
     const [language, setLanguage] = useState('TypeScript');
     const [code, setCode] = useState('');
-    const [output, setOutput] = useState('');
+    const [result, setResult] = useState<EnhancedPromptResult | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [copied, setCopied] = useState(false);
     const [shouldAnimate, setShouldAnimate] = useState(false);
 
     const handleGenerate = () => {
         if (!code.trim()) return;
         setIsProcessing(true);
+        setShouldAnimate(true);
 
         setTimeout(() => {
-            let prompt = '';
+            // Generate CLEAN enhanced prompt - no system instructions
+            let enhancedPrompt = '';
+            let explanation: string[] = [];
+
             switch (mode) {
                 case 'explain':
-                    prompt = `You are a senior ${language} developer and technical educator. Analyze and explain the following code:
-
-\`\`\`${language.toLowerCase()}
-${code}
-\`\`\`
-
-**Provide a comprehensive explanation including:**
-
-1. **Overview** - What this code does at a high level
-2. **Line-by-Line Breakdown** - Explain each significant section
-3. **Key Concepts** - Important patterns or techniques used
-4. **Potential Issues** - Any bugs, edge cases, or improvements
-5. **Best Practices** - How this code follows or deviates from standards
-
-Use clear, beginner-friendly language while being technically accurate. Include code comments where helpful.`;
+                    enhancedPrompt = `Explain this ${language} code clearly. Start with a high-level overview, then break down each significant section. Identify key patterns, potential issues, and how it aligns with best practices.\n\n\`\`\`${language.toLowerCase()}\n${code}\n\`\`\``;
+                    explanation = ['Added structure for explanation', 'Specified code context', 'Requested best practices review'];
                     break;
                 case 'debug':
-                    prompt = `You are an expert debugger specializing in ${language}. Analyze this code for bugs and issues:
-
-\`\`\`${language.toLowerCase()}
-${code}
-\`\`\`
-
-**Perform a thorough debugging analysis:**
-
-1. **Syntax Errors** - Any syntax issues preventing compilation/execution
-2. **Logic Bugs** - Flawed logic that produces incorrect results
-3. **Edge Cases** - Unhandled scenarios that could cause failures
-4. **Performance Issues** - Inefficient code patterns
-5. **Security Vulnerabilities** - Potential security risks
-
-For each issue found:
-- Describe the problem clearly
-- Explain why it's problematic
-- Provide the corrected code
-- Suggest preventive measures`;
+                    enhancedPrompt = `Debug this ${language} code. Identify syntax errors, logic bugs, unhandled edge cases, performance issues, and security vulnerabilities. For each issue, explain the problem, why it matters, and provide the corrected code.\n\n\`\`\`${language.toLowerCase()}\n${code}\n\`\`\``;
+                    explanation = ['Structured debugging approach', 'Requested fixes with explanations', 'Added security review'];
                     break;
                 case 'test':
-                    prompt = `You are a test-driven development expert for ${language}. Generate comprehensive tests for:
-
-\`\`\`${language.toLowerCase()}
-${code}
-\`\`\`
-
-**Generate a complete test suite including:**
-
-1. **Unit Tests** - Test each function/method in isolation
-2. **Edge Cases** - Boundary conditions and unusual inputs
-3. **Error Handling** - Verify proper error responses
-4. **Integration Points** - Test interactions between components
-
-Use the appropriate testing framework (Jest/Mocha for JS/TS, pytest for Python, etc.)
-Include setup/teardown, mocking, and clear test descriptions.`;
+                    enhancedPrompt = `Generate a comprehensive test suite for this ${language} code. Include unit tests, edge cases, error handling, and integration tests using the appropriate framework.\n\n\`\`\`${language.toLowerCase()}\n${code}\n\`\`\``;
+                    explanation = ['Added test coverage scope', 'Specified framework usage', 'Included edge cases'];
+                    break;
+                case 'refactor':
+                    enhancedPrompt = `Refactor this ${language} code to improve readability, performance, and maintainability. Apply SOLID principles, reduce complexity, and add clear documentation.\n\n\`\`\`${language.toLowerCase()}\n${code}\n\`\`\``;
+                    explanation = ['Added refactoring goals', 'Specified SOLID principles', 'Requested documentation'];
+                    break;
+                case 'document':
+                    enhancedPrompt = `Add comprehensive documentation to this ${language} code. Include JSDoc/docstrings, inline comments for complex logic, and a README-style overview.\n\n\`\`\`${language.toLowerCase()}\n${code}\n\`\`\``;
+                    explanation = ['Specified documentation format', 'Requested inline comments', 'Added overview requirement'];
                     break;
                 default:
-                    prompt = `Analyze this ${language} code:\n\`\`\`\n${code}\n\`\`\``;
+                    enhancedPrompt = `Analyze this ${language} code and provide insights.\n\n\`\`\`${language.toLowerCase()}\n${code}\n\`\`\``;
+                    explanation = ['Added analysis context'];
             }
 
-            setShouldAnimate(true);
-            setOutput(prompt);
+            setResult({
+                originalPrompt: `${modes.find(m => m.id === mode)?.name}: ${code.slice(0, 50)}...`,
+                enhancedPrompt,
+                explanation,
+                meta: { mode, model: language },
+            });
             setIsProcessing(false);
-        }, 1200);
+        }, 800);
     };
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(output);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
+    
 
     return (
         <div className="space-y-6">
@@ -210,54 +178,16 @@ function example() {
                     </div>
                 </div>
 
-                {/* Output */}
+                {/* Output — Uses Global EnhancedPromptOutput */}
                 <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] overflow-hidden">
-                    <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-emerald-400" />
-                            <span className="font-semibold text-white">Generated Prompt</span>
-                        </div>
-                        {output && (
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={handleCopy}
-                                    className="flex items-center gap-1 px-3 py-1.5 text-sm text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
-                                >
-                                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                    {copied ? 'Copied!' : 'Copy'}
-                                </button>
-                            </div>
-                        )}
+                    <div className="p-5">
+                        <EnhancedPromptOutput
+                            result={result}
+                            animate={shouldAnimate}
+                            onAnimationComplete={() => setShouldAnimate(false)}
+                            showSave={false}
+                        />
                     </div>
-                    <div className="h-80 p-5 overflow-y-auto">
-                        {output ? (
-                            <EnhancedPromptRenderer
-                                content={output}
-                                animate={shouldAnimate}
-                                onAnimationComplete={() => setShouldAnimate(false)}
-                                className="text-white/80 text-sm leading-relaxed"
-                                speed={60}
-                            />
-                        ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-center">
-                                <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center mb-4">
-                                    <Code className="w-8 h-8 text-emerald-400" />
-                                </div>
-                                <p className="text-white/60 mb-2">Your optimized prompt will appear here</p>
-                                <p className="text-sm text-white/40">Paste code and select a mode to get started</p>
-                            </div>
-                        )}
-                    </div>
-                    {output && (
-                        <div className="px-5 py-4 bg-white/5 border-t border-white/10">
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="flex items-center gap-1 text-emerald-400">
-                                    <Zap className="w-4 h-4" />
-                                    Optimized for {language}
-                                </span>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
 
