@@ -151,9 +151,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* ═══════════════════════════════════════════════════════════════
                 SIDEBAR — Receding navigation
             ═══════════════════════════════════════════════════════════════ */}
-            <aside className={`fixed left-0 top-0 bottom-0 z-40 bg-[#09090b] border-r border-white/[0.04] transition-all duration-300 ${
+            <aside className={`fixed left-0 top-0 bottom-0 z-40 bg-[#09090b] border-r border-white/[0.04] transition-all duration-300 flex flex-col ${
                 sidebarCollapsed ? 'w-[72px]' : 'w-[260px]'
-            } ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+            } ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
                 
                 {/* Logo */}
                 <div className={`h-16 flex items-center border-b border-white/[0.04] ${sidebarCollapsed ? 'justify-center px-0' : 'px-5'}`}>
@@ -293,7 +293,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* ═══════════════════════════════════════════════════════════════
                 MAIN WORKSPACE
             ═══════════════════════════════════════════════════════════════ */}
-            <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[260px]'}`}>
+            <div className={`min-h-screen transition-all duration-300 pl-0 ${sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[260px]'}`}>
                 {/* Top Bar */}
                 <header className="sticky top-0 z-30 h-16 bg-[#09090b]/80 backdrop-blur-xl border-b border-white/[0.04]">
                     <div className="h-full px-6 flex items-center justify-between gap-4">
