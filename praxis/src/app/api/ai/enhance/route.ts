@@ -195,14 +195,17 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const {
             rawPrompt,
+            prompt,
             platform = 'general',
             mode = 'improve',
             refinementAnswers = null,
         } = body;
 
-        if (!rawPrompt || rawPrompt.trim().length === 0) {
+        const inputPrompt = rawPrompt || prompt;
+
+        if (!inputPrompt || inputPrompt.trim().length === 0) {
             return NextResponse.json(
-                { error: 'Raw prompt is required' },
+                { error: 'Prompt is required' },
                 { status: 400 }
             );
         }
@@ -240,7 +243,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Use TRIPOD engine for enhancement
-        const result = enhanceWithTripod(rawPrompt, platform, refinementAnswers);
+        const result = enhanceWithTripod(inputPrompt, platform, refinementAnswers);
 
         return NextResponse.json({
             success: true,
