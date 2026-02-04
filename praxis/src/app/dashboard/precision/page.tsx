@@ -58,13 +58,13 @@ export default function PrecisionPage() {
     const handleGenerate = () => {
         setIsGenerating(true);
         setShouldAnimate(true);
-        
+
         setTimeout(() => {
             const goalInfo = goals.find(g => g.id === goal);
-            
+
             // Build CLEAN enhanced prompt - no meta headers, no system instructions
             let enhancedPrompt = '';
-            
+
             if (goal === 'persuade') {
                 enhancedPrompt = `Write a persuasive ${format.toLowerCase()} about ${topic} for ${audience.toLowerCase()}. Use a ${tone.toLowerCase()} tone, incorporate compelling evidence and clear reasoning. Make it memorable and actionable.${constraints ? ` Additional context: ${constraints}` : ''}`;
             } else if (goal === 'educate') {
@@ -76,7 +76,7 @@ export default function PrecisionPage() {
             } else {
                 enhancedPrompt = `Start an engaging conversation about ${topic} with ${audience.toLowerCase()}. Use a ${format.toLowerCase()} format and ${tone.toLowerCase()} tone. Ask thought-provoking questions and encourage interaction.${constraints ? ` Additional context: ${constraints}` : ''}`;
             }
-            
+
             setResult({
                 originalPrompt: `${goalInfo?.name}: ${topic}`,
                 enhancedPrompt,

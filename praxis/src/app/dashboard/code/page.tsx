@@ -84,7 +84,7 @@ export default function CodeWhisperPage() {
         }, 800);
     };
 
-    
+
 
     return (
         <div className="space-y-6">

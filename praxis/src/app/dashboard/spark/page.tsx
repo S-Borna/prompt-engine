@@ -40,7 +40,7 @@ export default function SparkPage() {
     const [error, setError] = useState<string | null>(null);
     const [showSettings, setShowSettings] = useState(false);
     const [shouldAnimate, setShouldAnimate] = useState(false);
-    
+
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
     const { addPrompt, addToHistory } = usePromptStore();
@@ -97,7 +97,7 @@ export default function SparkPage() {
             }
 
             const data = await response.json();
-            
+
             // Build the result per contract
             const promptResult: EnhancedPromptResult = {
                 originalPrompt: input,
@@ -122,7 +122,7 @@ export default function SparkPage() {
         } catch {
             // Fallback to local enhancement
             const enhanced = generateLocalEnhancement(input, effectiveMode);
-            
+
             const promptResult: EnhancedPromptResult = {
                 originalPrompt: input,
                 enhancedPrompt: enhanced,
@@ -200,11 +200,10 @@ export default function SparkPage() {
 
                 <button
                     onClick={() => setShowSettings(!showSettings)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all ${
-                        showSettings 
-                            ? 'bg-white/[0.06] text-white/70' 
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all ${showSettings
+                            ? 'bg-white/[0.06] text-white/70'
                             : 'text-white/30 hover:text-white/50 hover:bg-white/[0.03]'
-                    }`}
+                        }`}
                 >
                     <Settings className="w-4 h-4" />
                     <span className="hidden sm:inline">Settings</span>
@@ -222,11 +221,10 @@ export default function SparkPage() {
                                     <button
                                         key={mod.id}
                                         onClick={() => setSelectedModifier(selectedModifier === mod.id ? null : mod.id)}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                                            selectedModifier === mod.id
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selectedModifier === mod.id
                                                 ? 'bg-violet-500/20 text-violet-300'
                                                 : 'text-white/40 hover:text-white/60 hover:bg-white/[0.04]'
-                                        }`}
+                                            }`}
                                     >
                                         <mod.icon className="w-3 h-3" />
                                         {mod.name}
@@ -242,11 +240,10 @@ export default function SparkPage() {
                                     <button
                                         key={model.id}
                                         onClick={() => setSelectedModel(model.id)}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
-                                            selectedModel === model.id
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${selectedModel === model.id
                                                 ? 'bg-white/[0.06] text-white/70'
                                                 : 'text-white/30 hover:text-white/50'
-                                        }`}
+                                            }`}
                                     >
                                         <span>{model.icon}</span>
                                         {model.name}
