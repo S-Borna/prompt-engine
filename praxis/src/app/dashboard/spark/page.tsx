@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usePromptStore } from '@/lib/prompt-store';
+import { EnhancedPromptRenderer } from '@/components/ui/TypeWriter';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SPARK — Flagship Prompt Enhancement Experience
@@ -44,6 +45,7 @@ export default function SparkPage() {
     const [showOriginal, setShowOriginal] = useState(false);
     const [showWhyBetter, setShowWhyBetter] = useState(false);
     const [improvements, setImprovements] = useState<string[]>([]);
+    const [shouldAnimate, setShouldAnimate] = useState(false);
     
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const outputRef = useRef<HTMLDivElement>(null);
@@ -106,6 +108,7 @@ export default function SparkPage() {
             }
 
             const data = await response.json();
+            setShouldAnimate(true);
             setOutput(data.enhanced || data.result);
             setQualityScore(data.scores || { before: 35, after: 85 });
             setImprovements(data.improvements || getDefaultImprovements(effectiveMode));
@@ -120,6 +123,7 @@ export default function SparkPage() {
             toast.success('Enhanced!');
         } catch {
             const result = generateLocalEnhancement(input, effectiveMode);
+            setShouldAnimate(true);
             setOutput(result.enhanced);
             setQualityScore({ before: 35, after: 78 });
             setImprovements(result.improvements);
@@ -168,6 +172,7 @@ export default function SparkPage() {
         setImprovements([]);
         setShowOriginal(false);
         setShowWhyBetter(false);
+        setShouldAnimate(false);
         if (inputRef.current) {
             inputRef.current.style.height = 'auto';
         }
@@ -397,11 +402,15 @@ export default function SparkPage() {
                                     )}
                                 </div>
 
-                                {/* SECTION 2: Enhanced Prompt (Primary — Always Expanded) */}
+                                {/* SECTION 2: Enhanced Prompt (Primary — Always Expanded, Animated) */}
                                 <div className="flex-1 min-h-[200px] p-6 rounded-2xl bg-gradient-to-br from-violet-500/[0.04] to-indigo-500/[0.02] border border-violet-500/10">
-                                    <pre className="text-white/90 whitespace-pre-wrap text-[15px] leading-relaxed font-sans">
-                                        {output}
-                                    </pre>
+                                    <EnhancedPromptRenderer
+                                        content={output}
+                                        animate={shouldAnimate}
+                                        onAnimationComplete={() => setShouldAnimate(false)}
+                                        className="text-white/90 text-[15px] leading-relaxed"
+                                        speed={50}
+                                    />
                                 </div>
 
                                 {/* SECTION 3: Why This Is Better (Collapsed by default) */}

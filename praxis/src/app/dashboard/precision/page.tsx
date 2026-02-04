@@ -5,6 +5,7 @@ import {
     Target, ChevronRight, Sparkles, Check, ArrowRight,
     MessageSquare, Users, FileText, Lightbulb, Zap, Copy
 } from 'lucide-react';
+import { EnhancedPromptRenderer } from '@/components/ui/TypeWriter';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRECISION - Goal-Driven Prompt Optimizer
@@ -44,6 +45,7 @@ export default function PrecisionPage() {
     const [constraints, setConstraints] = useState('');
     const [generatedPrompt, setGeneratedPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
+    const [shouldAnimate, setShouldAnimate] = useState(false);
 
     const goalColors: Record<string, string> = {
         red: 'border-red-500 bg-red-500/20 text-red-400',
@@ -78,6 +80,7 @@ ${goal === 'engage' ? `Start an engaging dialogue about ${topic} with ${audience
 - Key points are memorable and actionable
 - Format enhances readability and engagement`;
 
+            setShouldAnimate(true);
             setGeneratedPrompt(prompt);
             setIsGenerating(false);
             setStep(5);
@@ -274,9 +277,13 @@ ${goal === 'engage' ? `Start an engaging dialogue about ${topic} with ${audience
                         </div>
 
                         <div className="bg-white/5 rounded-xl border border-white/10 p-6">
-                            <pre className="whitespace-pre-wrap text-white/80 text-sm leading-relaxed font-sans">
-                                {generatedPrompt}
-                            </pre>
+                            <EnhancedPromptRenderer
+                                content={generatedPrompt}
+                                animate={shouldAnimate}
+                                onAnimationComplete={() => setShouldAnimate(false)}
+                                className="text-white/80 text-sm leading-relaxed"
+                                speed={55}
+                            />
                         </div>
 
                         <div className="bg-gradient-to-r from-red-500/10 to-pink-500/10 rounded-xl border border-red-500/20 p-5">
@@ -297,7 +304,7 @@ ${goal === 'engage' ? `Start an engaging dialogue about ${topic} with ${audience
                         </div>
 
                         <button
-                            onClick={() => { setStep(1); setGeneratedPrompt(''); }}
+                            onClick={() => { setStep(1); setGeneratedPrompt(''); setShouldAnimate(false); }}
                             className="text-white/50 hover:text-white/70"
                         >
                             ← Start Over

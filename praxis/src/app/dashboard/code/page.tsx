@@ -6,6 +6,7 @@ import {
     FileCode, Bug, TestTube, BookOpen, Terminal, GitBranch,
     ChevronDown, Zap, Download, Share2
 } from 'lucide-react';
+import { EnhancedPromptRenderer } from '@/components/ui/TypeWriter';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CODE WHISPER - Developer-Focused Prompt Generation
@@ -37,6 +38,7 @@ export default function CodeWhisperPage() {
     const [output, setOutput] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [shouldAnimate, setShouldAnimate] = useState(false);
 
     const handleGenerate = () => {
         if (!code.trim()) return;
@@ -104,6 +106,7 @@ Include setup/teardown, mocking, and clear test descriptions.`;
                     prompt = `Analyze this ${language} code:\n\`\`\`\n${code}\n\`\`\``;
             }
 
+            setShouldAnimate(true);
             setOutput(prompt);
             setIsProcessing(false);
         }, 1200);
@@ -228,9 +231,13 @@ function example() {
                     </div>
                     <div className="h-80 p-5 overflow-y-auto">
                         {output ? (
-                            <pre className="whitespace-pre-wrap text-white/80 text-sm leading-relaxed font-sans">
-                                {output}
-                            </pre>
+                            <EnhancedPromptRenderer
+                                content={output}
+                                animate={shouldAnimate}
+                                onAnimationComplete={() => setShouldAnimate(false)}
+                                className="text-white/80 text-sm leading-relaxed"
+                                speed={60}
+                            />
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-center">
                                 <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center mb-4">
