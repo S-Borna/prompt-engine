@@ -1,0 +1,26 @@
+{
+    "$schema": "node_modules/wrangler/config-schema.json",
+    "name": "praxis",
+    "main": ".open-next/worker.js",
+    "compatibility_date": "2024-12-01",
+    "compatibility_flags": [
+        "nodejs_compat"
+    ],
+    "assets": {
+        "binding": "ASSETS",
+        "directory": ".open-next/assets"
+    },
+    "kv_namespaces": [
+        {
+            "binding": "NEXT_INC_CACHE_KV",
+            "id": "df408b9d575f4a189d57d7a23cbc2ef9"
+        }
+    ],
+    // Uncomment for custom domain
+    // "routes": [
+    //   { "pattern": "praxis.se", "custom_domain": true }
+    // ],
+    "observability": {
+        "enabled": true
+    }
+}

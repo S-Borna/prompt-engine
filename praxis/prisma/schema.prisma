@@ -1,0 +1,295 @@
+// Prisma Schema for PRAXIS
+// Database: Railway Postgres
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// AUTH.JS (NextAuth) MODELS
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // For credentials provider
+
+  // PRAXIS specific fields
+  tier          UserTier  @default(FREE)
+  xp            Int       @default(0)
+  level         Int       @default(1)
+  streak        Int       @default(0)
+  lastActiveAt  DateTime?
+  promptsUsedToday Int    @default(0)
+  promptsResetAt   DateTime?
+
+  // Stripe
+  stripeCustomerId    String?   @unique
+  stripeSubscriptionId String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  prompts       Prompt[]
+  analyses      PromptAnalysis[]
+  teamMemberships TeamMember[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================
+// PRAXIS MODELS
+// ============================================
+
+enum UserTier {
+  FREE
+  PRO
+  TEAM
+  ENTERPRISE
+}
+
+enum AnalysisGrade {
+  F
+  D
+  C
+  B
+  A
+  A_PLUS
+}
+
+model Prompt {
+  id          String   @id @default(cuid())
+  userId      String
+
+  // TRIPOD fields
+  task        String?
+  role        String?
+  instructions String?
+  parameters  String?
+  output      String?
+  danger      String?
+
+  // Generated prompt
+  fullPrompt  String   @db.Text
+
+  // Metadata
+  title       String?
+  tags        String[] @default([])
+  isPublic    Boolean  @default(false)
+  isFavorite  Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analyses    PromptAnalysis[]
+  sharedWith  SharedPrompt[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("prompts")
+}
+
+model PromptAnalysis {
+  id        String   @id @default(cuid())
+  promptId  String
+  userId    String
+
+  // Analysis results
+  score     Int      // 0-100
+  grade     AnalysisGrade
+
+  // TRIPOD component scores
+  taskScore        Int @default(0)
+  roleScore        Int @default(0)
+  instructionsScore Int @default(0)
+  parametersScore  Int @default(0)
+  outputScore      Int @default(0)
+  dangerScore      Int @default(0)
+
+  // Issues found
+  issues    Json     @default("[]")
+
+  // Suggestions
+  suggestions Json   @default("[]")
+
+  // Improved prompt
+  improvedPrompt String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  prompt    Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([promptId])
+  @@index([userId])
+  @@map("prompt_analyses")
+}
+
+// ============================================
+// TEAM FEATURES
+// ============================================
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+
+  maxMembers  Int      @default(10)
+
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     TeamMember[]
+  sharedPrompts SharedPrompt[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      TeamRole @default(MEMBER)
+
+  joinedAt  DateTime @default(now())
+
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model SharedPrompt {
+  id        String   @id @default(cuid())
+  promptId  String
+  teamId    String
+
+  sharedAt  DateTime @default(now())
+  sharedBy  String
+
+  prompt    Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([promptId, teamId])
+  @@map("shared_prompts")
+}
+
+// ============================================
+// CHALLENGE SYSTEM
+// ============================================
+
+model Challenge {
+  id          String   @id @default(cuid())
+
+  title       String
+  description String   @db.Text
+  difficulty  ChallengeDifficulty
+  category    String
+
+  scenario    String   @db.Text
+  hints       String[] @default([])
+  exampleSolution String? @db.Text
+
+  minScore    Int      @default(70)
+  xpReward    Int      @default(100)
+
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  attempts    ChallengeAttempt[]
+
+  @@map("challenges")
+}
+
+enum ChallengeDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+model ChallengeAttempt {
+  id          String   @id @default(cuid())
+  challengeId String
+  userId      String
+
+  prompt      String   @db.Text
+  score       Int
+  passed      Boolean
+  feedback    Json     @default("{}")
+
+  xpAwarded   Int      @default(0)
+
+  attemptedAt DateTime @default(now())
+
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@index([challengeId])
+  @@index([userId])
+  @@map("challenge_attempts")
+}

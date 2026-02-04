@@ -1,0 +1,328 @@
+'use client';
+
+import { useState } from 'react';
+import {
+    Settings, User, Bell, Shield, Key, Globe,
+    ChevronRight, Check, Moon, Sun, Monitor, Save, Info
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SETTINGS - Account & Preferences
+// Dark theme unified with landing page - All inputs working
+// ═══════════════════════════════════════════════════════════════════════════
+
+const themes = [
+    { id: 'light', name: 'Light', icon: Sun },
+    { id: 'dark', name: 'Dark', icon: Moon },
+    { id: 'system', name: 'System', icon: Monitor },
+];
+
+export default function SettingsPage() {
+    const [activeTab, setActiveTab] = useState('profile');
+    const [theme, setTheme] = useState('dark');
+
+    // Profile state
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [email, setEmail] = useState('');
+    const [bio, setBio] = useState('');
+
+    // Notifications state
+    const [notifications, setNotifications] = useState({
+        email: true,
+        push: false,
+        updates: true,
+        tips: true,
+    });
+
+    // API Keys state
+    const [openaiKey, setOpenaiKey] = useState('');
+    const [anthropicKey, setAnthropicKey] = useState('');
+
+    const tabs = [
+        { id: 'profile', name: 'Profile', icon: User },
+        { id: 'notifications', name: 'Notifications', icon: Bell },
+        { id: 'appearance', name: 'Appearance', icon: Moon },
+        { id: 'security', name: 'Security', icon: Shield },
+        { id: 'api', name: 'API Keys', icon: Key },
+        { id: 'language', name: 'Language', icon: Globe },
+    ];
+
+    const handleSaveProfile = () => {
+        toast.success('Profile saved (demo mode)');
+    };
+
+    const handleSaveApiKeys = () => {
+        toast.success('API keys saved (demo mode)');
+    };
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-gray-500 to-gray-700 flex items-center justify-center">
+                    <Settings className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Settings</h1>
+                    <p className="text-white/50">Manage your account and preferences</p>
+                </div>
+            </div>
+
+            <div className="flex gap-6">
+                {/* Sidebar */}
+                <div className="w-64 flex-shrink-0">
+                    <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-3">
+                        <div className="space-y-1">
+                            {tabs.map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === tab.id
+                                        ? 'bg-violet-500/20 text-violet-400'
+                                        : 'hover:bg-white/5 text-white/70'
+                                        }`}
+                                >
+                                    <tab.icon className="w-5 h-5" />
+                                    <span className="font-medium">{tab.name}</span>
+                                    <ChevronRight className={`w-4 h-4 ml-auto ${activeTab === tab.id ? 'text-violet-400' : 'text-white/30'}`} />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1">
+                    {activeTab === 'profile' && (
+                        <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-6 space-y-6">
+                            <h2 className="text-lg font-semibold text-white">Profile Settings</h2>
+
+                            <div className="flex items-center gap-6">
+                                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold">
+                                    {firstName ? firstName.charAt(0).toUpperCase() : 'U'}
+                                </div>
+                                <div>
+                                    <button
+                                        onClick={() => toast('Avatar upload coming soon', { icon: '📷' })}
+                                        className="px-4 py-2 bg-violet-500/20 text-violet-400 font-medium rounded-xl hover:bg-violet-500/30"
+                                    >
+                                        Change Avatar
+                                    </button>
+                                    <p className="text-sm text-white/40 mt-2">JPG, PNG or GIF. Max 2MB.</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-white/70 mb-2">First Name</label>
+                                    <input
+                                        type="text"
+                                        value={firstName}
+                                        onChange={(e) => setFirstName(e.target.value)}
+                                        placeholder="John"
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-white/70 mb-2">Last Name</label>
+                                    <input
+                                        type="text"
+                                        value={lastName}
+                                        onChange={(e) => setLastName(e.target.value)}
+                                        placeholder="Doe"
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-white/70 mb-2">Email</label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="john@example.com"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-white/70 mb-2">Bio</label>
+                                <textarea
+                                    rows={3}
+                                    value={bio}
+                                    onChange={(e) => setBio(e.target.value)}
+                                    placeholder="Tell us about yourself..."
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50 resize-none"
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleSaveProfile}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-500 text-white text-sm font-semibold rounded-[10px] hover:shadow-lg hover:shadow-violet-500/30 transition-all"
+                            >
+                                <Save className="w-5 h-5" />
+                                Save Changes
+                            </button>
+                        </div>
+                    )}
+
+                    {activeTab === 'notifications' && (
+                        <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-6 space-y-6">
+                            <h2 className="text-lg font-semibold text-white">Notification Preferences</h2>
+
+                            <div className="space-y-4">
+                                {[
+                                    { key: 'email', title: 'Email Notifications', desc: 'Receive updates via email' },
+                                    { key: 'push', title: 'Push Notifications', desc: 'Browser push notifications' },
+                                    { key: 'updates', title: 'Product Updates', desc: 'New features and improvements' },
+                                    { key: 'tips', title: 'Tips & Tutorials', desc: 'Helpful prompting tips' },
+                                ].map((item) => (
+                                    <div key={item.key} className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
+                                        <div>
+                                            <h3 className="font-medium text-white">{item.title}</h3>
+                                            <p className="text-sm text-white/50">{item.desc}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setNotifications(prev => ({ ...prev, [item.key]: !prev[item.key as keyof typeof prev] }))}
+                                            className={`w-14 h-8 rounded-full transition-all ${notifications[item.key as keyof typeof notifications]
+                                                ? 'bg-violet-500'
+                                                : 'bg-white/20'
+                                                }`}
+                                        >
+                                            <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-all ${notifications[item.key as keyof typeof notifications] ? 'translate-x-7' : 'translate-x-1'
+                                                }`} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'appearance' && (
+                        <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-6 space-y-6">
+                            <h2 className="text-lg font-semibold text-white">Appearance</h2>
+
+                            <div>
+                                <label className="block text-sm font-medium text-white/70 mb-3">Theme</label>
+                                <div className="grid grid-cols-3 gap-4">
+                                    {themes.map((t) => (
+                                        <button
+                                            key={t.id}
+                                            onClick={() => setTheme(t.id)}
+                                            className={`p-4 rounded-xl border-2 transition-all ${theme === t.id
+                                                ? 'border-violet-500 bg-violet-500/10'
+                                                : 'border-white/10 hover:border-white/20'
+                                                }`}
+                                        >
+                                            <div className="flex items-center justify-center gap-2 mb-2">
+                                                <t.icon className="w-5 h-5 text-white/80" />
+                                            </div>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <span className="font-medium text-white">{t.name}</span>
+                                                {theme === t.id && <Check className="w-4 h-4 text-violet-400" />}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm text-white/40">
+                                <Info className="w-4 h-4" />
+                                <span>Theme settings will be applied in a future update</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'security' && (
+                        <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-6 space-y-6">
+                            <h2 className="text-lg font-semibold text-white">Security</h2>
+
+                            <div className="p-4 bg-white/5 border border-white/10 rounded-xl">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
+                                        <Shield className="w-5 h-5 text-white/60" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-medium text-white">Two-Factor Authentication</h3>
+                                        <p className="text-sm text-white/50">Not available in demo mode</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm text-white/40">
+                                <Info className="w-4 h-4" />
+                                <span>Security features require a production database</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'api' && (
+                        <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-6 space-y-6">
+                            <h2 className="text-lg font-semibold text-white">API Keys</h2>
+                            <p className="text-white/50">Connect your own AI providers for enhanced usage</p>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-white/70 mb-2">OpenAI API Key</label>
+                                    <input
+                                        type="password"
+                                        value={openaiKey}
+                                        onChange={(e) => setOpenaiKey(e.target.value)}
+                                        placeholder="sk-..."
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 font-mono focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-white/70 mb-2">Anthropic API Key</label>
+                                    <input
+                                        type="password"
+                                        value={anthropicKey}
+                                        onChange={(e) => setAnthropicKey(e.target.value)}
+                                        placeholder="sk-ant-..."
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 font-mono focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50"
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleSaveApiKeys}
+                                className="px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white font-semibold rounded-xl"
+                            >
+                                Save API Keys
+                            </button>
+
+                            <div className="flex items-center gap-2 text-sm text-white/40">
+                                <Info className="w-4 h-4" />
+                                <span>API keys are stored locally in demo mode</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'language' && (
+                        <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-6 space-y-6">
+                            <h2 className="text-lg font-semibold text-white">Language & Region</h2>
+
+                            <div>
+                                <label className="block text-sm font-medium text-white/70 mb-2">Interface Language</label>
+                                <select className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500/30">
+                                    <option value="en">English</option>
+                                    <option value="es">Spanish</option>
+                                    <option value="fr">French</option>
+                                    <option value="de">German</option>
+                                </select>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm text-white/40">
+                                <Info className="w-4 h-4" />
+                                <span>Additional languages coming soon</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
