@@ -1,37 +1,34 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
-    Wand2, Sparkles, Copy, Save, Check, ArrowRight,
-    Zap, Star, Loader2, AlertCircle, Settings
+    Sparkles, Copy, Save, Check, ArrowRight,
+    Zap, Star, Loader2, AlertCircle, Settings, ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usePromptStore } from '@/lib/prompt-store';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SPARK - Instant Prompt Enhancement
-// Dark theme unified with landing page
+// SPARK — Flagship Prompt Enhancement Experience
+// Premium workspace with elastic Input → Output flow
 // ═══════════════════════════════════════════════════════════════════════════
 
 const models = [
-    { id: 'gpt4', name: 'GPT-4', icon: '🤖', desc: 'Best overall' },
-    { id: 'claude', name: 'Claude 3.5', icon: '🧠', desc: 'Best for nuance' },
-    { id: 'gemini', name: 'Gemini Pro', icon: '✨', desc: 'Best for speed' },
+    { id: 'gpt4', name: 'GPT-4', icon: '🤖' },
+    { id: 'claude', name: 'Claude 3.5', icon: '🧠' },
+    { id: 'gemini', name: 'Gemini Pro', icon: '✨' },
 ];
 
-// Modifiers are OPTIONAL - user can select one to adjust how Spark improves their prompt
-// Default: no modifier selected (pure enhancement)
 const modifiers = [
-    { id: 'expand', name: 'Expand', desc: 'Add more detail', icon: ArrowRight, color: 'blue' },
-    { id: 'simplify', name: 'Simplify', desc: 'Make it concise', icon: Zap, color: 'emerald' },
-    { id: 'professional', name: 'Professional', desc: 'Business tone', icon: Star, color: 'amber' },
+    { id: 'expand', name: 'Expand', icon: ArrowRight },
+    { id: 'simplify', name: 'Simplify', icon: Zap },
+    { id: 'professional', name: 'Professional', icon: Star },
 ];
 
 const examplePrompts = [
     "Write a function to sort an array",
-    "Explain machine learning to a beginner",
-    "Create a marketing email for a product launch",
-    "Summarize this article for executives",
+    "Explain machine learning simply",
+    "Create a marketing email",
 ];
 
 export default function SparkPage() {
@@ -39,13 +36,21 @@ export default function SparkPage() {
     const [output, setOutput] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [selectedModel, setSelectedModel] = useState('gpt4');
-    const [selectedModifier, setSelectedModifier] = useState<string | null>(null); // null = no modifier (pure enhancement)
+    const [selectedModifier, setSelectedModifier] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [qualityScore, setQualityScore] = useState<{ before: number; after: number } | null>(null);
-    const [showAdvanced, setShowAdvanced] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
+    
+    const inputRef = useRef<HTMLTextAreaElement>(null);
+    const outputRef = useRef<HTMLDivElement>(null);
 
     const { addPrompt, addToHistory } = usePromptStore();
+
+    // Auto-focus input on mount
+    useEffect(() => {
+        inputRef.current?.focus();
+    }, []);
 
     // Check for replay input from history
     useEffect(() => {
@@ -57,16 +62,26 @@ export default function SparkPage() {
         }
     }, []);
 
+    // Auto-resize textarea
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setInput(e.target.value);
+        // Auto-resize
+        if (inputRef.current) {
+            inputRef.current.style.height = 'auto';
+            inputRef.current.style.height = Math.max(200, inputRef.current.scrollHeight) + 'px';
+        }
+    };
+
     const handleSpark = useCallback(async () => {
         if (!input.trim()) {
-            toast.error('Please enter a prompt to enhance');
+            toast.error('Please enter a prompt');
             return;
         }
 
         setIsProcessing(true);
         setError(null);
 
-        const effectiveMode = selectedModifier || 'enhance'; // Default to enhance if no modifier
+        const effectiveMode = selectedModifier || 'enhance';
 
         try {
             const response = await fetch('/api/ai/enhance', {
@@ -80,37 +95,29 @@ export default function SparkPage() {
             });
 
             if (!response.ok) {
-                throw new Error('Enhancement failed. Please try again.');
+                throw new Error('Enhancement failed');
             }
 
             const data = await response.json();
-
             setOutput(data.enhanced || data.result);
             setQualityScore(data.scores || { before: 35, after: 85 });
 
-            const modifierName = selectedModifier
-                ? modifiers.find(m => m.id === selectedModifier)?.name
-                : 'Spark';
             addToHistory({
                 tool: 'spark',
-                action: `${modifierName} enhancement`,
+                action: `${selectedModifier || 'Spark'} enhancement`,
                 input: input.slice(0, 100) + (input.length > 100 ? '...' : ''),
                 output: (data.enhanced || data.result).slice(0, 100) + '...',
             });
 
-            toast.success('Prompt enhanced!');
+            toast.success('Enhanced!');
         } catch {
-            // Fallback to local enhancement
             const enhanced = generateLocalEnhancement(input, effectiveMode);
             setOutput(enhanced);
             setQualityScore({ before: 35, after: 78 });
 
-            const modifierName = selectedModifier
-                ? modifiers.find(m => m.id === selectedModifier)?.name
-                : 'Spark';
             addToHistory({
                 tool: 'spark',
-                action: `${modifierName} enhancement`,
+                action: `${selectedModifier || 'Spark'} enhancement`,
                 input: input.slice(0, 100) + (input.length > 100 ? '...' : ''),
                 output: enhanced.slice(0, 100) + '...',
             });
@@ -131,7 +138,6 @@ export default function SparkPage() {
     const handleSave = useCallback(() => {
         if (!output) return;
 
-        const effectiveMode = selectedModifier || 'enhance';
         addPrompt({
             title: input.slice(0, 50) + (input.length > 50 ? '...' : ''),
             content: input,
@@ -140,120 +146,125 @@ export default function SparkPage() {
             folder: 'Personal',
             starred: false,
             tool: 'spark',
-            metadata: {
-                model: selectedModel,
-                mode: effectiveMode,
-            },
+            metadata: { model: selectedModel, mode: selectedModifier || 'enhance' },
         });
 
         toast.success('Saved to Library!');
     }, [input, output, selectedModifier, selectedModel, addPrompt]);
 
-    const handleExampleClick = (example: string) => {
-        setInput(example);
+    const handleClear = () => {
+        setInput('');
         setOutput('');
         setQualityScore(null);
+        if (inputRef.current) {
+            inputRef.current.style.height = 'auto';
+        }
     };
 
+    // Keyboard shortcut: Cmd/Ctrl + Enter to spark
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && input.trim() && !isProcessing) {
+                handleSpark();
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [input, isProcessing, handleSpark]);
+
     return (
-        <div className="min-h-[calc(100vh-120px)] flex flex-col">
+        <div className="min-h-[calc(100vh-140px)] flex flex-col">
             {/* ═══════════════════════════════════════════════════════════════
-                ZONE 1: HEADER — Purpose & Control (Compact, intentional)
+                HEADER — Minimal, purposeful
             ═══════════════════════════════════════════════════════════════ */}
-            <div className="flex-shrink-0 mb-8">
-                {/* Title Row */}
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-4">
-                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
-                            <Wand2 className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-xl font-semibold text-white tracking-tight">Transform prompts instantly</h1>
-                            <p className="text-white/40 text-sm">Paste → Spark → Done</p>
-                        </div>
-                    </div>
-
-                    {/* Advanced Toggle */}
-                    <button
-                        onClick={() => setShowAdvanced(!showAdvanced)}
-                        className="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs text-white/30 hover:text-white/50 transition-colors"
-                    >
-                        <Settings className="w-3.5 h-3.5" />
-                        Settings
-                    </button>
+            <div className="flex items-center justify-between mb-8">
+                <div>
+                    <h1 className="text-2xl font-semibold text-white tracking-tight mb-1">
+                        Transform your prompts
+                    </h1>
+                    <p className="text-white/40 text-sm">
+                        Paste any prompt and watch it become more effective
+                    </p>
                 </div>
 
-                {/* Modifier Pills — Secondary, inline */}
-                <div className="flex items-center gap-3">
-                    <span className="text-xs text-white/30 uppercase tracking-wider">Style</span>
-                    <div className="flex items-center gap-2">
-                        {modifiers.map((modifier) => {
-                            const isActive = selectedModifier === modifier.id;
-                            return (
-                                <button
-                                    key={modifier.id}
-                                    onClick={() => setSelectedModifier(isActive ? null : modifier.id)}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                                        isActive 
-                                            ? 'bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/30' 
-                                            : 'text-white/40 hover:text-white/60 hover:bg-white/[0.04]'
-                                    }`}
-                                >
-                                    <modifier.icon className="w-3 h-3" />
-                                    {modifier.name}
-                                </button>
-                            );
-                        })}
-                        {selectedModifier && (
-                            <button
-                                onClick={() => setSelectedModifier(null)}
-                                className="text-xs text-white/30 hover:text-white/50 ml-1"
-                            >
-                                ✕
-                            </button>
-                        )}
-                    </div>
-                </div>
-
-                {/* Advanced Options — Model Selector (collapsed by default) */}
-                {showAdvanced && (
-                    <div className="flex items-center gap-3 mt-4 pt-4 border-t border-white/[0.04]">
-                        <span className="text-xs text-white/30 uppercase tracking-wider">Model</span>
-                        <div className="flex items-center gap-1">
-                            {models.map((model) => (
-                                <button
-                                    key={model.id}
-                                    onClick={() => setSelectedModel(model.id)}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
-                                        selectedModel === model.id
-                                            ? 'bg-white/[0.06] text-white/70'
-                                            : 'text-white/30 hover:text-white/50'
-                                    }`}
-                                >
-                                    <span>{model.icon}</span>
-                                    {model.name}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                {/* Settings Toggle */}
+                <button
+                    onClick={() => setShowSettings(!showSettings)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all ${
+                        showSettings 
+                            ? 'bg-white/[0.06] text-white/70' 
+                            : 'text-white/30 hover:text-white/50 hover:bg-white/[0.03]'
+                    }`}
+                >
+                    <Settings className="w-4 h-4" />
+                    <span className="hidden sm:inline">Settings</span>
+                </button>
             </div>
 
+            {/* Settings Panel (collapsed by default) */}
+            {showSettings && (
+                <div className="mb-6 p-5 bg-white/[0.02] rounded-2xl border border-white/[0.04]">
+                    <div className="flex flex-wrap items-center gap-6">
+                        {/* Modifier Selection */}
+                        <div className="flex items-center gap-3">
+                            <span className="text-xs text-white/30 uppercase tracking-wider">Style</span>
+                            <div className="flex items-center gap-1">
+                                {modifiers.map((mod) => (
+                                    <button
+                                        key={mod.id}
+                                        onClick={() => setSelectedModifier(selectedModifier === mod.id ? null : mod.id)}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                            selectedModifier === mod.id
+                                                ? 'bg-violet-500/20 text-violet-300'
+                                                : 'text-white/40 hover:text-white/60 hover:bg-white/[0.04]'
+                                        }`}
+                                    >
+                                        <mod.icon className="w-3 h-3" />
+                                        {mod.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Model Selection */}
+                        <div className="flex items-center gap-3">
+                            <span className="text-xs text-white/30 uppercase tracking-wider">Model</span>
+                            <div className="flex items-center gap-1">
+                                {models.map((model) => (
+                                    <button
+                                        key={model.id}
+                                        onClick={() => setSelectedModel(model.id)}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                                            selectedModel === model.id
+                                                ? 'bg-white/[0.06] text-white/70'
+                                                : 'text-white/30 hover:text-white/50'
+                                        }`}
+                                    >
+                                        <span>{model.icon}</span>
+                                        {model.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ═══════════════════════════════════════════════════════════════
-                ZONE 2: WORK — Before → After (Visual dominance)
+                MAIN WORKSPACE — Input → Output Flow
             ═══════════════════════════════════════════════════════════════ */}
-            <div className="flex-1 grid lg:grid-cols-2 gap-8 mb-8">
-                {/* INPUT PANEL — Left */}
-                <div className="flex flex-col bg-white/[0.02] rounded-2xl overflow-hidden">
-                    {/* Panel Header */}
-                    <div className="flex-shrink-0 px-6 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                            <div className="w-2 h-2 rounded-full bg-amber-400/80" />
-                            <span className="text-sm font-medium text-white/60">Your Prompt</span>
+            <div className="flex-1 grid lg:grid-cols-2 gap-6 lg:gap-8">
+                {/* INPUT PANEL */}
+                <div className="flex flex-col">
+                    {/* Panel Label */}
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-amber-400/70" />
+                            <span className="text-sm text-white/50 font-medium">Your prompt</span>
                         </div>
                         {input && (
                             <button
-                                onClick={() => { setInput(''); setOutput(''); setQualityScore(null); }}
+                                onClick={handleClear}
                                 className="text-xs text-white/30 hover:text-white/50 transition-colors"
                             >
                                 Clear
@@ -261,49 +272,76 @@ export default function SparkPage() {
                         )}
                     </div>
 
-                    {/* Textarea */}
+                    {/* Input Area */}
                     <div className="flex-1 relative">
                         <textarea
+                            ref={inputRef}
                             value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="Paste your prompt here..."
-                            className="absolute inset-0 w-full h-full px-6 py-4 bg-transparent text-white/90 placeholder-white/20 resize-none focus:outline-none text-[15px] leading-relaxed"
-                            style={{ minHeight: '320px' }}
+                            onChange={handleInputChange}
+                            placeholder="Type or paste your prompt here..."
+                            className="w-full min-h-[200px] p-6 bg-white/[0.02] border border-white/[0.06] rounded-2xl text-white/90 placeholder-white/20 resize-none focus:outline-none focus:border-white/[0.1] focus:bg-white/[0.03] transition-all text-[15px] leading-relaxed"
+                            style={{ height: 'auto' }}
                         />
+
+                        {/* Examples — Only when empty */}
+                        {!input && (
+                            <div className="absolute bottom-4 left-4 right-4">
+                                <div className="flex flex-wrap gap-2">
+                                    {examplePrompts.map((example) => (
+                                        <button
+                                            key={example}
+                                            onClick={() => {
+                                                setInput(example);
+                                                inputRef.current?.focus();
+                                            }}
+                                            className="px-3 py-1.5 text-xs text-white/25 hover:text-white/40 bg-white/[0.02] hover:bg-white/[0.04] rounded-lg transition-colors"
+                                        >
+                                            {example}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Example Prompts — Only when empty */}
-                    {!input && (
-                        <div className="flex-shrink-0 px-6 py-4 border-t border-white/[0.03]">
-                            <div className="flex flex-wrap gap-2">
-                                {examplePrompts.slice(0, 3).map((example) => (
-                                    <button
-                                        key={example}
-                                        onClick={() => handleExampleClick(example)}
-                                        className="px-3 py-1.5 text-xs text-white/30 hover:text-white/50 hover:bg-white/[0.03] rounded-lg transition-colors"
-                                    >
-                                        {example.slice(0, 28)}...
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    {/* Spark Button */}
+                    <div className="mt-4">
+                        <button
+                            onClick={handleSpark}
+                            disabled={!input.trim() || isProcessing}
+                            className="w-full flex items-center justify-center gap-3 py-4 bg-gradient-to-r from-violet-500 to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-violet-500/20 hover:shadow-xl hover:shadow-violet-500/25 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none transition-all"
+                        >
+                            {isProcessing ? (
+                                <>
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    <span>Enhancing...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="w-5 h-5" />
+                                    <span>Spark It</span>
+                                    <kbd className="hidden sm:inline ml-2 px-2 py-0.5 bg-white/10 rounded text-xs text-white/60">⌘↵</kbd>
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
 
-                {/* OUTPUT PANEL — Right */}
-                <div className={`flex flex-col rounded-2xl overflow-hidden transition-all duration-300 ${
-                    output 
-                        ? 'bg-gradient-to-br from-violet-500/[0.06] to-indigo-500/[0.04] ring-1 ring-violet-500/20' 
-                        : 'bg-white/[0.02]'
-                }`}>
-                    {/* Panel Header */}
-                    <div className="flex-shrink-0 px-6 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
+                {/* TRANSFORMATION INDICATOR (Mobile) */}
+                <div className="flex lg:hidden items-center justify-center py-2">
+                    <ChevronRight className="w-6 h-6 text-white/20 rotate-90" />
+                </div>
+
+                {/* OUTPUT PANEL */}
+                <div className="flex flex-col">
+                    {/* Panel Label */}
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
                             <div className={`w-2 h-2 rounded-full transition-colors ${output ? 'bg-emerald-400' : 'bg-white/20'}`} />
-                            <span className="text-sm font-medium text-white/60">Enhanced</span>
+                            <span className="text-sm text-white/50 font-medium">Enhanced prompt</span>
                             {qualityScore && output && (
-                                <span className="ml-2 px-2 py-0.5 text-xs font-medium text-emerald-400 bg-emerald-500/10 rounded-full">
-                                    +{qualityScore.after - qualityScore.before}%
+                                <span className="px-2 py-0.5 text-xs font-medium text-emerald-400 bg-emerald-500/10 rounded-full">
+                                    +{qualityScore.after - qualityScore.before}% better
                                 </span>
                             )}
                         </div>
@@ -311,7 +349,7 @@ export default function SparkPage() {
                             <div className="flex items-center gap-1">
                                 <button
                                     onClick={handleCopy}
-                                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-white/50 hover:text-white/70 hover:bg-white/[0.04] rounded-lg transition-colors"
+                                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-white/40 hover:text-white/60 hover:bg-white/[0.04] rounded-lg transition-colors"
                                 >
                                     {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                                     {copied ? 'Copied' : 'Copy'}
@@ -327,49 +365,37 @@ export default function SparkPage() {
                         )}
                     </div>
 
-                    {/* Output Content */}
-                    <div className="flex-1 px-6 py-4 overflow-auto" style={{ minHeight: '320px' }}>
+                    {/* Output Area */}
+                    <div 
+                        ref={outputRef}
+                        className={`flex-1 min-h-[200px] p-6 rounded-2xl transition-all ${
+                            output 
+                                ? 'bg-gradient-to-br from-violet-500/[0.04] to-indigo-500/[0.02] border border-violet-500/10' 
+                                : 'bg-white/[0.01] border border-white/[0.04] border-dashed'
+                        }`}
+                    >
                         {output ? (
                             <pre className="text-white/80 whitespace-pre-wrap text-[15px] leading-relaxed font-sans">
                                 {output}
                             </pre>
                         ) : (
-                            <div className="h-full flex flex-col items-center justify-center opacity-40">
-                                <Sparkles className="w-10 h-10 text-violet-400/30 mb-3" />
-                                <p className="text-white/25 text-sm">Enhanced prompt appears here</p>
+                            <div className="h-full min-h-[168px] flex flex-col items-center justify-center">
+                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 flex items-center justify-center mb-4">
+                                    <Sparkles className="w-6 h-6 text-violet-400/30" />
+                                </div>
+                                <p className="text-white/20 text-sm text-center">
+                                    Your enhanced prompt will appear here
+                                </p>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* ═══════════════════════════════════════════════════════════════
-                ZONE 3: ACTION — Primary CTA (Isolated, grounded)
-            ═══════════════════════════════════════════════════════════════ */}
-            <div className="flex-shrink-0 flex justify-center">
-                <button
-                    onClick={handleSpark}
-                    disabled={!input.trim() || isProcessing}
-                    className="flex items-center justify-center gap-2.5 px-12 py-4 bg-gradient-to-r from-violet-500 to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none transition-all duration-200"
-                >
-                    {isProcessing ? (
-                        <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            <span>Enhancing...</span>
-                        </>
-                    ) : (
-                        <>
-                            <Sparkles className="w-5 h-5" />
-                            <span>Spark It</span>
-                        </>
-                    )}
-                </button>
-            </div>
-
             {/* Error Display */}
             {error && (
-                <div className="mt-6 flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
-                    <AlertCircle className="w-4 h-4" />
+                <div className="mt-6 flex items-center gap-3 px-5 py-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
                     <span>{error}</span>
                 </div>
             )}
@@ -377,7 +403,10 @@ export default function SparkPage() {
     );
 }
 
-// Local enhancement fallback
+// ═══════════════════════════════════════════════════════════════════════════
+// Local Enhancement (Fallback)
+// ═══════════════════════════════════════════════════════════════════════════
+
 function generateLocalEnhancement(input: string, mode: string): string {
     const templates: Record<string, (input: string) => string> = {
         enhance: (prompt) => `You are an expert assistant with deep knowledge in the relevant domain.
