@@ -47,6 +47,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [showSearch, setShowSearch] = useState(false);
+    const [isDesktop, setIsDesktop] = useState(false);
     const userMenuRef = useRef<HTMLDivElement>(null);
     const searchRef = useRef<HTMLInputElement>(null);
 
@@ -59,6 +60,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Detect desktop viewport for sidebar margin
+    useEffect(() => {
+        const checkDesktop = () => setIsDesktop(window.innerWidth >= 1024);
+        checkDesktop();
+        window.addEventListener('resize', checkDesktop);
+        return () => window.removeEventListener('resize', checkDesktop);
     }, []);
 
     // Handle keyboard shortcut for search
@@ -293,7 +302,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* ═══════════════════════════════════════════════════════════════
                 MAIN WORKSPACE
             ═══════════════════════════════════════════════════════════════ */}
-            <div className={`min-h-screen transition-all duration-300 pl-0 ${sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[260px]'}`}>
+            <div 
+                className="min-h-screen transition-all duration-300"
+                style={{ 
+                    marginLeft: isDesktop ? (sidebarCollapsed ? 72 : 260) : 0,
+                }}
+            >
                 {/* Top Bar */}
                 <header className="sticky top-0 z-30 h-16 bg-[#09090b]/80 backdrop-blur-xl border-b border-white/[0.04]">
                     <div className="h-full px-6 flex items-center justify-between gap-4">
