@@ -501,99 +501,51 @@ function getDefaultImprovements(mode: string): string[] {
 
 function generateLocalEnhancement(input: string, mode: string): { enhanced: string; improvements: string[] } {
     const inputLower = input.toLowerCase();
+    const trimmed = input.trim();
     
-    // Detect intent and generate appropriate enhanced prompt
+    // ═══════════════════════════════════════════════════════════════════════
+    // ENHANCED PROMPT ONLY — No meta instructions, no system guidance
+    // Output is the FINAL prompt text the user will copy and use
+    // ═══════════════════════════════════════════════════════════════════════
+    
     const enhance = (prompt: string): string => {
-        // Clean and structure the prompt
-        const trimmed = prompt.trim();
-        
-        // Add context based on detected intent
+        // Rewrite the prompt with added clarity and structure
         if (inputLower.includes('write') || inputLower.includes('create')) {
-            return `${trimmed}
-
-Please ensure the output:
-• Is well-structured with clear sections
-• Uses appropriate formatting
-• Includes relevant examples where helpful
-• Maintains a consistent tone throughout`;
+            // Extract the subject
+            const subject = prompt.replace(/^(write|create)\s+(a|an|the)?\s*/i, '').trim();
+            return `Write a well-structured ${subject} that is clear, engaging, and formatted with appropriate sections. Include relevant examples where helpful and maintain a consistent professional tone throughout.`;
         }
         
         if (inputLower.includes('explain') || inputLower.includes('what is')) {
-            return `${trimmed}
-
-In your explanation:
-• Start with a concise summary (2-3 sentences)
-• Break down complex concepts into digestible parts
-• Use analogies or real-world examples
-• End with key takeaways`;
+            const topic = prompt.replace(/^(explain|what is|what are)\s+(a|an|the)?\s*/i, '').trim();
+            return `Explain ${topic} clearly, starting with a concise 2-3 sentence summary. Break down complex concepts into digestible parts, use real-world analogies, and conclude with the key takeaways.`;
         }
         
         if (inputLower.includes('code') || inputLower.includes('function') || inputLower.includes('program')) {
-            return `${trimmed}
-
-Requirements:
-• Include comments explaining key logic
-• Handle edge cases appropriately
-• Follow best practices for the language
-• Provide a brief usage example`;
+            return `${prompt}. Include clear comments explaining the logic, handle edge cases properly, follow language best practices, and provide a usage example.`;
         }
         
         if (inputLower.includes('email') || inputLower.includes('message') || inputLower.includes('letter')) {
-            return `${trimmed}
-
-Ensure the message:
-• Has a clear subject/purpose in the opening
-• Uses appropriate professional tone
-• Includes a specific call-to-action
-• Is concise yet complete`;
+            const purpose = prompt.replace(/^(write|create|draft)\s+(a|an|the)?\s*(email|message|letter)\s*/i, '').trim();
+            return `Draft a professional email about ${purpose || 'this topic'}. Open with a clear purpose statement, maintain an appropriate tone, include a specific call-to-action, and keep it concise.`;
         }
         
-        // Generic enhancement
-        return `${trimmed}
-
-Please provide a response that is:
-• Clear and well-organized
-• Comprehensive yet concise
-• Actionable with specific recommendations
-• Easy to understand without prior context`;
+        // Generic: Make it more specific and actionable
+        return `${prompt}. Provide a clear, well-organized response with specific actionable recommendations. Be comprehensive yet concise.`;
     };
 
     const expand = (prompt: string): string => {
-        return `${prompt.trim()}
-
-Please provide a comprehensive response that:
-• Covers all relevant aspects of this topic
-• Includes background context where helpful
-• Explores multiple approaches or perspectives
-• Provides detailed examples and case studies
-• Addresses potential edge cases or exceptions
-• References industry best practices
-• Concludes with actionable recommendations
-
-Format with clear headings and organized sections.`;
+        return `Provide a comprehensive, in-depth analysis of: ${prompt}. Cover all relevant aspects thoroughly, include background context, explore multiple perspectives with detailed examples and case studies, address edge cases, reference best practices, and conclude with actionable recommendations. Use clear headings and organized sections.`;
     };
 
     const simplify = (prompt: string): string => {
-        // Extract core intent
-        const trimmed = prompt.trim();
-        const words = trimmed.split(/\s+/);
-        
-        if (words.length > 15) {
-            // Simplify long prompts
-            return `${trimmed}\n\nKeep your response brief and focused on the essentials only.`;
-        }
-        return `${trimmed}\n\nProvide a concise, direct answer.`;
+        // Make the prompt direct and focused
+        const core = trimmed.replace(/please\s+/gi, '').replace(/could you\s+/gi, '').replace(/can you\s+/gi, '');
+        return `${core}. Be brief and direct—focus only on the essentials.`;
     };
 
     const professional = (prompt: string): string => {
-        return `${prompt.trim()}
-
-Please respond in a professional, executive-appropriate format:
-• Lead with an executive summary
-• Support key points with data or evidence
-• Use formal business language
-• Include strategic recommendations
-• Conclude with clear next steps`;
+        return `${prompt}. Structure the response as an executive briefing: lead with a summary, support points with evidence, use formal business language, include strategic recommendations, and conclude with clear next steps.`;
     };
 
     const generators: Record<string, (p: string) => string> = {
@@ -606,7 +558,7 @@ Please respond in a professional, executive-appropriate format:
     const generator = generators[mode] || enhance;
     
     return {
-        enhanced: generator(input),
+        enhanced: generator(trimmed),
         improvements: getDefaultImprovements(mode),
     };
 }
