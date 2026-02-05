@@ -9,43 +9,126 @@ import { Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 // Inspired by sortmeout.saidborna.com design language
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Demo content (logic preserved exactly)
-const WEAK_PROMPT = "write an email to my boss about being late tomorrow";
-const STRONG_PROMPT = `You are a professional communication expert.
+// Demo content — realistic, unstructured → structured transformation
+const UNSTRUCTURED_PROMPT = "need to migrate a postgres db to aurora. ~2TB data, mostly transactional, peak is 10k rpm. what's the best approach?";
 
-**Context:**
-Employee needs to inform their manager about arriving late tomorrow due to a medical appointment.
+const STRUCTURED_PROMPT = `Plan a production PostgreSQL to Aurora migration with the following parameters:
 
-**Task:**
-Write a brief, professional email that:
-- Notifies about the delay (arriving 2 hours late)
-- Mentions rescheduled medical appointment
-- Confirms important meetings are unaffected
-- Offers to make up time
+System context: 2TB transactional database, peak load 10,000 reads/minute, production environment requiring high availability.
 
-**Tone:** Respectful, responsible, concise`;
+Required deliverables:
+- Phased migration timeline with explicit cutover strategy
+- Data validation checkpoints at each phase
+- Rollback procedures if integrity issues emerge
+- Performance benchmarks to confirm parity with current system
+- Zero-downtime requirement during business hours (9 AM - 6 PM EST)
 
-const WEAK_OUTPUT = `Hi Boss,
+Constraints:
+- No data loss tolerance
+- Must maintain read replica for reporting during migration
+- Budget ceiling: $15K for migration tooling and temporary infra
+- Completion target: 6 weeks
 
-I'm going to be late tomorrow.
-I have an appointment.
+Output format: Structured plan with phases, owner responsibilities, and go/no-go decision points.`;
 
-Sorry about that.
+const UNSTRUCTURED_OUTPUT = `For migrating PostgreSQL to Aurora, here's a recommended approach:
 
-Thanks`;
+1. **Assessment Phase**: Analyze your current database schema, identify any PostgreSQL-specific features you're using, and check Aurora compatibility.
 
-const STRONG_OUTPUT = `Subject: Late Arrival Tomorrow - 10:30 AM
+2. **Preparation**: Set up Aurora cluster, configure replication, and test connectivity.
 
-Hi Sarah,
+3. **Data Migration**: Use AWS DMS (Database Migration Service) to migrate the data. For 2TB, this might take several hours.
 
-I wanted to give you advance notice that I'll be arriving at 10:30 AM tomorrow due to a rescheduled medical appointment that couldn't be moved.
+4. **Testing**: Run performance tests to ensure 10k RPM can be handled.
 
-I've reviewed my calendar and confirmed no client meetings are affected. I'll complete my morning tasks remotely before arriving, and I'm happy to stay later if needed.
+5. **Cutover**: Switch your application to point to Aurora, monitor closely.
 
-Please let me know if you need anything adjusted.
+Consider using a blue-green deployment to minimize downtime. Make sure you have backups before starting.`;
 
-Best regards,
-Michael`;
+const STRUCTURED_OUTPUT = `## Aurora Migration Plan — 6-Week Timeline
+
+### Phase 1: Assessment & Compatibility (Week 1)
+**Owner:** Database team lead
+**Deliverables:**
+- Schema compatibility report (identify PostGIS, extensions, custom functions)
+- Current performance baseline (capture 10k RPM metrics, query patterns, connection pools)
+- Cost projection for Aurora provisioned vs. serverless
+
+**Go/No-Go:** Confirm <5% schema incompatibility or remediation plan exists
+
+---
+
+### Phase 2: Parallel Infrastructure (Weeks 2-3)
+**Owner:** DevOps + Database team
+**Actions:**
+- Provision Aurora cluster (db.r6g.2xlarge, 2 replicas for HA)
+- Set up DMS replication instance (dms.c5.2xlarge for 2TB throughput)
+- Configure Aurora read replica for reporting workload
+- Establish VPN + security groups matching current Postgres setup
+
+**Validation:** Replication lag <30 seconds, no connection drops in 72-hour test
+
+---
+
+### Phase 3: Data Sync & Validation (Week 4)
+**Owner:** Data engineering
+**Actions:**
+- Start DMS continuous replication (Postgres → Aurora)
+- Run checksum validation on 10% random sample every 6 hours
+- Monitor replication lag and disk I/O on both systems
+- Parallel write testing: dual-write to Postgres + Aurora for non-critical tables
+
+**Go/No-Go:**
+- Zero data discrepancies in validation samples
+- Replication lag stable <1 minute under peak load
+
+---
+
+### Phase 4: Performance Benchmarking (Week 5)
+**Owner:** Platform team
+**Actions:**
+- Run load tests simulating 10k RPM + 20% spike
+- Compare query execution plans (Postgres EXPLAIN vs. Aurora)
+- Optimize Aurora parameter groups (connection pooling, autovacuum, buffer cache)
+- Document any queries requiring index adjustments
+
+**Acceptance Criteria:**
+- P95 latency ≤ current Postgres baseline
+- No connection pool exhaustion at 12k RPM
+- Read replica lag <5 seconds under reporting queries
+
+---
+
+### Phase 5: Cutover (Week 6)
+**Cutover Window:** Saturday 2 AM - 6 AM EST (off-peak)
+**Procedure:**
+1. Enable maintenance mode (read-only state)
+2. Final DMS sync + validation (checksum entire dataset)
+3. Update application connection strings to Aurora endpoint
+4. Smoke tests on critical transactions (10-minute burn-in)
+5. Disable maintenance mode, monitor error rates for 2 hours
+6. If error rate >0.1%: immediate rollback to Postgres
+
+**Rollback Plan:**
+- Keep Postgres instance running for 72 hours post-cutover
+- One-command DNS switch back to Postgres if needed
+- Aurora data archived to S3 for forensics
+
+---
+
+### Budget Breakdown
+- DMS replication: $850/week × 4 weeks = $3,400
+- Aurora test cluster: $1,200/week × 5 weeks = $6,000
+- Temporary Postgres replica: $800/week × 6 weeks = $4,800
+- **Total:** $14,200 (under $15K ceiling)
+
+### Risk Mitigation
+- **Data loss:** Continuous checksum validation + 72-hour rollback window
+- **Performance regression:** Load testing in Phase 4 with acceptance gates
+- **Extended downtime:** Blue-green cutover limits exposure to 4-hour window
+
+**Final Go/No-Go:** Week 5 Friday — all phases green + executive signoff`;
+
 
 // TypeWriter Component (logic preserved exactly)
 function TypeWriter({
@@ -243,7 +326,7 @@ export default function LandingPage() {
               {/* Demo Context */}
               <div className="flex justify-center mb-6">
                 <p className="text-sm text-white/40 max-w-lg text-center">
-                  PRAXIS does not rewrite your intent, it formalizes it into a structure that models can execute precisely
+                  Same model, same context. Structure is the only variable
                 </p>
               </div>
 
@@ -278,12 +361,12 @@ export default function LandingPage() {
                             ) : (
                               <>
                                 <TypeWriter
-                                  text={WEAK_PROMPT}
+                                  text={UNSTRUCTURED_PROMPT}
                                   speed={50}
                                   onComplete={handleWeakTypingComplete}
                                   isActive={phase === 'typing-weak'}
                                 />
-                                {phase !== 'typing-weak' && WEAK_PROMPT}
+                                {phase !== 'typing-weak' && UNSTRUCTURED_PROMPT}
                               </>
                             )}
                           </p>
@@ -292,9 +375,9 @@ export default function LandingPage() {
 
                       <div>
                         <div className="text-[10px] uppercase tracking-wider text-white/30 mb-2">AI Response</div>
-                        <div className="bg-black/40 rounded-lg p-3 min-h-[180px] border border-white/[0.04]">
+                        <div className="bg-black/40 rounded-lg p-3 min-h-[180px] border border-white/[0.04] overflow-y-auto max-h-[300px]">
                           <pre className={`text-xs text-white/50 font-mono whitespace-pre-wrap transition-all duration-500 ${weakOutputVisible ? 'opacity-100' : 'opacity-0'}`}>
-                            {WEAK_OUTPUT}
+                            {UNSTRUCTURED_OUTPUT}
                           </pre>
                         </div>
                       </div>
@@ -305,26 +388,26 @@ export default function LandingPage() {
                   <div className="p-6 bg-gradient-to-br from-violet-500/[0.02] to-transparent">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="w-2 h-2 rounded-full bg-violet-400" />
-                      <span className="text-xs font-medium text-white/40 uppercase tracking-wider">Execution-Ready Prompt</span>
+                      <span className="text-xs font-medium text-white/40 uppercase tracking-wider">Structured Prompt</span>
                     </div>
 
                     <div className="space-y-4">
                       <div>
                         <div className="text-[10px] uppercase tracking-wider text-white/30 mb-2">Enhanced Prompt</div>
-                        <div className="bg-black/40 rounded-lg p-3 min-h-[60px] border border-violet-500/20">
+                        <div className="bg-black/40 rounded-lg p-3 min-h-[60px] max-h-[200px] overflow-y-auto border border-violet-500/20">
                           <pre className="text-xs text-violet-200/80 font-mono whitespace-pre-wrap leading-relaxed">
                             {phase === 'typing-strong' ? (
                               <TypeWriter
-                                text={STRONG_PROMPT}
+                                text={STRUCTURED_PROMPT}
                                 speed={15}
                                 onComplete={handleStrongTypingComplete}
                                 isActive={true}
                               />
-                            ) : (['strong-output', 'complete'].includes(phase) ? STRONG_PROMPT : (
+                            ) : (['strong-output', 'complete'].includes(phase) ? STRUCTURED_PROMPT : (
                               phase === 'transforming' ? (
                                 <span className="flex items-center gap-2 text-violet-400">
                                   <Sparkles className="w-3 h-3 animate-pulse" />
-                                  Enhancing...
+                                  Structuring...
                                 </span>
                               ) : ''
                             ))}
@@ -334,9 +417,9 @@ export default function LandingPage() {
 
                       <div>
                         <div className="text-[10px] uppercase tracking-wider text-white/30 mb-2">AI Response</div>
-                        <div className="bg-black/40 rounded-lg p-3 min-h-[180px] border border-emerald-500/20">
+                        <div className="bg-black/40 rounded-lg p-3 min-h-[180px] max-h-[300px] overflow-y-auto border border-emerald-500/20">
                           <pre className={`text-xs text-emerald-200/80 font-mono whitespace-pre-wrap transition-all duration-500 ${strongOutputVisible ? 'opacity-100' : 'opacity-0'}`}>
-                            {STRONG_OUTPUT}
+                            {STRUCTURED_OUTPUT}
                           </pre>
                         </div>
                       </div>
@@ -346,9 +429,9 @@ export default function LandingPage() {
 
                 {/* Status Bar */}
                 <div className="px-4 py-2 border-t border-white/[0.06] bg-white/[0.01] flex items-center justify-between">
-                  <span className="text-[10px] text-white/30">Continuous comparison</span>
+                  <span className="text-[10px] text-white/30">Same model, structured input</span>
                   <div className="flex items-center gap-4">
-                    <span className="text-[10px] text-white/30">Structure score: <span className="text-white/40">12%</span> → <span className="text-violet-400">94%</span></span>
+                    <span className="text-[10px] text-white/30">Specificity: <span className="text-white/40">18%</span> → <span className="text-violet-400">91%</span></span>
                   </div>
                 </div>
               </div>
