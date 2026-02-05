@@ -60,110 +60,102 @@ export default function SettingsPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-gray-500 to-gray-700 flex items-center justify-center">
-                    <Settings className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                    <h1 className="text-2xl font-bold text-white">Settings</h1>
-                    <p className="text-white/50">Manage your account and preferences</p>
-                </div>
+            <div className="mb-2">
+                <h1 className="text-2xl font-semibold text-white tracking-tight mb-1.5">Settings</h1>
+                <p className="text-white/40 text-sm">Manage your account and preferences</p>
             </div>
 
             <div className="flex gap-6">
                 {/* Sidebar */}
-                <div className="w-64 flex-shrink-0">
-                    <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-3">
-                        <div className="space-y-1">
-                            {tabs.map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === tab.id
-                                        ? 'bg-violet-500/20 text-violet-400'
-                                        : 'hover:bg-white/5 text-white/70'
-                                        }`}
-                                >
-                                    <tab.icon className="w-5 h-5" />
-                                    <span className="font-medium">{tab.name}</span>
-                                    <ChevronRight className={`w-4 h-4 ml-auto ${activeTab === tab.id ? 'text-violet-400' : 'text-white/30'}`} />
-                                </button>
-                            ))}
-                        </div>
+                <div className="w-56 flex-shrink-0 hidden md:block">
+                    <div className="space-y-1">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all ${activeTab === tab.id
+                                    ? 'bg-white/[0.08] text-white'
+                                    : 'hover:bg-white/[0.04] text-white/50'
+                                    }`}
+                            >
+                                <tab.icon className="w-4 h-4" />
+                                <span className="text-sm font-medium">{tab.name}</span>
+                            </button>
+                        ))}
                     </div>
                 </div>
 
                 {/* Content */}
                 <div className="flex-1">
                     {activeTab === 'profile' && (
-                        <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-6 space-y-6">
+                        <div className="bg-white/[0.02] rounded-2xl border border-white/[0.05] p-6 space-y-6">
                             <h2 className="text-lg font-semibold text-white">Profile Settings</h2>
 
                             <div className="flex items-center gap-6">
-                                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold">
+                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold">
                                     {firstName ? firstName.charAt(0).toUpperCase() : 'U'}
                                 </div>
                                 <div>
                                     <button
                                         onClick={() => toast('Avatar upload coming soon', { icon: '📷' })}
-                                        className="px-4 py-2 bg-violet-500/20 text-violet-400 font-medium rounded-xl hover:bg-violet-500/30"
+                                        className="px-4 py-2 text-sm text-white/60 border border-white/[0.1] font-medium rounded-lg hover:bg-white/[0.04] transition-colors"
                                     >
                                         Change Avatar
                                     </button>
-                                    <p className="text-sm text-white/40 mt-2">JPG, PNG or GIF. Max 2MB.</p>
+                                    <p className="text-xs text-white/30 mt-2">JPG, PNG or GIF. Max 2MB.</p>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-2 gap-5">
                                 <div>
-                                    <label className="block text-sm font-medium text-white/70 mb-2">First Name</label>
+                                    <label className="block text-xs font-medium text-white/50 mb-2">First Name</label>
                                     <input
                                         type="text"
                                         value={firstName}
                                         onChange={(e) => setFirstName(e.target.value)}
                                         placeholder="John"
-                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50"
+                                        className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/[0.06] rounded-lg text-white text-sm placeholder-white/20 focus:outline-none focus:border-white/[0.12] focus:bg-white/[0.03] transition-all"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-white/70 mb-2">Last Name</label>
+                                    <label className="block text-xs font-medium text-white/50 mb-2">Last Name</label>
                                     <input
                                         type="text"
                                         value={lastName}
                                         onChange={(e) => setLastName(e.target.value)}
                                         placeholder="Doe"
-                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50"
+                                        className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/[0.06] rounded-lg text-white text-sm placeholder-white/20 focus:outline-none focus:border-white/[0.12] focus:bg-white/[0.03] transition-all"
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-white/70 mb-2">Email</label>
+                                <label className="block text-xs font-medium text-white/50 mb-2">Email</label>
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="john@example.com"
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50"
+                                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/[0.06] rounded-lg text-white text-sm placeholder-white/20 focus:outline-none focus:border-white/[0.12] focus:bg-white/[0.03] transition-all"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-white/70 mb-2">Bio</label>
+                                <label className="block text-xs font-medium text-white/50 mb-2">Bio</label>
                                 <textarea
                                     rows={3}
                                     value={bio}
                                     onChange={(e) => setBio(e.target.value)}
                                     placeholder="Tell us about yourself..."
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50 resize-none"
+                                    className="w-full px-4 py-2.5 bg-white/[0.02] border border-white/[0.06] rounded-lg text-white text-sm placeholder-white/20 focus:outline-none focus:border-white/[0.12] focus:bg-white/[0.03] transition-all resize-none"
                                 />
                             </div>
 
                             <button
                                 onClick={handleSaveProfile}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-500 text-white text-sm font-semibold rounded-[10px] hover:shadow-lg hover:shadow-violet-500/30 transition-all"
+                                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-violet-500/15 hover:shadow-xl hover:shadow-violet-500/20 transition-all"
                             >
-                                <Save className="w-5 h-5" />
+                                <Save className="w-4 h-4" />
                                 Save Changes
                             </button>
                         </div>

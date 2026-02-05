@@ -128,64 +128,55 @@ export default function HistoryPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                        <History className="w-6 h-6 text-white" />
-                    </div>
+            <div className="mb-2">
+                <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-white">History</h1>
-                        <p className="text-white/50">{history.length} activities tracked</p>
+                        <h1 className="text-2xl font-semibold text-white tracking-tight mb-1.5">History</h1>
+                        <p className="text-white/40 text-sm">{history.length} activities tracked</p>
                     </div>
-                </div>
-                <div className="flex items-center gap-3">
                     <button
                         onClick={handleClearHistory}
                         disabled={history.length === 0}
-                        className="flex items-center gap-2 px-4 py-2.5 text-red-400 border border-red-500/30 rounded-xl hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 px-4 py-2 text-xs text-white/40 border border-white/[0.06] rounded-lg hover:text-red-400 hover:border-red-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
-                        <Trash2 className="w-4 h-4" />
-                        Clear History
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Clear
                     </button>
                 </div>
             </div>
 
             {/* Search and Filters */}
-            <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-4">
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="flex-1 relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search your history..."
-                            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/50"
-                        />
-                    </div>
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                        <button
-                            onClick={() => setSelectedTool(null)}
-                            className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${!selectedTool ? 'bg-indigo-500/20 text-indigo-400' : 'bg-white/10 text-white/60 hover:bg-white/15'
-                                }`}
-                        >
-                            All Tools
-                        </button>
-                        {availableTools.map((toolKey) => {
-                            const config = toolConfig[toolKey as keyof typeof toolConfig] || toolConfig.manual;
-                            return (
-                                <button
-                                    key={toolKey}
-                                    onClick={() => setSelectedTool(toolKey)}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${selectedTool === toolKey ? 'bg-white/20 text-white' : 'bg-white/10 text-white/60 hover:bg-white/15'
-                                        }`}
-                                >
-                                    <config.icon className="w-4 h-4" />
-                                    {config.name}
-                                </button>
-                            );
-                        })}
-                    </div>
+            <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search your history..."
+                        className="w-full pl-11 pr-4 py-2.5 bg-white/[0.02] border border-white/[0.06] rounded-xl text-white text-sm placeholder-white/20 focus:outline-none focus:border-white/[0.12] focus:bg-white/[0.03] transition-all"
+                    />
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                    <button
+                        onClick={() => setSelectedTool(null)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${!selectedTool ? 'bg-white/[0.08] text-white' : 'text-white/40 hover:text-white/60'}`}
+                    >
+                        All
+                    </button>
+                    {availableTools.map((toolKey) => {
+                        const config = toolConfig[toolKey as keyof typeof toolConfig] || toolConfig.manual;
+                        return (
+                            <button
+                                key={toolKey}
+                                onClick={() => setSelectedTool(toolKey)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${selectedTool === toolKey ? 'bg-white/[0.08] text-white' : 'text-white/40 hover:text-white/60'}`}
+                            >
+                                <config.icon className="w-3.5 h-3.5" />
+                                {config.name}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 

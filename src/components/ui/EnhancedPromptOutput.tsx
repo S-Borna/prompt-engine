@@ -158,7 +158,7 @@ export function EnhancedPromptOutput({
     // Empty state
     if (!result) {
         return (
-            <div className="flex-1 min-h-[200px] p-8 rounded-2xl bg-white/[0.01] border border-white/[0.04] border-dashed flex flex-col items-center justify-center">
+            <div className="flex-1 min-h-[280px] p-8 rounded-2xl bg-white/[0.01] border border-white/[0.04] border-dashed flex flex-col items-center justify-center">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 flex items-center justify-center mb-4">
                     <div className="w-6 h-6 rounded-lg bg-violet-500/20" />
                 </div>
@@ -206,7 +206,7 @@ export function EnhancedPromptOutput({
             ═══════════════════════════════════════════════════════════════ */}
             <div className="flex-1 flex gap-3">
                 {/* PRIMARY OUTPUT — Enhanced Prompt */}
-                <div className="flex-1 min-h-[180px] p-6 rounded-2xl bg-gradient-to-br from-violet-500/[0.04] to-indigo-500/[0.02] border border-violet-500/10 overflow-auto">
+                <div className="flex-1 min-h-[280px] p-6 rounded-2xl bg-gradient-to-br from-violet-500/[0.04] to-indigo-500/[0.02] border border-violet-500/10">
                     <div className="text-white/90 text-[15px] leading-relaxed whitespace-pre-wrap font-sans">
                         {animationDone ? (
                             result.enhancedPrompt

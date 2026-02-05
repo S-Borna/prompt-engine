@@ -86,49 +86,44 @@ export default function BillingPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
-                        <CreditCard className="w-6 h-6 text-white" />
-                    </div>
+            <div className="mb-2">
+                <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-white">Billing</h1>
-                        <p className="text-white/50">Manage your subscription</p>
+                        <h1 className="text-2xl font-semibold text-white tracking-tight mb-1.5">Billing</h1>
+                        <p className="text-white/40 text-sm">Manage your subscription and payment</p>
                     </div>
-                </div>
-                <div className="flex items-center gap-2 bg-white/5 rounded-xl p-1 border border-white/10">
-                    <button
-                        onClick={() => setBillingCycle('monthly')}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all ${billingCycle === 'monthly' ? 'bg-white/10 text-white' : 'text-white/50'
-                            }`}
-                    >
-                        Monthly
-                    </button>
-                    <button
-                        onClick={() => setBillingCycle('yearly')}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all ${billingCycle === 'yearly' ? 'bg-white/10 text-white' : 'text-white/50'
-                            }`}
-                    >
-                        Yearly <span className="text-emerald-400 text-sm">-20%</span>
-                    </button>
+                    <div className="flex items-center gap-1 bg-white/[0.02] rounded-lg p-1 border border-white/[0.06]">
+                        <button
+                            onClick={() => setBillingCycle('monthly')}
+                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${billingCycle === 'monthly' ? 'bg-white/[0.08] text-white' : 'text-white/40'}`}
+                        >
+                            Monthly
+                        </button>
+                        <button
+                            onClick={() => setBillingCycle('yearly')}
+                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${billingCycle === 'yearly' ? 'bg-white/[0.08] text-white' : 'text-white/40'}`}
+                        >
+                            Yearly <span className="text-emerald-400">-20%</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* Current Plan Banner */}
-            <div className="bg-gradient-to-r from-violet-500/20 to-purple-500/20 rounded-2xl p-6 border border-violet-500/30">
+            <div className="bg-white/[0.02] rounded-2xl p-5 border border-white/[0.05]">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-violet-500/20 rounded-2xl flex items-center justify-center">
-                            <Zap className="w-7 h-7 text-violet-400" />
+                        <div className="w-12 h-12 bg-gradient-to-br from-violet-500/20 to-indigo-500/20 rounded-xl flex items-center justify-center">
+                            <Zap className="w-6 h-6 text-violet-400" />
                         </div>
                         <div>
-                            <p className="text-white/50 text-sm">Current Plan</p>
-                            <h2 className="text-2xl font-bold text-white">Free Plan</h2>
+                            <p className="text-white/40 text-xs mb-0.5">Current Plan</p>
+                            <h2 className="text-xl font-semibold text-white">Free</h2>
                         </div>
                     </div>
                     <div className="text-right">
-                        <p className="text-white/50 text-sm">No usage limits in demo</p>
-                        <p className="text-lg font-semibold text-white">Explore freely</p>
+                        <p className="text-white/40 text-xs mb-0.5">No usage limits in demo</p>
+                        <p className="text-sm font-medium text-white/70">Explore freely</p>
                     </div>
                 </div>
             </div>

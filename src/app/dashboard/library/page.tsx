@@ -88,63 +88,58 @@ export default function LibraryPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-                        <Folder className="w-6 h-6 text-white" />
-                    </div>
+            <div className="mb-2">
+                <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-white">Library</h1>
-                        <p className="text-white/50">{prompts.length} saved prompts</p>
+                        <h1 className="text-2xl font-semibold text-white tracking-tight mb-1.5">Library</h1>
+                        <p className="text-white/40 text-sm">{prompts.length} saved prompts across {folders.length} folders</p>
                     </div>
+                    <button
+                        onClick={() => {
+                            addPrompt({
+                                title: 'New Prompt',
+                                content: '',
+                                tags: [],
+                                folder: selectedFolder === 'All' ? 'Personal' : selectedFolder,
+                                starred: false,
+                                tool: 'manual',
+                            });
+                            toast.success('New prompt created');
+                        }}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-violet-500/15 hover:shadow-xl hover:shadow-violet-500/20 transition-all"
+                    >
+                        <Plus className="w-4 h-4" />
+                        New Prompt
+                    </button>
                 </div>
-                <button
-                    onClick={() => {
-                        addPrompt({
-                            title: 'New Prompt',
-                            content: '',
-                            tags: [],
-                            folder: selectedFolder === 'All' ? 'Personal' : selectedFolder,
-                            starred: false,
-                            tool: 'manual',
-                        });
-                        toast.success('New prompt created');
-                    }}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white text-sm font-semibold rounded-[10px] hover:shadow-lg hover:shadow-amber-500/30 transition-all"
-                >
-                    <Plus className="w-5 h-5" />
-                    New Prompt
-                </button>
             </div>
 
             {/* Search and Filters */}
-            <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-4">
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="flex-1 relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search prompts by title, content, or tags..."
-                            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50"
-                        />
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center border border-white/10 rounded-xl overflow-hidden">
-                            <button
-                                onClick={() => setViewMode('grid')}
-                                className={`p-3 ${viewMode === 'grid' ? 'bg-amber-500/20 text-amber-400' : 'text-white/50 hover:bg-white/5'}`}
-                            >
-                                <Grid className="w-5 h-5" />
-                            </button>
-                            <button
-                                onClick={() => setViewMode('list')}
-                                className={`p-3 ${viewMode === 'list' ? 'bg-amber-500/20 text-amber-400' : 'text-white/50 hover:bg-white/5'}`}
-                            >
-                                <List className="w-5 h-5" />
-                            </button>
-                        </div>
+            <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search prompts by title, content, or tags..."
+                        className="w-full pl-11 pr-4 py-2.5 bg-white/[0.02] border border-white/[0.06] rounded-xl text-white text-sm placeholder-white/20 focus:outline-none focus:border-white/[0.12] focus:bg-white/[0.03] transition-all"
+                    />
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center bg-white/[0.02] border border-white/[0.06] rounded-xl overflow-hidden">
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={`p-2.5 transition-colors ${viewMode === 'grid' ? 'bg-white/[0.08] text-white' : 'text-white/40 hover:text-white/60'}`}
+                        >
+                            <Grid className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`p-2.5 transition-colors ${viewMode === 'list' ? 'bg-white/[0.08] text-white' : 'text-white/40 hover:text-white/60'}`}
+                        >
+                            <List className="w-4 h-4" />
+                        </button>
                     </div>
                 </div>
             </div>
@@ -152,51 +147,49 @@ export default function LibraryPage() {
             {/* Main Content */}
             <div className="flex gap-6">
                 {/* Sidebar - Folders */}
-                <div className="w-56 flex-shrink-0">
-                    <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-4">
-                        <h3 className="text-sm font-semibold text-white/50 uppercase mb-3">Folders</h3>
-                        <div className="space-y-1">
+                <div className="w-52 flex-shrink-0 hidden md:block">
+                    <div className="space-y-1">
+                        <span className="text-[11px] font-medium uppercase tracking-wider text-white/30 px-3 mb-2 block">Folders</span>
+                        <button
+                            onClick={() => setSelectedFolder('All')}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all ${selectedFolder === 'All' ? 'bg-white/[0.08] text-white' : 'hover:bg-white/[0.04] text-white/50'
+                                }`}
+                        >
+                            <Folder className="w-4 h-4" />
+                            <span className="text-sm font-medium">All Prompts</span>
+                            <span className="ml-auto text-xs text-white/30">{prompts.length}</span>
+                        </button>
+                        {folders.map((folder) => (
                             <button
-                                onClick={() => setSelectedFolder('All')}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${selectedFolder === 'All' ? 'bg-amber-500/20 text-amber-400' : 'hover:bg-white/5 text-white/70'
+                                key={folder}
+                                onClick={() => setSelectedFolder(folder)}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all ${selectedFolder === folder ? 'bg-white/[0.08] text-white' : 'hover:bg-white/[0.04] text-white/50'
                                     }`}
                             >
                                 <Folder className="w-4 h-4" />
-                                <span className="font-medium">All</span>
-                                <span className="ml-auto text-xs text-white/40">{prompts.length}</span>
+                                <span className="text-sm font-medium">{folder}</span>
+                                <span className="ml-auto text-xs text-white/30">
+                                    {prompts.filter(p => p.folder === folder).length}
+                                </span>
                             </button>
-                            {folders.map((folder) => (
-                                <button
-                                    key={folder}
-                                    onClick={() => setSelectedFolder(folder)}
-                                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${selectedFolder === folder ? 'bg-amber-500/20 text-amber-400' : 'hover:bg-white/5 text-white/70'
-                                        }`}
-                                >
-                                    <Folder className="w-4 h-4" />
-                                    <span className="font-medium">{folder}</span>
-                                    <span className="ml-auto text-xs text-white/40">
-                                        {prompts.filter(p => p.folder === folder).length}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-                        <hr className="my-4 border-white/10" />
+                        ))}
+                        <hr className="my-3 border-white/[0.06]" />
                         <button
                             onClick={() => setShowNewFolderModal(true)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 text-amber-400 hover:bg-amber-500/10 rounded-xl"
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-white/40 hover:text-white/60 hover:bg-white/[0.04] rounded-lg transition-all"
                         >
                             <Plus className="w-4 h-4" />
-                            <span className="font-medium">New Folder</span>
+                            <span className="text-sm font-medium">New Folder</span>
                         </button>
                     </div>
 
-                    <div className="mt-4 bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-2xl border border-amber-500/20 p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                            <span className="font-semibold text-amber-400">Starred</span>
+                    <div className="mt-6 p-3 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+                        <div className="flex items-center gap-2 mb-1">
+                            <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                            <span className="text-xs font-medium text-white/60">Starred</span>
                         </div>
-                        <p className="text-sm text-white/60">
-                            {starredCount} starred prompt{starredCount !== 1 ? 's' : ''}
+                        <p className="text-xs text-white/30">
+                            {starredCount} prompt{starredCount !== 1 ? 's' : ''}
                         </p>
                     </div>
                 </div>
