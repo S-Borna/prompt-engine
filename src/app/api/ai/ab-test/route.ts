@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
                     label: 'Original Output',
                     executionMode: originalResult.executionMode,
                     parameters: originalResult.parameters,
+                    apiModel: originalResult.apiModel,
                 },
                 outputB: {
                     prompt: proPrompt,
@@ -104,6 +105,7 @@ export async function POST(request: NextRequest) {
                     label: 'Enhanced Output',
                     executionMode: enhancedResult.executionMode,
                     parameters: enhancedResult.parameters,
+                    apiModel: enhancedResult.apiModel,
                 },
             },
             improvement,
@@ -115,6 +117,7 @@ export async function POST(request: NextRequest) {
                 max_tokens: adapter.max_tokens,
                 hasSystemPrompt: !!adapter.systemPrompt,
             },
+            apiModel: enhancedResult.apiModel,
             model,
             timestamp: new Date().toISOString(),
         });
