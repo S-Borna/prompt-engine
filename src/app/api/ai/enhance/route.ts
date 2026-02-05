@@ -23,6 +23,7 @@ interface ContentAnalysis {
     domain: 'software' | 'business' | 'creative' | 'personal' | 'academic' | 'technical' | 'general';
     complexity: 'simple' | 'intermediate' | 'advanced';
     outputType: 'code' | 'text' | 'plan' | 'list' | 'strategy' | 'explanation' | 'mixed';
+    language: 'en' | 'sv'; // Detected input language
     
     // Extracted elements
     subject: string;
@@ -159,17 +160,22 @@ function analyzeContent(prompt: string): ContentAnalysis {
     specificity = Math.min(specificity, 100);
     
     // ─── Other Flags ────────────────────────────────────────────────────
-    const urgency = /\b(urgent|asap|quickly|immediately|now|deadline|time.?sensitive)\b/i.test(prompt);
-    const hasConstraints = /\b(must|should|require|need|constraint|limit|only|no more than|at least)\b/i.test(prompt);
-    const hasAudience = /\b(for|to|audience|reader|user|customer|team|manager|client)\b/i.test(prompt);
+    const urgency = /\b(urgent|asap|quickly|immediately|now|deadline|time.?sensitive|brådskande|snabbt|omedelbart)\b/i.test(prompt);
+    const hasConstraints = /\b(must|should|require|need|constraint|limit|only|no more than|at least|måste|ska|krav|begränsning|endast|minst|högst)\b/i.test(prompt);
+    const hasAudience = /\b(for|to|audience|reader|user|customer|team|manager|client|för|till|målgrupp|läsare|användare|kund|team|chef)\b/i.test(prompt);
     const hasTechnicalTerms = /\b(api|sql|json|http|oauth|jwt|rest|graphql|websocket|tcp|docker|kubernetes)\b/i.test(prompt);
-    const isQuestion = /\?/.test(prompt) || /^(what|how|why|when|where|who|can|could|should|would|is|are|do|does)\b/i.test(prompt);
+    const isQuestion = /\?/.test(prompt) || /^(what|how|why|when|where|who|can|could|should|would|is|are|do|does|vad|hur|varför|när|var|vem|kan|borde|ska)\b/i.test(prompt);
+    
+    // ─── Language Detection ─────────────────────────────────────────────
+    const swedishIndicators = /\b(och|eller|för|att|det|är|jag|mig|min|mitt|ska|kan|hur|vad|varför|när|som|med|på|av|till|från|om|inte|den|ett|en|har|vara|blir|skulle|finns|också|bara|alla|denna|dessa|något|några|mycket|mer|mest|andra|första|sista|vilken|vilket|vilka|genom|under|över|mellan|utan|inom|sedan|efter|före|mot|vid|hos|åt|så|än|nu|här|där|skriv|skapa|bygg|förklara|jämför|fixa|ge mig|hjälp mig|fungerar|funkar)\b/i;
+    const language: 'en' | 'sv' = swedishIndicators.test(prompt) ? 'sv' : 'en';
     
     return {
         intent,
         domain,
         complexity,
         outputType,
+        language,
         subject,
         specificity,
         urgency,
@@ -195,17 +201,21 @@ function selectParameters(analysis: ContentAnalysis): AdaptiveParams {
         skipSections: []
     };
     
+    const lang = analysis.language;
+    
     // ─── Persona Selection (only when truly relevant) ───────────────────
     // Persona selection based on intent and domain
     // Build requests get developer persona unless trivial
     if (analysis.intent === 'build' && analysis.domain === 'software') {
-        params.persona = analysis.complexity === 'advanced' ? 'senior software engineer' : 'experienced developer';
+        params.persona = analysis.complexity === 'advanced' 
+            ? t(texts.personas.seniorDev, lang) 
+            : t(texts.personas.developer, lang);
     } else if (analysis.complexity === 'advanced' && analysis.domain === 'business') {
-        params.persona = 'experienced business strategist';
+        params.persona = t(texts.personas.strategist, lang);
     } else if (analysis.domain === 'academic') {
-        params.persona = 'subject matter expert';
+        params.persona = t(texts.personas.expert, lang);
     } else if (analysis.intent === 'debug') {
-        params.persona = 'debugging specialist';
+        params.persona = t(texts.personas.debugger, lang);
     }
     // No persona for simple questions, personal, or general requests
     
@@ -258,13 +268,13 @@ function selectParameters(analysis: ContentAnalysis): AdaptiveParams {
     
     // ─── Constraints (only if genuinely useful) ─────────────────────────
     if (analysis.urgency) {
-        params.constraints.push('Be concise and direct');
+        params.constraints.push(t(texts.constraints.concise, lang));
     }
     if (analysis.intent === 'debug') {
-        params.constraints.push('Focus on root cause and fix');
+        params.constraints.push(t(texts.constraints.rootCause, lang));
     }
     if (analysis.domain === 'software' && analysis.complexity === 'advanced') {
-        params.constraints.push('Consider edge cases and error handling');
+        params.constraints.push(t(texts.constraints.edgeCases, lang));
     }
     
     // ─── Skip Irrelevant Sections ───────────────────────────────────────
@@ -328,19 +338,149 @@ function enhancePrompt(rawPrompt: string, platform: string): EnhancementResult {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// BILINGUAL TEXT HELPER
+// Returns text in the detected language
+// ═══════════════════════════════════════════════════════════════════════════
+
+const texts = {
+    personas: {
+        developer: { en: 'experienced developer', sv: 'erfaren utvecklare' },
+        seniorDev: { en: 'senior software engineer', sv: 'senior mjukvaruutvecklare' },
+        debugger: { en: 'debugging specialist', sv: 'debuggingsspecialist' },
+        strategist: { en: 'experienced business strategist', sv: 'erfaren affärsstrateg' },
+        expert: { en: 'subject matter expert', sv: 'ämnesexpert' },
+    },
+    coreRequests: {
+        buildAdvanced: {
+            en: 'Provide a comprehensive technical solution including architecture, implementation approach, and key code.',
+            sv: 'Ge en omfattande teknisk lösning inklusive arkitektur, implementeringsansats och nyckelkod.'
+        },
+        build: {
+            en: 'Provide working code with clear explanations. Include usage examples.',
+            sv: 'Ge fungerande kod med tydliga förklaringar. Inkludera användningsexempel.'
+        },
+        debug: {
+            en: 'Identify the root cause and provide a clear fix. Explain why the issue occurs.',
+            sv: 'Identifiera grundorsaken och ge en tydlig lösning. Förklara varför problemet uppstår.'
+        },
+        compare: {
+            en: 'Provide a balanced comparison covering key differences, trade-offs, and a clear recommendation.',
+            sv: 'Ge en balanserad jämförelse som täcker viktiga skillnader, avvägningar och en tydlig rekommendation.'
+        },
+        transform: {
+            en: 'Provide the complete transformed output, maintaining the essential meaning while achieving the desired form.',
+            sv: 'Ge den fullständiga transformerade outputen, behåll den väsentliga betydelsen samtidigt som önskad form uppnås.'
+        },
+        simple: {
+            en: 'Provide a clear, direct response.',
+            sv: 'Ge ett tydligt och direkt svar.'
+        },
+        explain: {
+            en: 'Explain clearly with practical examples. Cover the key concepts and common use cases.',
+            sv: 'Förklara tydligt med praktiska exempel. Täck de viktigaste koncepten och vanliga användningsfall.'
+        },
+        question: {
+            en: 'Provide a thorough answer that addresses the core question and relevant context.',
+            sv: 'Ge ett grundligt svar som adresserar kärnfrågan och relevant kontext.'
+        },
+        brainstorm: {
+            en: 'Generate diverse, creative options. Push beyond obvious first ideas.',
+            sv: 'Generera varierade, kreativa alternativ. Gå bortom de uppenbara första idéerna.'
+        },
+        list: {
+            en: 'Provide a comprehensive, well-organized list with brief context for each item.',
+            sv: 'Ge en omfattande, välorganiserad lista med kort kontext för varje punkt.'
+        },
+        persuade: {
+            en: 'Craft a compelling argument with clear reasoning and evidence.',
+            sv: 'Skapa ett övertygande argument med tydlig logik och bevis.'
+        },
+        default: {
+            en: 'Provide a comprehensive, actionable response.',
+            sv: 'Ge ett omfattande och handlingsbart svar.'
+        }
+    },
+    structures: {
+        explainLight: {
+            en: 'Cover:\n- Core concept explanation\n- Key points to understand\n- Practical implications',
+            sv: 'Täck:\n- Förklaring av kärnkonceptet\n- Viktiga punkter att förstå\n- Praktiska implikationer'
+        },
+        questionLight: {
+            en: 'Include:\n- Direct answer\n- Supporting context\n- Related considerations',
+            sv: 'Inkludera:\n- Direkt svar\n- Stödjande kontext\n- Relaterade överväganden'
+        },
+        brainstormLight: {
+            en: 'Provide:\n- Multiple distinct options\n- Brief rationale for each\n- Top recommendation',
+            sv: 'Ge:\n- Flera distinkta alternativ\n- Kort motivering för varje\n- Topprekkommendation'
+        },
+        compareLight: {
+            en: 'Structure:\n- Key similarities\n- Key differences\n- Recommendation with reasoning',
+            sv: 'Struktur:\n- Viktiga likheter\n- Viktiga skillnader\n- Rekommendation med motivering'
+        },
+        defaultLight: {
+            en: 'Ensure:\n- Clear main points\n- Supporting details\n- Actionable conclusion',
+            sv: 'Säkerställ:\n- Tydliga huvudpunkter\n- Stödjande detaljer\n- Handlingsbar slutsats'
+        },
+        softwareBuild: {
+            en: 'Include:\n1. Approach/strategy\n2. Core implementation\n3. Usage example\n4. Key considerations',
+            sv: 'Inkludera:\n1. Tillvägagångssätt/strategi\n2. Kärnimplementering\n3. Användningsexempel\n4. Viktiga överväganden'
+        },
+        softwareDebug: {
+            en: 'Provide:\n1. Root cause identification\n2. The fix with explanation\n3. Prevention strategy',
+            sv: 'Ge:\n1. Identifiering av grundorsak\n2. Lösningen med förklaring\n3. Förebyggande strategi'
+        },
+        softwareDefault: {
+            en: 'Cover:\n1. Solution approach\n2. Implementation details\n3. Edge cases to consider',
+            sv: 'Täck:\n1. Lösningsansats\n2. Implementeringsdetaljer\n3. Kantfall att överväga'
+        },
+        business: {
+            en: 'Address:\n1. Situation assessment\n2. Strategic options\n3. Recommended approach\n4. Next steps',
+            sv: 'Adressera:\n1. Situationsbedömning\n2. Strategiska alternativ\n3. Rekommenderat tillvägagångssätt\n4. Nästa steg'
+        },
+        creative: {
+            en: 'Provide:\n1. Concept direction\n2. Execution details\n3. Variations to consider',
+            sv: 'Ge:\n1. Konceptriktning\n2. Genomförandedetaljer\n3. Variationer att överväga'
+        },
+        defaultModerate: {
+            en: 'Include:\n1. Core response\n2. Supporting details\n3. Practical application',
+            sv: 'Inkludera:\n1. Kärnsvar\n2. Stödjande detaljer\n3. Praktisk tillämpning'
+        }
+    },
+    constraints: {
+        concise: { en: 'Be concise and direct', sv: 'Var koncis och direkt' },
+        rootCause: { en: 'Focus on root cause and fix', sv: 'Fokusera på grundorsak och lösning' },
+        edgeCases: { en: 'Consider edge cases and error handling', sv: 'Överväg kantfall och felhantering' }
+    },
+    guidelines: {
+        technical: { en: 'Use precise technical language', sv: 'Använd precist tekniskt språk' },
+        friendly: { en: 'Keep the tone approachable and encouraging', sv: 'Håll tonen tillgänglig och uppmuntrande' },
+        creative: { en: 'Be expressive and imaginative', sv: 'Var uttrycksfull och fantasifull' },
+        code: { en: 'Provide complete, working code with comments', sv: 'Ge komplett, fungerande kod med kommentarer' },
+        bullets: { en: 'Use bullet points for clarity', sv: 'Använd punktlistor för tydlighet' },
+        specific: { en: 'Be specific and concrete, not generic', sv: 'Var specifik och konkret, inte generisk' }
+    }
+};
+
+function t(textObj: { en: string; sv: string }, lang: 'en' | 'sv'): string {
+    return textObj[lang];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ADAPTIVE PROMPT GENERATOR
 // Builds prompts that are unique to each input - never templated
 // ═══════════════════════════════════════════════════════════════════════════
 
 function generateAdaptivePrompt(original: string, analysis: ContentAnalysis, params: AdaptiveParams): string {
     const parts: string[] = [];
+    const lang = analysis.language;
     
     // Actionable intents get persona even if prompt is short
     const isActionableIntent = ['build', 'debug', 'compare'].includes(analysis.intent);
     
     // ─── Opening: Persona (only if relevant) ────────────────────────────
     if (params.persona && (analysis.complexity !== 'simple' || isActionableIntent)) {
-        parts.push(`You are a ${params.persona}.`);
+        const personaText = lang === 'sv' ? `Du är en ${params.persona}.` : `You are a ${params.persona}.`;
+        parts.push(personaText);
     }
     
     // ─── Core Request (always present, adapted) ─────────────────────────
@@ -353,7 +493,7 @@ function generateAdaptivePrompt(original: string, analysis: ContentAnalysis, par
     
     // ─── Constraints (only if genuinely relevant) ───────────────────────
     if (params.constraints.length > 0) {
-        parts.push(buildConstraints(params.constraints));
+        parts.push(buildConstraints(params.constraints, lang));
     }
     
     // ─── Output Format (adapted to intent) ──────────────────────────────
@@ -365,83 +505,86 @@ function generateAdaptivePrompt(original: string, analysis: ContentAnalysis, par
 }
 
 function buildCoreRequest(original: string, analysis: ContentAnalysis): string {
+    const lang = analysis.language;
+    
     // Intent-specific handling takes priority over complexity
     
     // For build requests (software) - always get proper structure
     if (analysis.intent === 'build' && analysis.domain === 'software') {
         if (analysis.complexity === 'advanced') {
-            return `${original}\n\nProvide a comprehensive technical solution including architecture, implementation approach, and key code.`;
+            return `${original}\n\n${t(texts.coreRequests.buildAdvanced, lang)}`;
         }
-        return `${original}\n\nProvide working code with clear explanations. Include usage examples.`;
+        return `${original}\n\n${t(texts.coreRequests.build, lang)}`;
     }
     
     // For debug requests, focus on problem-solving
     if (analysis.intent === 'debug') {
-        return `${original}\n\nIdentify the root cause and provide a clear fix. Explain why the issue occurs.`;
+        return `${original}\n\n${t(texts.coreRequests.debug, lang)}`;
     }
     
     // For comparison, structure the analysis
     if (analysis.intent === 'compare') {
-        return `${original}\n\nProvide a balanced comparison covering key differences, trade-offs, and a clear recommendation.`;
+        return `${original}\n\n${t(texts.coreRequests.compare, lang)}`;
     }
     
     // For transformation requests, be specific about input/output
     if (analysis.intent === 'transform') {
-        return `${original}\n\nProvide the complete transformed output, maintaining the essential meaning while achieving the desired form.`;
+        return `${original}\n\n${t(texts.coreRequests.transform, lang)}`;
     }
     
     // For simple, non-actionable requests - minimal treatment
     // These intents get proper handling even if prompt is short
     const actionableIntents = ['build', 'debug', 'compare', 'transform', 'explain', 'brainstorm', 'list'];
     if (analysis.complexity === 'simple' && !actionableIntents.includes(analysis.intent)) {
-        return `${original}\n\nProvide a clear, direct response.`;
+        return `${original}\n\n${t(texts.coreRequests.simple, lang)}`;
     }
     
     // For explain intent - always get explanation structure
     if (analysis.intent === 'explain') {
-        return `${original}\n\nExplain clearly with practical examples. Cover the key concepts and common use cases.`;
+        return `${original}\n\n${t(texts.coreRequests.explain, lang)}`;
     }
     
     // For questions, reframe for comprehensive answer
     if (analysis.isQuestion || analysis.intent === 'question') {
-        return `${original}\n\nProvide a thorough answer that addresses the core question and relevant context.`;
+        return `${original}\n\n${t(texts.coreRequests.question, lang)}`;
     }
     
     // For brainstorming, encourage variety
     if (analysis.intent === 'brainstorm') {
-        return `${original}\n\nGenerate diverse, creative options. Push beyond obvious first ideas.`;
+        return `${original}\n\n${t(texts.coreRequests.brainstorm, lang)}`;
     }
     
     // For list requests, focus on comprehensiveness
     if (analysis.intent === 'list') {
-        return `${original}\n\nProvide a comprehensive, well-organized list with brief context for each item.`;
+        return `${original}\n\n${t(texts.coreRequests.list, lang)}`;
     }
     
     // For persuasion
     if (analysis.intent === 'persuade') {
-        return `${original}\n\nCraft a compelling argument with clear reasoning and evidence.`;
+        return `${original}\n\n${t(texts.coreRequests.persuade, lang)}`;
     }
     
     // Default: enhance with context
-    return `${original}\n\nProvide a comprehensive, actionable response.`;
+    return `${original}\n\n${t(texts.coreRequests.default, lang)}`;
 }
 
 function buildStructure(analysis: ContentAnalysis, params: AdaptiveParams): string {
+    const lang = analysis.language;
     const sections: string[] = [];
     
     // ─── Light Structure (intermediate complexity) ──────────────────────
     if (params.structureDepth === 'light') {
         switch (analysis.intent) {
             case 'explain':
-                return 'Cover:\n- Core concept explanation\n- Key points to understand\n- Practical implications';
+                return t(texts.structures.explainLight, lang);
             case 'question':
-                return 'Include:\n- Direct answer\n- Supporting context\n- Related considerations';
+                return t(texts.structures.questionLight, lang);
             case 'brainstorm':
-                return 'Provide:\n- Multiple distinct options\n- Brief rationale for each\n- Top recommendation';
+                return t(texts.structures.brainstormLight, lang);
             case 'compare':
-                return 'Structure:\n- Key similarities\n- Key differences\n- Recommendation with reasoning';
+                return t(texts.structures.compareLight, lang);
             default:
-                return 'Ensure:\n- Clear main points\n- Supporting details\n- Actionable conclusion';
+                return t(texts.structures.defaultLight, lang);
         }
     }
     
@@ -450,21 +593,21 @@ function buildStructure(analysis: ContentAnalysis, params: AdaptiveParams): stri
         switch (analysis.domain) {
             case 'software':
                 if (analysis.intent === 'build') {
-                    return 'Include:\n1. Approach/strategy\n2. Core implementation\n3. Usage example\n4. Key considerations';
+                    return t(texts.structures.softwareBuild, lang);
                 }
                 if (analysis.intent === 'debug') {
-                    return 'Provide:\n1. Root cause identification\n2. The fix with explanation\n3. Prevention strategy';
+                    return t(texts.structures.softwareDebug, lang);
                 }
-                return 'Cover:\n1. Solution approach\n2. Implementation details\n3. Edge cases to consider';
+                return t(texts.structures.softwareDefault, lang);
                 
             case 'business':
-                return 'Address:\n1. Situation assessment\n2. Strategic options\n3. Recommended approach\n4. Next steps';
+                return t(texts.structures.business, lang);
                 
             case 'creative':
-                return 'Provide:\n1. Concept direction\n2. Execution details\n3. Variations to consider';
+                return t(texts.structures.creative, lang);
                 
             default:
-                return 'Include:\n1. Core response\n2. Supporting details\n3. Practical application';
+                return t(texts.structures.defaultModerate, lang);
         }
     }
     
@@ -474,19 +617,45 @@ function buildStructure(analysis: ContentAnalysis, params: AdaptiveParams): stri
             const skipArch = params.skipSections.includes('architecture');
             const skipRoadmap = params.skipSections.includes('roadmap');
             
-            sections.push('Provide:');
-            if (!skipArch) {
-                sections.push('1. **Architecture Overview**\n   - Tech stack with justification\n   - Core components and interactions');
-            }
-            sections.push('2. **Implementation**\n   - Key code with explanations\n   - Critical functionality first');
-            sections.push('3. **Practical Guidance**\n   - Setup/usage instructions\n   - Testing approach');
-            if (!skipRoadmap && analysis.complexity === 'advanced') {
-                sections.push('4. **Considerations**\n   - Scalability notes\n   - Security considerations');
+            if (lang === 'sv') {
+                sections.push('Ge:');
+                if (!skipArch) {
+                    sections.push('1. **Arkitekturöversikt**\n   - Teknikstack med motivering\n   - Kärnkomponenter och interaktioner');
+                }
+                sections.push('2. **Implementering**\n   - Nyckelkod med förklaringar\n   - Kritisk funktionalitet först');
+                sections.push('3. **Praktisk vägledning**\n   - Installations-/användningsinstruktioner\n   - Testmetod');
+                if (!skipRoadmap && analysis.complexity === 'advanced') {
+                    sections.push('4. **Överväganden**\n   - Skalbarhetsnotes\n   - Säkerhetsöverväganden');
+                }
+            } else {
+                sections.push('Provide:');
+                if (!skipArch) {
+                    sections.push('1. **Architecture Overview**\n   - Tech stack with justification\n   - Core components and interactions');
+                }
+                sections.push('2. **Implementation**\n   - Key code with explanations\n   - Critical functionality first');
+                sections.push('3. **Practical Guidance**\n   - Setup/usage instructions\n   - Testing approach');
+                if (!skipRoadmap && analysis.complexity === 'advanced') {
+                    sections.push('4. **Considerations**\n   - Scalability notes\n   - Security considerations');
+                }
             }
             return sections.join('\n');
         }
         
         if (analysis.domain === 'business') {
+            if (lang === 'sv') {
+                return `Ge:
+1. **Situationsanalys**
+   - Nulägesbedömning
+   - Viktiga utmaningar/möjligheter
+
+2. **Strategiska alternativ**
+   - 2-3 genomförbara tillvägagångssätt med avvägningar
+
+3. **Rekommendation**
+   - Bästa vägen framåt med motivering
+   - Implementeringssteg
+   - Framgångsmått`;
+            }
             return `Provide:
 1. **Situation Analysis**
    - Current state assessment
@@ -502,6 +671,13 @@ function buildStructure(analysis: ContentAnalysis, params: AdaptiveParams): stri
         }
         
         // Default detailed
+        if (lang === 'sv') {
+            return `Struktur:
+1. **Översikt** - Kärnsvar/lösning
+2. **Detaljer** - Djupgående förklaring
+3. **Tillämpning** - Hur man använder/implementerar
+4. **Överväganden** - Kantfall, alternativ`;
+        }
         return `Structure:
 1. **Overview** - Core answer/solution
 2. **Details** - In-depth explanation
@@ -512,39 +688,43 @@ function buildStructure(analysis: ContentAnalysis, params: AdaptiveParams): stri
     return '';
 }
 
-function buildConstraints(constraints: string[]): string {
+function buildConstraints(constraints: string[], lang: 'en' | 'sv'): string {
     if (constraints.length === 0) return '';
-    if (constraints.length === 1) return `Note: ${constraints[0]}.`;
-    return 'Requirements:\n' + constraints.map(c => `- ${c}`).join('\n');
+    const note = lang === 'sv' ? 'Obs' : 'Note';
+    const reqs = lang === 'sv' ? 'Krav' : 'Requirements';
+    if (constraints.length === 1) return `${note}: ${constraints[0]}.`;
+    return `${reqs}:\n` + constraints.map(c => `- ${c}`).join('\n');
 }
 
 function buildOutputGuidance(analysis: ContentAnalysis, params: AdaptiveParams): string {
+    const lang = analysis.language;
     const guides: string[] = [];
     
     // Tone guidance (only if not obvious)
     if (params.tone === 'technical') {
-        guides.push('Use precise technical language');
+        guides.push(t(texts.guidelines.technical, lang));
     } else if (params.tone === 'friendly') {
-        guides.push('Keep the tone approachable and encouraging');
+        guides.push(t(texts.guidelines.friendly, lang));
     } else if (params.tone === 'creative') {
-        guides.push('Be expressive and imaginative');
+        guides.push(t(texts.guidelines.creative, lang));
     }
     
     // Format guidance (only if specific)
     if (params.format === 'code') {
-        guides.push('Provide complete, working code with comments');
+        guides.push(t(texts.guidelines.code, lang));
     } else if (params.format === 'bullets' && analysis.intent !== 'list') {
-        guides.push('Use bullet points for clarity');
+        guides.push(t(texts.guidelines.bullets, lang));
     }
     
     // Specificity reminder for vague prompts
     if (analysis.specificity < 50) {
-        guides.push('Be specific and concrete, not generic');
+        guides.push(t(texts.guidelines.specific, lang));
     }
     
     if (guides.length === 0) return '';
     if (guides.length === 1) return guides[0] + '.';
-    return 'Guidelines:\n' + guides.map(g => `- ${g}`).join('\n');
+    const header = lang === 'sv' ? 'Riktlinjer' : 'Guidelines';
+    return `${header}:\n` + guides.map(g => `- ${g}`).join('\n');
 }
 
 function generateChangeDescription(analysis: ContentAnalysis, params: AdaptiveParams): string[] {
