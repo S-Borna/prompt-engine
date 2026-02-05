@@ -322,11 +322,10 @@ function ModelInsightPopover({ modelId, isVisible, anchorRect, onClose }: ModelI
             ref={popoverRef}
             role="tooltip"
             aria-hidden={!isVisible}
-            className={`fixed z-[9999] pointer-events-none transition-all duration-150 ${
-                isVisible
+            className={`fixed z-[9999] pointer-events-none transition-all duration-150 ${isVisible
                     ? 'opacity-100 scale-100 translate-y-0'
                     : 'opacity-0 scale-[0.96] translate-y-1'
-            }`}
+                }`}
             style={{
                 left: `${left}px`,
                 top: `${top}px`,
@@ -544,19 +543,17 @@ export function ModelCardWithInsight({ model, isSelected, onSelect }: ModelCardW
                 onFocus={handleMouseEnter}
                 onBlur={handleMouseLeave}
                 title={`${model.name} — ${model.family}`}
-                className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-200 ${
-                    isSelected
+                className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-200 ${isSelected
                         ? 'bg-white/[0.08] ring-1 ring-white/20'
                         : 'bg-white/[0.02] hover:bg-white/[0.05]'
-                }`}
+                    }`}
                 style={isSelected ? {
                     boxShadow: `0 0 16px -4px ${model.color}40`
                 } : {}}
             >
                 <div
-                    className={`w-5 h-5 rounded flex items-center justify-center transition-all ${
-                        isSelected ? 'opacity-100' : 'opacity-50 group-hover:opacity-80'
-                    }`}
+                    className={`w-5 h-5 rounded flex items-center justify-center transition-all ${isSelected ? 'opacity-100' : 'opacity-50 group-hover:opacity-80'
+                        }`}
                     style={{ backgroundColor: `${model.color}15` }}
                 >
                     <Image
@@ -568,9 +565,8 @@ export function ModelCardWithInsight({ model, isSelected, onSelect }: ModelCardW
                     />
                 </div>
                 <span
-                    className={`text-xs font-medium transition-colors ${
-                        isSelected ? 'text-white' : 'text-white/50 group-hover:text-white/70'
-                    }`}
+                    className={`text-xs font-medium transition-colors ${isSelected ? 'text-white' : 'text-white/50 group-hover:text-white/70'
+                        }`}
                 >
                     {model.name}
                 </span>

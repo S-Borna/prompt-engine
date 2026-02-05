@@ -528,49 +528,49 @@ interface ExecutionPromptConfig {
 function inferExpertRole(spec: CompiledSpec, lang: 'en' | 'sv'): string {
     const obj = spec.objective.toLowerCase();
     const raw = spec.rawInput.toLowerCase();
-    
+
     // Fitness/health topics
     if (/chin|pull.?up|push.?up|träning|workout|exercise|gym|fitness|muscle|styrka|strength/i.test(raw)) {
-        return lang === 'sv' 
+        return lang === 'sv'
             ? 'Du är en certifierad styrke- och konditionscoach med 15 års erfarenhet av att träna nybörjare till avancerade atleter. Du kombinerar vetenskapligt bevisade metoder med praktisk erfarenhet.'
             : 'You are a certified strength and conditioning coach with 15 years of experience training beginners to advanced athletes. You combine evidence-based methods with practical experience.';
     }
-    
+
     // Cooking/recipes
     if (/recept|recipe|cook|mat|food|bak|bake|ingredient|meal/i.test(raw)) {
         return lang === 'sv'
             ? 'Du är en professionell kock med utbildning från kulinariska institut och 12 års erfarenhet i restaurangkök. Du specialiserar dig på att göra avancerade tekniker tillgängliga för hemkockar.'
             : 'You are a professional chef with culinary institute training and 12 years of restaurant kitchen experience. You specialize in making advanced techniques accessible to home cooks.';
     }
-    
+
     // Programming/code
     if (/code|kod|program|app|software|api|function|develop|bygg|build|implement/i.test(raw)) {
         return lang === 'sv'
             ? 'Du är en senior mjukvaruutvecklare med 10+ års erfarenhet av full-stack utveckling. Du prioriterar läsbar, underhållbar kod och följer branschens bästa praxis.'
             : 'You are a senior software developer with 10+ years of full-stack experience. You prioritize readable, maintainable code and follow industry best practices.';
     }
-    
+
     // Writing/content
     if (/skriv|write|text|content|article|blog|copy|essay/i.test(raw)) {
         return lang === 'sv'
             ? 'Du är en erfaren copywriter och innehållsstrateg med bakgrund inom journalistik. Du behärskar konsten att kommunicera komplext innehåll på ett engagerande sätt.'
             : 'You are an experienced copywriter and content strategist with a journalism background. You master the art of communicating complex content in an engaging way.';
     }
-    
+
     // Business/strategy
     if (/business|affär|strateg|plan|market|företag|startup|revenue|profit/i.test(raw)) {
         return lang === 'sv'
             ? 'Du är en affärsstrateg och managementkonsult med MBA och erfarenhet från Fortune 500-bolag. Du fokuserar på praktiska, genomförbara rekommendationer.'
             : 'You are a business strategist and management consultant with an MBA and Fortune 500 experience. You focus on practical, actionable recommendations.';
     }
-    
+
     // Learning/education
     if (/lär|learn|förstå|understand|explain|förklara|study|studera|course|kurs/i.test(raw)) {
         return lang === 'sv'
             ? 'Du är en pedagogisk expert och lärare med specialisering i att bryta ner komplexa ämnen. Du använder analogier, exempel och stegvisa förklaringar för maximal förståelse.'
             : 'You are a pedagogical expert and educator specializing in breaking down complex topics. You use analogies, examples, and step-by-step explanations for maximum comprehension.';
     }
-    
+
     // Default expert
     return lang === 'sv'
         ? 'Du är en senior expert och rådgivare med djup kunskap inom det aktuella området. Du kombinerar teoretisk förståelse med praktisk erfarenhet för att ge konkreta, användbara svar.'
@@ -582,7 +582,7 @@ function inferExpertRole(spec: CompiledSpec, lang: 'en' | 'sv'): string {
  */
 function inferAudience(spec: CompiledSpec, lang: 'en' | 'sv'): { audience: string; level: string } {
     const raw = spec.rawInput.toLowerCase();
-    
+
     // Check for explicit skill indicators
     if (/nybörjare|beginner|första gången|first time|aldrig|never|ny till/i.test(raw)) {
         return {
@@ -590,14 +590,14 @@ function inferAudience(spec: CompiledSpec, lang: 'en' | 'sv'): { audience: strin
             level: lang === 'sv' ? 'Förklara grundläggande koncept, undvik jargong, inkludera definitioner' : 'Explain foundational concepts, avoid jargon, include definitions'
         };
     }
-    
+
     if (/avancerad|advanced|erfaren|experienced|expert|professional/i.test(raw)) {
         return {
             audience: lang === 'sv' ? 'En erfaren utövare som söker optimering' : 'An experienced practitioner seeking optimization',
             level: lang === 'sv' ? 'Hoppa över grunderna, fokusera på avancerade tekniker och nyanser' : 'Skip basics, focus on advanced techniques and nuances'
         };
     }
-    
+
     // Default: intermediate
     return {
         audience: lang === 'sv' ? 'Någon med grundläggande förståelse som vill fördjupa sina kunskaper' : 'Someone with basic understanding looking to deepen their knowledge',
@@ -611,7 +611,7 @@ function inferAudience(spec: CompiledSpec, lang: 'en' | 'sv'): { audience: strin
 function generateTaskSteps(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
     const requestType = spec.assemblerNotes.find(n => n.startsWith('REQUEST_TYPE:'));
     const objective = spec.objective;
-    
+
     if (requestType?.includes('BUILD/CREATE')) {
         return lang === 'sv' ? [
             `1. Analysera vad som behövs för: "${objective}"`,
@@ -627,7 +627,7 @@ function generateTaskSteps(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
             '5. Conclude with common mistakes to avoid'
         ];
     }
-    
+
     if (requestType?.includes('EXPLAIN')) {
         return lang === 'sv' ? [
             `1. Börja med en koncis sammanfattning av: "${objective}"`,
@@ -643,7 +643,7 @@ function generateTaskSteps(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
             '5. Conclude with common misconceptions and how to avoid them'
         ];
     }
-    
+
     if (requestType?.includes('DEBUG/FIX')) {
         return lang === 'sv' ? [
             `1. Identifiera och diagnostisera problemet med: "${objective}"`,
@@ -659,7 +659,7 @@ function generateTaskSteps(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
             '5. Provide tips to prevent the issue in the future'
         ];
     }
-    
+
     if (requestType?.includes('COMPARE')) {
         return lang === 'sv' ? [
             `1. Definiera jämförelsekriterierna för: "${objective}"`,
@@ -675,7 +675,7 @@ function generateTaskSteps(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
             '5. Provide a concrete recommendation based on different use cases'
         ];
     }
-    
+
     // Default general task
     return lang === 'sv' ? [
         `1. Adressera användarens fråga: "${objective}"`,
@@ -697,12 +697,12 @@ function generateTaskSteps(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
  */
 function generateConstraints(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
     const constraints: string[] = [];
-    
+
     // Add spec constraints
     for (const c of spec.constraints) {
         constraints.push(`• ${c}`);
     }
-    
+
     // Add standard quality constraints
     if (lang === 'sv') {
         constraints.push('• Undvik vaga eller generiska svar som kan hittas överallt');
@@ -715,12 +715,12 @@ function generateConstraints(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
         constraints.push('• No filler phrases or padding');
         constraints.push('• Be specific — if you mention a concept, explain it');
     }
-    
+
     // Add non-negotiables
     for (const nn of spec.nonNegotiables) {
         constraints.push(`• KRAV: ${nn}`);
     }
-    
+
     return constraints;
 }
 
@@ -729,21 +729,21 @@ function generateConstraints(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
  */
 function generateQualityBar(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
     const requestType = spec.assemblerNotes.find(n => n.startsWith('REQUEST_TYPE:'));
-    
+
     if (lang === 'sv') {
         const base = [
             '✓ Svaret ska kännas skrivet av en människa med ämnesexpertis',
             '✓ Varje påstående ska stödjas av resonemang eller exempel',
             '✓ Läsaren ska kunna agera direkt på informationen'
         ];
-        
+
         if (requestType?.includes('BUILD/CREATE')) {
             base.push('✓ Stegen ska vara tillräckligt detaljerade för att följa utan extern research');
         }
         if (requestType?.includes('EXPLAIN')) {
             base.push('✓ En nybörjare ska förstå efter att ha läst, en expert ska bekräfta noggrannheten');
         }
-        
+
         return base;
     } else {
         const base = [
@@ -751,14 +751,14 @@ function generateQualityBar(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
             '✓ Every claim should be supported by reasoning or examples',
             '✓ Reader should be able to act on the information immediately'
         ];
-        
+
         if (requestType?.includes('BUILD/CREATE')) {
             base.push('✓ Steps should be detailed enough to follow without external research');
         }
         if (requestType?.includes('EXPLAIN')) {
             base.push('✓ A beginner should understand after reading, an expert should confirm accuracy');
         }
-        
+
         return base;
     }
 }
@@ -768,7 +768,7 @@ function generateQualityBar(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
  */
 function generateOutputFormat(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
     const requestType = spec.assemblerNotes.find(n => n.startsWith('REQUEST_TYPE:'));
-    
+
     if (lang === 'sv') {
         if (requestType?.includes('BUILD/CREATE')) {
             return [
@@ -834,35 +834,35 @@ function generateOutputFormat(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
  */
 function assembleExecutionPrompt(config: ExecutionPromptConfig, lang: 'en' | 'sv'): string {
     const sections: string[] = [];
-    
+
     // A. ROLE
     sections.push(`**ROLE**\n${config.role}`);
-    
+
     // B. AUDIENCE & LEVEL
     sections.push(`**AUDIENCE & LEVEL**\n${config.audience}\n${config.skillLevel}`);
-    
+
     // C. TASK DEFINITION
     const taskHeader = lang === 'sv' ? '**DIN UPPGIFT**' : '**YOUR TASK**';
     sections.push(`${taskHeader}\n${config.taskSteps.join('\n')}`);
-    
+
     // D. CONSTRAINTS
     const constraintHeader = lang === 'sv' ? '**BEGRÄNSNINGAR**' : '**CONSTRAINTS**';
     sections.push(`${constraintHeader}\n${config.constraints.join('\n')}`);
-    
+
     // E. QUALITY BAR
     const qualityHeader = lang === 'sv' ? '**KVALITETSKRAV**' : '**QUALITY BAR**';
     sections.push(`${qualityHeader}\n${config.qualityBar.join('\n')}`);
-    
+
     // F. OUTPUT FORMAT
     const formatHeader = lang === 'sv' ? '**SVARFORMAT**' : '**OUTPUT FORMAT**';
     sections.push(`${formatHeader}\n${config.outputFormat.join('\n')}`);
-    
+
     return sections.join('\n\n');
 }
 
 /**
  * MAIN TRANSFORMER: Internal Spec → Premium Execution Prompt
- * 
+ *
  * This function takes the compiler output and transforms it into
  * a premium execution-grade prompt that:
  * - Is visibly superior to any raw input
@@ -872,11 +872,11 @@ function assembleExecutionPrompt(config: ExecutionPromptConfig, lang: 'en' | 'sv
 function transformSpecToExecutionPrompt(spec: CompiledSpec, lang: 'en' | 'sv'): string {
     // Validate: objective is required
     if (spec.objective === UNDECIDED || !spec.objective.trim()) {
-        return lang === 'sv' 
+        return lang === 'sv'
             ? '[FEL: Kan inte generera körbar prompt utan tydligt mål. Vänligen specificera vad du vill uppnå.]'
             : '[ERROR: Cannot generate execution prompt without clear objective. Please specify what you want to achieve.]';
     }
-    
+
     // Build config from spec analysis
     const role = inferExpertRole(spec, lang);
     const { audience, level } = inferAudience(spec, lang);
@@ -884,7 +884,7 @@ function transformSpecToExecutionPrompt(spec: CompiledSpec, lang: 'en' | 'sv'): 
     const constraints = generateConstraints(spec, lang);
     const qualityBar = generateQualityBar(spec, lang);
     const outputFormat = generateOutputFormat(spec, lang);
-    
+
     const config: ExecutionPromptConfig = {
         role,
         audience,
@@ -894,7 +894,7 @@ function transformSpecToExecutionPrompt(spec: CompiledSpec, lang: 'en' | 'sv'): 
         qualityBar,
         outputFormat
     };
-    
+
     return assembleExecutionPrompt(config, lang);
 }
 
@@ -997,7 +997,7 @@ function generateWarnings(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
  * STAGE 2: PROMPT ASSEMBLER
  *
  * Generates a PREMIUM EXECUTION PROMPT from the compiled specification.
- * 
+ *
  * This is what gets shown to users and sent to the LLM.
  * The internal spec is NEVER exposed — only the execution prompt.
  */
@@ -1008,7 +1008,7 @@ export function assemblePrompt(input: AssemblerInput): PipelineOutput {
     // Transform internal spec into premium execution prompt
     // This is the ONLY output — internal metadata is never shown
     const assembledPrompt = transformSpecToExecutionPrompt(spec, lang);
-    
+
     const warnings = generateWarnings(spec, lang);
 
     // Determine if there are undecided elements
