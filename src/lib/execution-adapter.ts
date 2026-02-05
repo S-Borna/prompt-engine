@@ -133,8 +133,8 @@ Your responses should be thorough yet scannable.`,
         features: { supportsReasoning: true, supportsStreaming: true, supportsVision: true },
     },
 
-    'claude-opus-4.1': {
-        id: 'claude-opus-4.1',
+    'claude-opus-4.5': {
+        id: 'claude-opus-4.5',
         family: 'claude',
         systemPrompt: `You are an expert AI providing exhaustive, deeply analytical responses. Structure with clear hierarchy using markdown. Address edge cases and implications. Be comprehensive.`,
         temperature: 0.75,

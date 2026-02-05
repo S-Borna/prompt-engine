@@ -393,7 +393,6 @@ export default function LandingPage() {
 
                     <div className="space-y-4">
                       <div>
-                        <div className="text-[10px] uppercase tracking-wider text-white/30 mb-2">Enhanced Prompt</div>
                         <div className="bg-black/40 rounded-lg p-3 min-h-[60px] max-h-[200px] overflow-y-auto border border-violet-500/20">
                           <pre className="text-xs text-violet-200/80 font-mono whitespace-pre-wrap leading-relaxed">
                             {phase === 'typing-strong' ? (

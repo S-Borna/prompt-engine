@@ -106,7 +106,7 @@ export function PromptWizard({ selectedModel, selectedLanguage }: PromptWizardPr
         try {
             const platformMap: Record<string, string> = {
                 'gpt-5.2': 'chatgpt', 'gpt-5.1': 'chatgpt',
-                'claude-sonnet-4.5': 'claude', 'claude-opus-4.1': 'claude',
+                'claude-opus-4.5': 'claude', 'claude-sonnet-4.5': 'claude',
                 'gemini-3': 'gemini', 'gemini-2.5': 'gemini',
                 'grok-3': 'grok', 'grok-2': 'grok',
                 'nano-banana-pro': 'general', 'sora': 'general',

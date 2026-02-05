@@ -44,7 +44,7 @@ function mapPlatformToModel(platform: string): TargetModel {
         'claude-sonnet': 'claude-sonnet',
         'claude-sonnet-4.5': 'claude-sonnet',
         'claude-opus': 'claude-opus',
-        'claude-opus-4.1': 'claude-opus',
+        'claude-opus-4.5': 'claude-opus',
         'gemini': 'gemini',
         'gemini-3': 'gemini',
         'gemini-2.5': 'gemini',

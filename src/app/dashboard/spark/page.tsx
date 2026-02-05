@@ -18,8 +18,8 @@ import Image from 'next/image';
 const aiModels = [
     { id: 'gpt-5.2', name: 'GPT 5.2', family: 'OpenAI', logo: '/logos/openai.svg', color: '#10b981' },
     { id: 'gpt-5.1', name: 'GPT 5.1', family: 'OpenAI', logo: '/logos/openai.svg', color: '#10b981' },
+    { id: 'claude-opus-4.5', name: 'Opus 4.5', family: 'Anthropic', logo: '/logos/anthropic.svg', color: '#f97316' },
     { id: 'claude-sonnet-4.5', name: 'Sonnet 4.5', family: 'Anthropic', logo: '/logos/anthropic.svg', color: '#f97316' },
-    { id: 'claude-opus-4.1', name: 'Opus 4.1', family: 'Anthropic', logo: '/logos/anthropic.svg', color: '#f97316' },
     { id: 'gemini-3', name: 'Gemini 3', family: 'Google', logo: '/logos/gemini.svg', color: '#3b82f6' },
     { id: 'gemini-2.5', name: 'Gemini 2.5', family: 'Google', logo: '/logos/gemini.svg', color: '#3b82f6' },
     { id: 'grok-3', name: 'Grok 3', family: 'xAI', logo: '/logos/xai.svg', color: '#94a3b8' },
@@ -87,7 +87,7 @@ export default function SparkPage() {
 
         const platformMap: Record<string, string> = {
             'gpt-5.2': 'chatgpt', 'gpt-5.1': 'chatgpt',
-            'claude-sonnet-4.5': 'claude', 'claude-opus-4.1': 'claude',
+            'claude-opus-4.5': 'claude', 'claude-sonnet-4.5': 'claude',
             'gemini-3': 'gemini', 'gemini-2.5': 'gemini',
             'grok-3': 'grok', 'grok-2': 'grok',
             'nano-banana-pro': 'general', 'sora': 'general',

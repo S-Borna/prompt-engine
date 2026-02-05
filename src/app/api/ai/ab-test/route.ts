@@ -142,7 +142,7 @@ export async function GET() {
         description: 'Runs identical inference against raw and enhanced prompts',
         supportedModels: [
             'gpt-5.2', 'gpt-5.1',
-            'claude-sonnet-4.5', 'claude-opus-4.1',
+            'claude-opus-4.5', 'claude-sonnet-4.5',
             'gemini-3', 'gemini-2.5',
             'grok-3', 'grok-2',
         ],
