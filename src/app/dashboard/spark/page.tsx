@@ -164,18 +164,22 @@ export default function SparkPage() {
             setIsRunningRaw(false);
             setIsRunningEnhanced(false);
 
-        } catch {
+        } catch (err) {
+            console.error('[Spark] Enhancement failed, using local fallback:', err);
             const enhanced = generateLocalEnhancement(input);
             const promptResult: EnhancedPromptResult = {
                 originalPrompt: input,
                 enhancedPrompt: enhanced,
                 explanation: getDefaultExplanation(),
-                meta: { score: 78, model: selectedModel, mode: 'enhance' },
+                meta: { score: 65, model: selectedModel, mode: 'enhance' },
             };
             setResult(promptResult);
+            setEnhancedPrompt(enhanced);
+            setError('AI service unavailable — showing local enhancement. Results may be limited.');
+            toast.error('AI offline — using local fallback');
             addToHistory({
                 tool: 'spark',
-                action: 'Spark enhancement',
+                action: 'Spark enhancement (offline)',
                 input: input.slice(0, 100) + (input.length > 100 ? '...' : ''),
                 output: enhanced.slice(0, 100) + '...',
             });
