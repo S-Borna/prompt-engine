@@ -325,20 +325,20 @@ type OutputLanguage = 'auto' | 'en' | 'sv' | 'sv-to-en';
 function enhancePrompt(rawPrompt: string, platform: string, outputLanguage: OutputLanguage = 'auto'): EnhancementResult {
     const prompt = rawPrompt.trim();
     const analysis = analyzeContent(prompt);
-    
+
     // Override language based on user preference
     // 'auto' = use detected language
     // 'en' = always English output
-    // 'sv' = always Swedish output  
+    // 'sv' = always Swedish output
     // 'sv-to-en' = input Swedish, output English
-    const effectiveLanguage: 'en' | 'sv' = 
+    const effectiveLanguage: 'en' | 'sv' =
         outputLanguage === 'auto' ? analysis.language :
-        outputLanguage === 'sv-to-en' ? 'en' :
-        outputLanguage;
-    
+            outputLanguage === 'sv-to-en' ? 'en' :
+                outputLanguage;
+
     // Update analysis with effective language
     const analysisWithLang = { ...analysis, language: effectiveLanguage };
-    
+
     const params = selectParameters(analysisWithLang);
     const beforeScore = scorePrompt(prompt);
 

@@ -17,85 +17,85 @@ import Image from 'next/image';
 // AI Model definitions — 10 models with official logos
 const aiModels = [
     // GPT Family
-    { 
-        id: 'gpt-5.2', 
-        name: 'GPT 5.2', 
+    {
+        id: 'gpt-5.2',
+        name: 'GPT 5.2',
         family: 'OpenAI',
         logo: '/logos/openai.svg',
         gradient: 'from-emerald-500 to-teal-600',
         bgGlow: 'group-hover:shadow-emerald-500/20',
     },
-    { 
-        id: 'gpt-5.1', 
-        name: 'GPT 5.1', 
+    {
+        id: 'gpt-5.1',
+        name: 'GPT 5.1',
         family: 'OpenAI',
         logo: '/logos/openai.svg',
         gradient: 'from-emerald-500 to-teal-600',
         bgGlow: 'group-hover:shadow-emerald-500/20',
     },
     // Claude Family
-    { 
-        id: 'claude-sonnet-4.5', 
-        name: 'Sonnet 4.5', 
+    {
+        id: 'claude-sonnet-4.5',
+        name: 'Sonnet 4.5',
         family: 'Anthropic',
         logo: '/logos/anthropic.svg',
         gradient: 'from-orange-500 to-amber-600',
         bgGlow: 'group-hover:shadow-orange-500/20',
     },
-    { 
-        id: 'claude-opus-4.1', 
-        name: 'Opus 4.1', 
+    {
+        id: 'claude-opus-4.1',
+        name: 'Opus 4.1',
         family: 'Anthropic',
         logo: '/logos/anthropic.svg',
         gradient: 'from-orange-500 to-amber-600',
         bgGlow: 'group-hover:shadow-orange-500/20',
     },
     // Gemini Family
-    { 
-        id: 'gemini-3', 
-        name: 'Gemini 3', 
+    {
+        id: 'gemini-3',
+        name: 'Gemini 3',
         family: 'Google',
         logo: '/logos/gemini.svg',
         gradient: 'from-blue-500 to-indigo-600',
         bgGlow: 'group-hover:shadow-blue-500/20',
     },
-    { 
-        id: 'gemini-2.5', 
-        name: 'Gemini 2.5', 
+    {
+        id: 'gemini-2.5',
+        name: 'Gemini 2.5',
         family: 'Google',
         logo: '/logos/gemini.svg',
         gradient: 'from-blue-500 to-indigo-600',
         bgGlow: 'group-hover:shadow-blue-500/20',
     },
     // Grok Family
-    { 
-        id: 'grok-3', 
-        name: 'Grok 3', 
+    {
+        id: 'grok-3',
+        name: 'Grok 3',
         family: 'xAI',
         logo: '/logos/xai.svg',
         gradient: 'from-slate-400 to-zinc-600',
         bgGlow: 'group-hover:shadow-slate-400/20',
     },
-    { 
-        id: 'grok-2', 
-        name: 'Grok 2', 
+    {
+        id: 'grok-2',
+        name: 'Grok 2',
         family: 'xAI',
         logo: '/logos/xai.svg',
         gradient: 'from-slate-400 to-zinc-600',
         bgGlow: 'group-hover:shadow-slate-400/20',
     },
     // Other
-    { 
-        id: 'nano-banana-pro', 
-        name: 'Nano Banana Pro', 
+    {
+        id: 'nano-banana-pro',
+        name: 'Nano Banana Pro',
         family: 'Nano',
         logo: '/logos/banana.svg',
         gradient: 'from-yellow-400 to-orange-500',
         bgGlow: 'group-hover:shadow-yellow-400/20',
     },
-    { 
-        id: 'sora', 
-        name: 'Sora', 
+    {
+        id: 'sora',
+        name: 'Sora',
         family: 'OpenAI',
         logo: '/logos/sora.svg',
         gradient: 'from-pink-500 to-rose-600',
@@ -156,7 +156,7 @@ export default function SparkPage() {
         setShouldAnimate(true);
 
         const effectiveMode = 'enhance';
-        
+
         // Map model ID to platform
         const platformMap: Record<string, string> = {
             'gpt-5.2': 'chatgpt',
@@ -313,19 +313,18 @@ export default function SparkPage() {
                                 className="group flex flex-col items-center gap-2"
                             >
                                 {/* Logo with glow effect when selected */}
-                                <div className={`relative w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 bg-gradient-to-br ${model.gradient} ${
-                                    isSelected 
+                                <div className={`relative w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 bg-gradient-to-br ${model.gradient} ${isSelected
                                         ? 'scale-110 shadow-xl shadow-current ring-2 ring-white/30'
                                         : 'opacity-70 hover:opacity-100 hover:scale-105'
-                                }`}
-                                style={isSelected ? {
-                                    boxShadow: `0 0 20px 4px ${model.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.4)' : 
-                                                              model.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.4)' : 
-                                                              model.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.4)' : 
-                                                              model.gradient.includes('slate') ? 'rgba(148, 163, 184, 0.4)' : 
-                                                              model.gradient.includes('yellow') ? 'rgba(250, 204, 21, 0.4)' : 
-                                                              model.gradient.includes('pink') ? 'rgba(236, 72, 153, 0.4)' : 'rgba(255,255,255,0.3)'}`
-                                } : {}}>
+                                    }`}
+                                    style={isSelected ? {
+                                        boxShadow: `0 0 20px 4px ${model.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.4)' :
+                                            model.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.4)' :
+                                                model.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.4)' :
+                                                    model.gradient.includes('slate') ? 'rgba(148, 163, 184, 0.4)' :
+                                                        model.gradient.includes('yellow') ? 'rgba(250, 204, 21, 0.4)' :
+                                                            model.gradient.includes('pink') ? 'rgba(236, 72, 153, 0.4)' : 'rgba(255,255,255,0.3)'}`
+                                    } : {}}>
                                     <Image
                                         src={model.logo}
                                         alt={model.family}
@@ -336,9 +335,8 @@ export default function SparkPage() {
                                 </div>
 
                                 {/* Model name */}
-                                <span className={`text-[10px] font-medium transition-colors ${
-                                    isSelected ? 'text-white' : 'text-white/50 group-hover:text-white/80'
-                                }`}>
+                                <span className={`text-[10px] font-medium transition-colors ${isSelected ? 'text-white' : 'text-white/50 group-hover:text-white/80'
+                                    }`}>
                                     {model.name}
                                 </span>
                             </button>
