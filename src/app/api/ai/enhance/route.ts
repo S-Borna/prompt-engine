@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // ========================================
-// PRAXIS PREMIUM PROMPT ENHANCEMENT ENGINE
-// Actually transforms prompts into powerful, effective versions
+// PRAXIS CONTENT-AWARE ENHANCEMENT ENGINE
+// Dynamically adapts parameters based on input analysis
 // Edge-compatible: No database dependencies
 // ========================================
 
@@ -12,382 +12,561 @@ interface EnhancementResult {
     scores: { before: number; after: number };
 }
 
-// Detect prompt intent and domain
-function detectIntent(prompt: string): {
-    domain: 'code' | 'writing' | 'analysis' | 'creative' | 'business' | 'general';
-    action: string;
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTENT ANALYSIS ENGINE
+// Analyzes input to determine intent, complexity, and output expectations
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface ContentAnalysis {
+    // Core intent
+    intent: 'build' | 'explain' | 'persuade' | 'brainstorm' | 'debug' | 'compare' | 'list' | 'transform' | 'question' | 'create';
+    domain: 'software' | 'business' | 'creative' | 'personal' | 'academic' | 'technical' | 'general';
+    complexity: 'simple' | 'intermediate' | 'advanced';
+    outputType: 'code' | 'text' | 'plan' | 'list' | 'strategy' | 'explanation' | 'mixed';
+    
+    // Extracted elements
     subject: string;
-} {
+    specificity: number; // 0-100 how specific the request is
+    urgency: boolean;
+    
+    // Detected context
+    hasConstraints: boolean;
+    hasAudience: boolean;
+    hasTechnicalTerms: boolean;
+    isQuestion: boolean;
+    wordCount: number;
+}
+
+interface AdaptiveParams {
+    // Only set if relevant
+    persona?: string;
+    structureDepth: 'minimal' | 'light' | 'moderate' | 'detailed';
+    tone: 'casual' | 'friendly' | 'professional' | 'technical' | 'academic' | 'creative';
+    format: 'prose' | 'bullets' | 'sections' | 'numbered' | 'code' | 'mixed';
+    constraints: string[];
+    skipSections: string[]; // Sections that would be irrelevant
+}
+
+function analyzeContent(prompt: string): ContentAnalysis {
     const lower = prompt.toLowerCase();
+    const words = prompt.split(/\s+/);
+    const wordCount = words.length;
     
-    // Code/Development
-    if (/\b(code|function|api|app|application|website|program|script|build|develop|create.*app|implement|debug|fix.*bug|refactor)\b/i.test(prompt)) {
-        const action = lower.includes('debug') || lower.includes('fix') ? 'debug' :
-                       lower.includes('refactor') ? 'refactor' :
-                       lower.includes('review') ? 'review' : 'build';
-        return { domain: 'code', action, subject: extractSubject(prompt) };
+    // ─── Intent Detection ───────────────────────────────────────────────
+    let intent: ContentAnalysis['intent'] = 'create';
+    
+    if (/\b(build|create|make|develop|implement|code|write.*code)\b/i.test(prompt) && 
+        /\b(app|application|website|system|api|function|program|script|tool)\b/i.test(prompt)) {
+        intent = 'build';
+    } else if (/\b(explain|what is|how does|why|describe|tell me about|walk me through)\b/i.test(prompt)) {
+        intent = 'explain';
+    } else if (/\b(convince|persuade|pitch|sell|propose|recommend)\b/i.test(prompt)) {
+        intent = 'persuade';
+    } else if (/\b(brainstorm|ideas?|suggestions?|options?|alternatives?|possibilities)\b/i.test(prompt)) {
+        intent = 'brainstorm';
+    } else if (/\b(debug|fix|error|bug|issue|problem|not working|broken|crash)\b/i.test(prompt)) {
+        intent = 'debug';
+    } else if (/\b(compare|versus|vs\.?|difference|better|which one|pros and cons)\b/i.test(prompt)) {
+        intent = 'compare';
+    } else if (/\b(list|enumerate|give me|what are|show me all|examples of)\b/i.test(prompt)) {
+        intent = 'list';
+    } else if (/\b(convert|transform|translate|rewrite|change.*to|turn.*into)\b/i.test(prompt)) {
+        intent = 'transform';
+    } else if (/^(what|how|why|when|where|who|can|could|should|would|is|are|do|does)\b/i.test(prompt) || prompt.includes('?')) {
+        intent = 'question';
     }
     
-    // Writing
-    if (/\b(write|draft|compose|email|letter|article|blog|copy|content|essay|story|script)\b/i.test(prompt)) {
-        const action = lower.includes('edit') ? 'edit' : 'write';
-        return { domain: 'writing', action, subject: extractSubject(prompt) };
+    // ─── Domain Detection ───────────────────────────────────────────────
+    let domain: ContentAnalysis['domain'] = 'general';
+    
+    const softwareSignals = /\b(code|api|function|database|server|frontend|backend|deploy|git|npm|framework|library|react|node|python|javascript|typescript|sql|docker|aws|cloud)\b/i;
+    const businessSignals = /\b(revenue|profit|market|customer|sales|strategy|growth|roi|kpi|startup|investor|pitch|business model|pricing)\b/i;
+    const creativeSignals = /\b(design|art|music|story|creative|visual|aesthetic|brand|logo|illustration|animation|video|photo)\b/i;
+    const personalSignals = /\b(my|me|i want|help me|personal|self|life|career|relationship|goal|habit|motivation)\b/i;
+    const academicSignals = /\b(research|study|thesis|paper|citation|academic|literature|hypothesis|methodology|peer.?review)\b/i;
+    const technicalSignals = /\b(algorithm|data structure|complexity|architecture|protocol|specification|implementation|optimization)\b/i;
+    
+    if (softwareSignals.test(prompt)) domain = 'software';
+    else if (businessSignals.test(prompt)) domain = 'business';
+    else if (creativeSignals.test(prompt)) domain = 'creative';
+    else if (personalSignals.test(prompt)) domain = 'personal';
+    else if (academicSignals.test(prompt)) domain = 'academic';
+    else if (technicalSignals.test(prompt)) domain = 'technical';
+    
+    // ─── Complexity Detection ───────────────────────────────────────────
+    let complexity: ContentAnalysis['complexity'] = 'intermediate';
+    let complexityScore = 0;
+    
+    // Simple indicators
+    if (wordCount < 10) complexityScore -= 2;
+    if (/\b(simple|basic|quick|easy|just|only)\b/i.test(prompt)) complexityScore -= 2;
+    if (/\b(beginner|introduction|101|getting started)\b/i.test(prompt)) complexityScore -= 2;
+    
+    // Advanced indicators  
+    if (wordCount > 50) complexityScore += 1;
+    if (/\b(advanced|complex|sophisticated|comprehensive|enterprise|scalable|production)\b/i.test(prompt)) complexityScore += 2;
+    if (/\b(architecture|distributed|microservices|optimization|performance|security)\b/i.test(prompt)) complexityScore += 2;
+    if ((prompt.match(/\b(must|should|require|include|ensure|constraint)\b/gi) || []).length >= 3) complexityScore += 1;
+    
+    if (complexityScore <= -2) complexity = 'simple';
+    else if (complexityScore >= 2) complexity = 'advanced';
+    
+    // ─── Output Type Detection ──────────────────────────────────────────
+    let outputType: ContentAnalysis['outputType'] = 'text';
+    
+    if (intent === 'build' || /\b(code|function|script|implementation)\b/i.test(prompt)) {
+        outputType = 'code';
+    } else if (intent === 'list' || intent === 'brainstorm') {
+        outputType = 'list';
+    } else if (/\b(plan|roadmap|timeline|phases?|steps)\b/i.test(prompt)) {
+        outputType = 'plan';
+    } else if (/\b(strategy|approach|framework|methodology)\b/i.test(prompt)) {
+        outputType = 'strategy';
+    } else if (intent === 'explain' || intent === 'question') {
+        outputType = 'explanation';
     }
     
-    // Analysis
-    if (/\b(analyze|analyse|review|evaluate|assess|compare|research|investigate|study)\b/i.test(prompt)) {
-        return { domain: 'analysis', action: 'analyze', subject: extractSubject(prompt) };
+    // If building an app, it's mixed (code + plan)
+    if (intent === 'build' && /\b(app|application|website|platform|system)\b/i.test(prompt)) {
+        outputType = 'mixed';
     }
     
-    // Creative
-    if (/\b(design|creative|brainstorm|idea|concept|logo|brand|visual|art|music|game)\b/i.test(prompt)) {
-        return { domain: 'creative', action: 'create', subject: extractSubject(prompt) };
-    }
-    
-    // Business
-    if (/\b(business|strategy|plan|pitch|proposal|market|sales|revenue|growth|startup)\b/i.test(prompt)) {
-        return { domain: 'business', action: 'strategize', subject: extractSubject(prompt) };
-    }
-    
-    return { domain: 'general', action: 'help', subject: prompt };
-}
-
-function extractSubject(prompt: string): string {
-    // Remove common action words to get the core subject
-    return prompt
-        .replace(/^(please\s+)?(can you\s+)?(help me\s+)?(write|create|build|make|design|analyze|explain|generate)\s+(a|an|the|some)?\s*/i, '')
-        .replace(/\s+(please|thanks|thank you)\.?$/i, '')
+    // ─── Extract Subject ────────────────────────────────────────────────
+    const subject = prompt
+        .replace(/^(please\s+)?(can you\s+)?(help me\s+)?(i need\s+)?(i want\s+)?(to\s+)?(write|create|build|make|design|analyze|explain|generate|give me)\s+(a|an|the|some|me)?\s*/i, '')
+        .replace(/\s+(please|thanks|thank you|asap|urgently?)\.?$/i, '')
         .trim();
+    
+    // ─── Specificity Score ──────────────────────────────────────────────
+    let specificity = 30; // Base
+    
+    if (wordCount >= 15) specificity += 15;
+    if (wordCount >= 30) specificity += 10;
+    if (/\d+/.test(prompt)) specificity += 10; // Has numbers
+    if (/\b(specifically|exactly|must|should|require)\b/i.test(prompt)) specificity += 15;
+    if (/\b(for|using|with|in|about)\b/i.test(prompt)) specificity += 10; // Has context words
+    if (prompt.includes(':') || prompt.includes('-') || prompt.includes('\n')) specificity += 10;
+    
+    specificity = Math.min(specificity, 100);
+    
+    // ─── Other Flags ────────────────────────────────────────────────────
+    const urgency = /\b(urgent|asap|quickly|immediately|now|deadline|time.?sensitive)\b/i.test(prompt);
+    const hasConstraints = /\b(must|should|require|need|constraint|limit|only|no more than|at least)\b/i.test(prompt);
+    const hasAudience = /\b(for|to|audience|reader|user|customer|team|manager|client)\b/i.test(prompt);
+    const hasTechnicalTerms = /\b(api|sql|json|http|oauth|jwt|rest|graphql|websocket|tcp|docker|kubernetes)\b/i.test(prompt);
+    const isQuestion = /\?/.test(prompt) || /^(what|how|why|when|where|who|can|could|should|would|is|are|do|does)\b/i.test(prompt);
+    
+    return {
+        intent,
+        domain,
+        complexity,
+        outputType,
+        subject,
+        specificity,
+        urgency,
+        hasConstraints,
+        hasAudience,
+        hasTechnicalTerms,
+        isQuestion,
+        wordCount
+    };
 }
 
-// Calculate prompt quality score
+// ═══════════════════════════════════════════════════════════════════════════
+// ADAPTIVE PARAMETER ENGINE
+// Selects parameters based on content analysis - NEVER static defaults
+// ═══════════════════════════════════════════════════════════════════════════
+
+function selectParameters(analysis: ContentAnalysis): AdaptiveParams {
+    const params: AdaptiveParams = {
+        structureDepth: 'moderate',
+        tone: 'professional',
+        format: 'prose',
+        constraints: [],
+        skipSections: []
+    };
+    
+    // ─── Persona Selection (only when truly relevant) ───────────────────
+    // Don't add persona for simple/personal requests
+    if (analysis.complexity === 'advanced' && analysis.domain === 'software') {
+        params.persona = 'senior software engineer';
+    } else if (analysis.complexity === 'advanced' && analysis.domain === 'business') {
+        params.persona = 'experienced business strategist';
+    } else if (analysis.domain === 'academic') {
+        params.persona = 'subject matter expert';
+    } else if (analysis.intent === 'debug') {
+        params.persona = 'debugging specialist';
+    }
+    // No persona for simple, personal, or general requests
+    
+    // ─── Structure Depth ────────────────────────────────────────────────
+    if (analysis.complexity === 'simple' || analysis.wordCount < 8) {
+        params.structureDepth = 'minimal';
+    } else if (analysis.complexity === 'intermediate' || analysis.intent === 'question') {
+        params.structureDepth = 'light';
+    } else if (analysis.intent === 'build' && analysis.outputType === 'mixed') {
+        params.structureDepth = 'detailed';
+    } else if (analysis.complexity === 'advanced') {
+        params.structureDepth = 'detailed';
+    }
+    
+    // ─── Tone Selection ─────────────────────────────────────────────────
+    if (analysis.domain === 'personal') {
+        params.tone = 'friendly';
+    } else if (analysis.domain === 'creative') {
+        params.tone = 'creative';
+    } else if (analysis.domain === 'academic') {
+        params.tone = 'academic';
+    } else if (analysis.hasTechnicalTerms || analysis.domain === 'software') {
+        params.tone = 'technical';
+    } else if (analysis.complexity === 'simple') {
+        params.tone = 'casual';
+    }
+    
+    // ─── Format Selection ───────────────────────────────────────────────
+    if (analysis.outputType === 'code') {
+        params.format = 'code';
+    } else if (analysis.outputType === 'list' || analysis.intent === 'list' || analysis.intent === 'brainstorm') {
+        params.format = 'bullets';
+    } else if (analysis.outputType === 'plan' || (analysis.intent === 'build' && analysis.outputType === 'mixed')) {
+        params.format = 'sections';
+    } else if (analysis.intent === 'compare') {
+        params.format = 'sections';
+    } else if (analysis.intent === 'explain' && analysis.complexity === 'simple') {
+        params.format = 'prose';
+    } else if (analysis.outputType === 'strategy') {
+        params.format = 'numbered';
+    }
+    
+    // ─── Constraints (only if genuinely useful) ─────────────────────────
+    if (analysis.urgency) {
+        params.constraints.push('Be concise and direct');
+    }
+    if (analysis.intent === 'debug') {
+        params.constraints.push('Focus on root cause and fix');
+    }
+    if (analysis.domain === 'software' && analysis.complexity === 'advanced') {
+        params.constraints.push('Consider edge cases and error handling');
+    }
+    
+    // ─── Skip Irrelevant Sections ───────────────────────────────────────
+    if (analysis.complexity === 'simple') {
+        params.skipSections.push('roadmap', 'phases', 'architecture');
+    }
+    if (analysis.intent === 'question' || analysis.intent === 'explain') {
+        params.skipSections.push('implementation', 'deliverables');
+    }
+    if (analysis.intent !== 'build') {
+        params.skipSections.push('tech stack', 'database schema');
+    }
+    
+    return params;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROMPT QUALITY SCORER
+// ═══════════════════════════════════════════════════════════════════════════
+
 function scorePrompt(prompt: string): number {
-    let score = 20; // Base score
+    let score = 20;
     const words = prompt.split(/\s+/).length;
     
-    // Length scoring
     if (words >= 10) score += 10;
     if (words >= 25) score += 10;
     if (words >= 50) score += 5;
     
-    // Structure indicators
-    if (/\b(you are|act as|as a)\b/i.test(prompt)) score += 15; // Has role
-    if (/\d+/.test(prompt)) score += 5; // Has numbers/specifics
-    if (/\b(must|should|need to|require|include|ensure)\b/i.test(prompt)) score += 10; // Has requirements
-    if (/\b(format|structure|organize|section|bullet|list)\b/i.test(prompt)) score += 10; // Has format specs
-    if (/\b(example|such as|like|e\.g\.|for instance)\b/i.test(prompt)) score += 5; // Has examples
-    if (/[:\-\n]/.test(prompt)) score += 5; // Has structure
-    if (/\b(context|background|situation)\b/i.test(prompt)) score += 10; // Has context
+    if (/\b(you are|act as|as a)\b/i.test(prompt)) score += 15;
+    if (/\d+/.test(prompt)) score += 5;
+    if (/\b(must|should|need to|require|include|ensure)\b/i.test(prompt)) score += 10;
+    if (/\b(format|structure|organize|section|bullet|list)\b/i.test(prompt)) score += 10;
+    if (/\b(example|such as|like|e\.g\.|for instance)\b/i.test(prompt)) score += 5;
+    if (/[:\-\n]/.test(prompt)) score += 5;
+    if (/\b(context|background|situation)\b/i.test(prompt)) score += 10;
     
     return Math.min(score, 100);
 }
 
-// THE ACTUAL ENHANCEMENT ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTENT-AWARE ENHANCEMENT ENGINE
+// Generates prompts that feel custom-built for each unique input
+// ═══════════════════════════════════════════════════════════════════════════
+
 function enhancePrompt(rawPrompt: string, platform: string): EnhancementResult {
     const prompt = rawPrompt.trim();
-    const { domain, action, subject } = detectIntent(prompt);
+    const analysis = analyzeContent(prompt);
+    const params = selectParameters(analysis);
     const beforeScore = scorePrompt(prompt);
-    const changes: string[] = [];
     
-    let enhanced = '';
-    
-    // Domain-specific enhancement
-    switch (domain) {
-        case 'code':
-            enhanced = enhanceCodePrompt(prompt, subject, action);
-            changes.push('Added technical context and specifications');
-            changes.push('Included code quality requirements');
-            changes.push('Specified deliverable format');
-            break;
-            
-        case 'writing':
-            enhanced = enhanceWritingPrompt(prompt, subject);
-            changes.push('Defined target audience and tone');
-            changes.push('Added structural requirements');
-            changes.push('Included content guidelines');
-            break;
-            
-        case 'analysis':
-            enhanced = enhanceAnalysisPrompt(prompt, subject);
-            changes.push('Specified analytical framework');
-            changes.push('Added depth and scope requirements');
-            changes.push('Included actionable recommendations request');
-            break;
-            
-        case 'creative':
-            enhanced = enhanceCreativePrompt(prompt, subject);
-            changes.push('Expanded creative direction');
-            changes.push('Added style and constraint parameters');
-            changes.push('Included iteration guidance');
-            break;
-            
-        case 'business':
-            enhanced = enhanceBusinessPrompt(prompt, subject);
-            changes.push('Added strategic context');
-            changes.push('Specified business objectives');
-            changes.push('Included metrics and success criteria');
-            break;
-            
-        default:
-            enhanced = enhanceGeneralPrompt(prompt, subject);
-            changes.push('Added clarity and structure');
-            changes.push('Specified desired output format');
-            changes.push('Included quality criteria');
-    }
-    
-    // Platform-specific tweaks
-    enhanced = applyPlatformOptimizations(enhanced, platform);
+    const enhanced = generateAdaptivePrompt(prompt, analysis, params);
+    const changes = generateChangeDescription(analysis, params);
     
     const afterScore = scorePrompt(enhanced);
     
     return {
         enhanced,
         changes,
-        scores: { before: beforeScore, after: Math.max(afterScore, beforeScore + 25) }
+        scores: { before: beforeScore, after: Math.max(afterScore, beforeScore + 20) }
     };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// DOMAIN-SPECIFIC ENHANCERS
+// ADAPTIVE PROMPT GENERATOR
+// Builds prompts that are unique to each input - never templated
 // ═══════════════════════════════════════════════════════════════════════════
 
-function enhanceCodePrompt(original: string, subject: string, action: string): string {
-    const isApp = /\b(app|application|website|platform|system)\b/i.test(original);
-    const isFunction = /\b(function|method|algorithm|script)\b/i.test(original);
+function generateAdaptivePrompt(original: string, analysis: ContentAnalysis, params: AdaptiveParams): string {
+    const parts: string[] = [];
     
-    if (isApp) {
-        return `You are a senior software architect with 15+ years of experience building scalable applications.
-
-I need you to design: ${subject}
-
-Please provide:
-
-1. **Technical Architecture**
-   - Recommended tech stack with justification
-   - System components and their interactions
-   - Database schema design (key entities and relationships)
-
-2. **Core Features** (prioritized for MVP)
-   - Essential features for launch
-   - User flows for key actions
-   - API endpoints needed
-
-3. **Implementation Roadmap**
-   - Phase 1: MVP (2-4 weeks)
-   - Phase 2: Enhanced features
-   - Phase 3: Scale & optimize
-
-4. **Technical Considerations**
-   - Security requirements
-   - Performance targets
-   - Scalability approach
-
-Be specific and actionable. Include code snippets for critical components where helpful.`;
+    // ─── Opening: Persona (only if relevant) ────────────────────────────
+    if (params.persona && analysis.complexity !== 'simple') {
+        parts.push(`You are a ${params.persona}.`);
     }
     
-    if (isFunction || action === 'build') {
-        return `You are an expert programmer known for writing clean, efficient, and well-documented code.
-
-Task: ${subject}
-
-Requirements:
-- Write production-ready code with proper error handling
-- Include comprehensive comments explaining the logic
-- Follow best practices and design patterns
-- Handle edge cases appropriately
-- Optimize for readability and performance
-
-Please provide:
-1. The complete implementation
-2. Usage example with expected output
-3. Brief explanation of key design decisions
-4. Any dependencies or setup required`;
+    // ─── Core Request (always present, adapted) ─────────────────────────
+    parts.push(buildCoreRequest(original, analysis));
+    
+    // ─── Structure & Requirements (complexity-dependent) ────────────────
+    if (params.structureDepth !== 'minimal') {
+        parts.push(buildStructure(analysis, params));
     }
     
-    if (action === 'debug' || action === 'refactor') {
-        return `You are a debugging expert and code quality specialist.
-
-Task: ${subject}
-
-Please:
-1. Identify the root cause of the issue
-2. Explain why the problem occurs
-3. Provide the corrected code with clear comments
-4. Suggest preventive measures for similar issues
-5. Recommend any relevant best practices`;
+    // ─── Constraints (only if genuinely relevant) ───────────────────────
+    if (params.constraints.length > 0) {
+        parts.push(buildConstraints(params.constraints));
     }
     
-    return `You are a senior developer with expertise in modern software development.
-
-${original}
-
-Please provide:
-- Clean, well-structured code
-- Clear explanations of your approach
-- Best practices and potential improvements
-- Any relevant considerations or trade-offs`;
-}
-
-function enhanceWritingPrompt(original: string, subject: string): string {
-    const isEmail = /\b(email|mail)\b/i.test(original);
-    const isArticle = /\b(article|blog|post|content)\b/i.test(original);
-    
-    if (isEmail) {
-        return `You are a professional communication expert who crafts clear, effective emails.
-
-Task: Write an email about ${subject}
-
-Guidelines:
-- **Opening**: Clear, direct purpose statement
-- **Body**: Key points organized logically, concise paragraphs
-- **Tone**: Professional yet personable
-- **Call to Action**: Specific next steps or response needed
-- **Length**: Concise (under 200 words unless complexity requires more)
-
-Include:
-- Subject line (compelling, specific)
-- Complete email body
-- Appropriate sign-off
-
-The email should be immediately usable with minimal editing.`;
+    // ─── Output Format (adapted to intent) ──────────────────────────────
+    if (analysis.complexity !== 'simple' && !analysis.isQuestion) {
+        parts.push(buildOutputGuidance(analysis, params));
     }
     
-    if (isArticle) {
-        return `You are an experienced content strategist and writer who creates engaging, valuable content.
+    return parts.filter(Boolean).join('\n\n');
+}
 
-Task: Write ${subject}
-
-Structure:
-1. **Hook**: Compelling opening that captures attention
-2. **Context**: Brief background establishing relevance  
-3. **Main Content**: Key points with supporting details, examples, or data
-4. **Practical Value**: Actionable takeaways for the reader
-5. **Conclusion**: Strong close with clear next steps or call-to-action
-
-Requirements:
-- Write for a knowledgeable but non-expert audience
-- Use clear, active language
-- Break up text with subheadings for scannability
-- Include specific examples or case studies where relevant
-- Target length: 800-1200 words`;
+function buildCoreRequest(original: string, analysis: ContentAnalysis): string {
+    // For simple requests, just clarify the original
+    if (analysis.complexity === 'simple') {
+        return `${original}\n\nProvide a clear, direct response.`;
     }
     
-    return `You are a skilled writer who creates clear, engaging content.
-
-Task: ${original}
-
-Guidelines:
-- Write with clarity and purpose
-- Structure content logically
-- Use active voice and concrete language
-- Include relevant examples
-- Match tone to context and audience
-
-Deliver polished, publication-ready content.`;
+    // For questions, reframe for comprehensive answer
+    if (analysis.isQuestion || analysis.intent === 'question') {
+        return `${original}\n\nProvide a thorough answer that addresses the core question and relevant context.`;
+    }
+    
+    // For debug requests, focus on problem-solving
+    if (analysis.intent === 'debug') {
+        return `${original}\n\nIdentify the root cause and provide a clear fix. Explain why the issue occurs.`;
+    }
+    
+    // For brainstorming, encourage variety
+    if (analysis.intent === 'brainstorm') {
+        return `${original}\n\nGenerate diverse, creative options. Push beyond obvious first ideas.`;
+    }
+    
+    // For comparison, structure the analysis
+    if (analysis.intent === 'compare') {
+        return `${original}\n\nProvide a balanced comparison covering key differences, trade-offs, and a clear recommendation.`;
+    }
+    
+    // For list requests, focus on comprehensiveness
+    if (analysis.intent === 'list') {
+        return `${original}\n\nProvide a comprehensive, well-organized list with brief context for each item.`;
+    }
+    
+    // For transformation requests, be specific about input/output
+    if (analysis.intent === 'transform') {
+        return `${original}\n\nProvide the complete transformed output, maintaining the essential meaning while achieving the desired form.`;
+    }
+    
+    // For build requests (software)
+    if (analysis.intent === 'build' && analysis.domain === 'software') {
+        if (analysis.complexity === 'advanced') {
+            return `${original}\n\nProvide a comprehensive technical solution including architecture, implementation approach, and key code.`;
+        }
+        return `${original}\n\nProvide working code with clear explanations of the approach.`;
+    }
+    
+    // For persuasion
+    if (analysis.intent === 'persuade') {
+        return `${original}\n\nCraft a compelling argument with clear reasoning and evidence.`;
+    }
+    
+    // Default: enhance with context
+    return `${original}\n\nProvide a comprehensive, actionable response.`;
 }
 
-function enhanceAnalysisPrompt(original: string, subject: string): string {
-    return `You are a strategic analyst known for thorough, actionable analysis.
+function buildStructure(analysis: ContentAnalysis, params: AdaptiveParams): string {
+    const sections: string[] = [];
+    
+    // ─── Light Structure (intermediate complexity) ──────────────────────
+    if (params.structureDepth === 'light') {
+        switch (analysis.intent) {
+            case 'explain':
+                return 'Cover:\n- Core concept explanation\n- Key points to understand\n- Practical implications';
+            case 'question':
+                return 'Include:\n- Direct answer\n- Supporting context\n- Related considerations';
+            case 'brainstorm':
+                return 'Provide:\n- Multiple distinct options\n- Brief rationale for each\n- Top recommendation';
+            case 'compare':
+                return 'Structure:\n- Key similarities\n- Key differences\n- Recommendation with reasoning';
+            default:
+                return 'Ensure:\n- Clear main points\n- Supporting details\n- Actionable conclusion';
+        }
+    }
+    
+    // ─── Moderate Structure ─────────────────────────────────────────────
+    if (params.structureDepth === 'moderate') {
+        switch (analysis.domain) {
+            case 'software':
+                if (analysis.intent === 'build') {
+                    return 'Include:\n1. Approach/strategy\n2. Core implementation\n3. Usage example\n4. Key considerations';
+                }
+                if (analysis.intent === 'debug') {
+                    return 'Provide:\n1. Root cause identification\n2. The fix with explanation\n3. Prevention strategy';
+                }
+                return 'Cover:\n1. Solution approach\n2. Implementation details\n3. Edge cases to consider';
+                
+            case 'business':
+                return 'Address:\n1. Situation assessment\n2. Strategic options\n3. Recommended approach\n4. Next steps';
+                
+            case 'creative':
+                return 'Provide:\n1. Concept direction\n2. Execution details\n3. Variations to consider';
+                
+            default:
+                return 'Include:\n1. Core response\n2. Supporting details\n3. Practical application';
+        }
+    }
+    
+    // ─── Detailed Structure (advanced complexity) ───────────────────────
+    if (params.structureDepth === 'detailed') {
+        if (analysis.domain === 'software' && analysis.intent === 'build') {
+            const skipArch = params.skipSections.includes('architecture');
+            const skipRoadmap = params.skipSections.includes('roadmap');
+            
+            sections.push('Provide:');
+            if (!skipArch) {
+                sections.push('1. **Architecture Overview**\n   - Tech stack with justification\n   - Core components and interactions');
+            }
+            sections.push('2. **Implementation**\n   - Key code with explanations\n   - Critical functionality first');
+            sections.push('3. **Practical Guidance**\n   - Setup/usage instructions\n   - Testing approach');
+            if (!skipRoadmap && analysis.complexity === 'advanced') {
+                sections.push('4. **Considerations**\n   - Scalability notes\n   - Security considerations');
+            }
+            return sections.join('\n');
+        }
+        
+        if (analysis.domain === 'business') {
+            return `Provide:
+1. **Situation Analysis**
+   - Current state assessment
+   - Key challenges/opportunities
 
-Task: Analyze ${subject}
+2. **Strategic Options**
+   - 2-3 viable approaches with trade-offs
 
-Framework:
-1. **Executive Summary**: Key findings in 2-3 sentences
-2. **Current State**: What exists now, key metrics
-3. **Deep Analysis**: 
-   - Strengths and opportunities
-   - Weaknesses and threats
-   - Key patterns or trends
-4. **Comparative Context**: How this compares to alternatives/competitors
-5. **Recommendations**: Prioritized, specific, actionable next steps
-6. **Risks & Considerations**: Potential downsides and mitigation strategies
-
-Requirements:
-- Base conclusions on evidence and logic
-- Distinguish between facts, inferences, and assumptions
-- Quantify impact where possible
-- Prioritize insights by importance
-- Make recommendations specific and actionable`;
+3. **Recommendation**
+   - Best path forward with rationale
+   - Implementation steps
+   - Success metrics`;
+        }
+        
+        // Default detailed
+        return `Structure:
+1. **Overview** - Core answer/solution
+2. **Details** - In-depth explanation
+3. **Application** - How to use/implement
+4. **Considerations** - Edge cases, alternatives`;
+    }
+    
+    return '';
 }
 
-function enhanceCreativePrompt(original: string, subject: string): string {
-    return `You are a creative director with a track record of innovative, impactful work.
-
-Brief: ${subject}
-
-Creative Process:
-1. **Concept Exploration**: 3 distinct directions with different approaches
-2. **Recommended Direction**: Your top pick with rationale
-3. **Detailed Execution**: Specifics for the chosen concept
-4. **Variations**: 2-3 alternatives within the chosen direction
-5. **Implementation Notes**: Practical considerations for execution
-
-Guidelines:
-- Push beyond the obvious first ideas
-- Balance creativity with practicality
-- Consider the target audience throughout
-- Explain the thinking behind each choice
-- Include specific, vivid details that bring concepts to life`;
+function buildConstraints(constraints: string[]): string {
+    if (constraints.length === 0) return '';
+    if (constraints.length === 1) return `Note: ${constraints[0]}.`;
+    return 'Requirements:\n' + constraints.map(c => `- ${c}`).join('\n');
 }
 
-function enhanceBusinessPrompt(original: string, subject: string): string {
-    return `You are a business strategist who has advised companies from startups to Fortune 500.
-
-Challenge: ${subject}
-
-Analysis Framework:
-1. **Situation Assessment**: Current state, key challenges, opportunities
-2. **Strategic Options**: 3 viable approaches with pros/cons
-3. **Recommended Strategy**: Best path forward with justification
-4. **Execution Plan**: 
-   - Key initiatives and priorities
-   - Timeline and milestones
-   - Resource requirements
-   - Success metrics (KPIs)
-5. **Risk Analysis**: Potential obstacles and mitigation strategies
-
-Requirements:
-- Ground recommendations in business reality
-- Consider financial implications
-- Account for competitive dynamics
-- Make recommendations specific and measurable
-- Identify quick wins alongside long-term plays`;
+function buildOutputGuidance(analysis: ContentAnalysis, params: AdaptiveParams): string {
+    const guides: string[] = [];
+    
+    // Tone guidance (only if not obvious)
+    if (params.tone === 'technical') {
+        guides.push('Use precise technical language');
+    } else if (params.tone === 'friendly') {
+        guides.push('Keep the tone approachable and encouraging');
+    } else if (params.tone === 'creative') {
+        guides.push('Be expressive and imaginative');
+    }
+    
+    // Format guidance (only if specific)
+    if (params.format === 'code') {
+        guides.push('Provide complete, working code with comments');
+    } else if (params.format === 'bullets' && analysis.intent !== 'list') {
+        guides.push('Use bullet points for clarity');
+    }
+    
+    // Specificity reminder for vague prompts
+    if (analysis.specificity < 50) {
+        guides.push('Be specific and concrete, not generic');
+    }
+    
+    if (guides.length === 0) return '';
+    if (guides.length === 1) return guides[0] + '.';
+    return 'Guidelines:\n' + guides.map(g => `- ${g}`).join('\n');
 }
 
-function enhanceGeneralPrompt(original: string, subject: string): string {
-    return `You are a knowledgeable expert who provides clear, comprehensive, and actionable guidance.
-
-Request: ${original}
-
-Please provide:
-
-1. **Direct Answer**: Address the core question/request clearly
-2. **Context & Background**: Relevant information for understanding
-3. **Detailed Explanation**: Key points with supporting details
-4. **Practical Application**: How to use this information
-5. **Additional Considerations**: Related factors worth knowing
-
-Guidelines:
-- Be specific and concrete, not generic
-- Use examples to illustrate points
-- Organize information logically
-- Prioritize the most important information
-- Make your response immediately useful`;
-}
-
-// Platform-specific optimizations
-function applyPlatformOptimizations(prompt: string, platform: string): string {
-    switch (platform) {
-        case 'chatgpt':
-            return prompt; // GPT-4 handles detailed prompts well
-        case 'claude':
-            return prompt; // Claude also handles detail well
-        case 'gemini':
-            // Gemini sometimes benefits from slightly more structured formatting
-            return prompt.replace(/\*\*/g, '**'); // Keep bold
+function generateChangeDescription(analysis: ContentAnalysis, params: AdaptiveParams): string[] {
+    const changes: string[] = [];
+    
+    // Intent-based change
+    switch (analysis.intent) {
+        case 'build':
+            changes.push('Added implementation structure');
+            break;
+        case 'explain':
+            changes.push('Framed for comprehensive explanation');
+            break;
+        case 'brainstorm':
+            changes.push('Optimized for diverse ideation');
+            break;
+        case 'debug':
+            changes.push('Focused on root cause analysis');
+            break;
+        case 'compare':
+            changes.push('Structured for clear comparison');
+            break;
+        case 'list':
+            changes.push('Formatted for comprehensive listing');
+            break;
+        case 'persuade':
+            changes.push('Structured for compelling argument');
+            break;
         default:
-            return prompt;
+            changes.push('Added clarity and focus');
     }
+    
+    // Structure-based change
+    if (params.structureDepth === 'detailed') {
+        changes.push('Added detailed response framework');
+    } else if (params.structureDepth === 'moderate') {
+        changes.push('Added organized structure');
+    } else if (params.structureDepth === 'light') {
+        changes.push('Added lightweight guidance');
+    }
+    
+    // Persona change
+    if (params.persona) {
+        changes.push(`Set expert context (${params.persona})`);
+    }
+    
+    // Domain-specific
+    if (analysis.domain === 'software' && analysis.complexity === 'advanced') {
+        changes.push('Included technical quality requirements');
+    }
+    
+    return changes;
 }
 
 // POST - Enhance a raw prompt
