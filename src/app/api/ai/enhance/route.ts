@@ -101,15 +101,15 @@ function mapOutputLanguage(lang: string | undefined): 'en' | 'sv' | 'auto' {
 export async function POST(request: NextRequest) {
     // ─── RATE LIMITING ──────────────────────────────────────────────
     const rateLimitResult = await rateLimit(request, RateLimitPresets.AI_CALLS);
-    
+
     if (!rateLimitResult.allowed) {
         return NextResponse.json(
-            { 
+            {
                 error: 'Rate limit exceeded',
                 resetTime: rateLimitResult.resetTime,
                 message: 'Too many requests. Please try again later.',
             },
-            { 
+            {
                 status: 429,
                 headers: {
                     'X-RateLimit-Limit': String(RateLimitPresets.AI_CALLS.maxRequests),

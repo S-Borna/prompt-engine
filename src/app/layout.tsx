@@ -54,7 +54,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} dark`}>
       <body className="font-sans antialiased bg-[#0a0a0f] text-white min-h-screen">
-        <SecurityShield 
+        <SecurityShield
           enableDevToolsDetection={true}
           enableContextMenuProtection={true}
           enableConsoleProtection={true}

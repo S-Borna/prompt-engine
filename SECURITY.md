@@ -3,9 +3,11 @@
 ## ✅ IMPLEMENTED PROTECTIONS
 
 ### 1. Client-Side Security Shield
+
 **Location:** `/src/components/security/SecurityShield.tsx`
 
 **Features:**
+
 - ✅ DevTools detection and warning
 - ✅ Context menu protection on sensitive content
 - ✅ Console obfuscation
@@ -14,8 +16,9 @@
 - ✅ Automatically disabled in development mode
 
 **Usage:**
+
 ```tsx
-<SecurityShield 
+<SecurityShield
   enableDevToolsDetection={true}
   enableContextMenuProtection={true}
   enableConsoleProtection={true}
@@ -23,22 +26,27 @@
 ```
 
 ### 2. API Rate Limiting
+
 **Location:** `/src/lib/rate-limit.ts`
 
 **Limits:**
+
 - AI Calls: 5 requests/minute
 - Standard API: 30 requests/minute
 - Strict: 10 requests/minute
 - Generous: 100 requests/minute
 
 **Applied to:**
+
 - `/api/ai/enhance` - AI prompt synthesis (5/min)
 - Can be applied to any API route
 
 ### 3. Security Headers (Middleware)
+
 **Location:** `/src/middleware.ts`
 
 **Headers:**
+
 - ✅ X-Frame-Options: DENY (prevents clickjacking)
 - ✅ X-Content-Type-Options: nosniff
 - ✅ X-XSS-Protection: enabled
@@ -54,14 +62,17 @@
 ### Required Settings
 
 #### 1. **Enable WAF (Web Application Firewall)**
+
 **Path:** Cloudflare Dashboard → Security → WAF
 
 **Actions:**
+
 - ✅ Enable "OWASP ModSecurity Core Rule Set"
 - ✅ Set sensitivity to "Medium" or "High"
 - ✅ Enable "Cloudflare Managed Ruleset"
 
 **Custom Rules to Add:**
+
 ```
 Rule 1: Block suspicious user agents
 Expression: (http.user_agent contains "scrapy") or (http.user_agent contains "selenium") or (http.user_agent contains "phantomjs")
@@ -75,20 +86,24 @@ Action: Challenge
 ```
 
 #### 2. **Bot Management**
+
 **Path:** Cloudflare Dashboard → Security → Bots
 
 **Settings:**
+
 - ✅ Enable "Bot Fight Mode" (Free tier) OR
 - ✅ Enable "Super Bot Fight Mode" (Pro+)
 - ✅ Allow verified bots: Google, Bing (for SEO)
 - ✅ Block: Scrapers, automated tools
 
 #### 3. **Rate Limiting (Cloudflare Level)**
+
 **Path:** Cloudflare Dashboard → Security → Rate Limiting
 
 **Create Rules:**
 
 **Rule 1: AI API Protection**
+
 ```
 Name: AI API Rate Limit
 Match: Path contains "/api/ai/"
@@ -97,6 +112,7 @@ Action: Block for 1 minute
 ```
 
 **Rule 2: General API Protection**
+
 ```
 Name: General API Rate Limit
 Match: Path starts with "/api/"
@@ -105,6 +121,7 @@ Action: Challenge
 ```
 
 **Rule 3: Login Protection**
+
 ```
 Name: Auth Rate Limit
 Match: Path equals "/api/auth/callback"
@@ -113,19 +130,23 @@ Action: Block for 5 minutes
 ```
 
 #### 4. **DDoS Protection**
+
 **Path:** Cloudflare Dashboard → Security → DDoS
 
 **Settings:**
+
 - ✅ Enable "HTTP DDoS Attack Protection" (automatic)
 - ✅ Enable "Network-layer DDoS Attack Protection"
 - ✅ Sensitivity: High
 
 #### 5. **Page Rules**
+
 **Path:** Cloudflare Dashboard → Rules → Page Rules
 
 **Add Rules:**
 
 **Rule 1: Protect API routes**
+
 ```
 URL: *praxis.app/api/*
 Settings:
@@ -135,6 +156,7 @@ Settings:
 ```
 
 **Rule 2: Protect dashboard**
+
 ```
 URL: *praxis.app/dashboard/*
 Settings:
@@ -143,9 +165,11 @@ Settings:
 ```
 
 #### 6. **Firewall Rules (Transform Rules)**
+
 **Path:** Cloudflare Dashboard → Security → WAF → Custom rules
 
 **Rule 1: Block common attack patterns**
+
 ```javascript
 (
   http.request.uri.path contains "../" or
@@ -155,19 +179,24 @@ Settings:
   http.request.uri.query contains "base64_decode"
 )
 ```
+
 **Action:** Block
 
 **Rule 2: Geographic restrictions (optional)**
 If you want to block specific countries:
+
 ```javascript
 not ip.geoip.country in {"US" "SE" "GB" "DE" "FR" "NL" "CA"}
 ```
+
 **Action:** Challenge
 
 #### 7. **SSL/TLS Settings**
+
 **Path:** Cloudflare Dashboard → SSL/TLS
 
 **Settings:**
+
 - ✅ SSL/TLS encryption mode: Full (strict)
 - ✅ Always Use HTTPS: On
 - ✅ Minimum TLS Version: TLS 1.2
@@ -177,17 +206,21 @@ not ip.geoip.country in {"US" "SE" "GB" "DE" "FR" "NL" "CA"}
 - ✅ Certificate Transparency Monitoring: On
 
 #### 8. **Scrape Shield**
+
 **Path:** Cloudflare Dashboard → Scrape Shield
 
 **Settings:**
+
 - ✅ Email Address Obfuscation: On
 - ✅ Server-side Excludes: On
 - ✅ Hotlink Protection: On
 
 #### 9. **Speed Optimizations (reduces scraper success)**
+
 **Path:** Cloudflare Dashboard → Speed
 
 **Settings:**
+
 - ✅ Auto Minify: HTML, CSS, JS
 - ✅ Brotli Compression: On
 - ✅ Early Hints: On
@@ -218,16 +251,18 @@ NEXTAUTH_SECRET=your_secret
 ## 🚨 MONITORING & ALERTS
 
 ### Cloudflare Alerts to Enable
+
 **Path:** Cloudflare Dashboard → Notifications
 
 **Enable:**
+
 1. ✅ **DDoS Attack Alerts**
    - Notify on: Layer 7 attacks
    - Threshold: Medium
 
 2. ✅ **Rate Limiting Alerts**
    - Notify when: Rule triggered >100 times/hour
-   
+
 3. ✅ **Firewall Events**
    - Notify on: Blocked requests >500/hour
 
@@ -235,7 +270,9 @@ NEXTAUTH_SECRET=your_secret
    - Notify on: Certificate expiry warnings
 
 ### Application Monitoring
+
 Consider adding:
+
 - **Sentry** for error tracking
 - **LogRocket** for session replay (detect scraping patterns)
 - **Cloudflare Analytics** (already included)
@@ -245,26 +282,30 @@ Consider adding:
 ## ✅ TESTING YOUR SECURITY
 
 ### 1. Test DevTools Protection
+
 1. Open DevTools (F12)
 2. Should see warning in console
 3. Should see warning toast
 
 ### 2. Test Rate Limiting
+
 ```bash
 # Run this 6 times rapidly (should fail on 6th)
 for i in {1..6}; do
   curl -X POST https://praxis.app/api/ai/enhance \
     -H "Content-Type: application/json" \
-    -d '{"prompt":"test"}' & 
+    -d '{"prompt":"test"}' &
 done
 ```
 
 ### 3. Test Security Headers
+
 ```bash
 curl -I https://praxis.app | grep -E "(X-Frame|X-Content|CSP|HSTS)"
 ```
 
 Expected output:
+
 ```
 X-Frame-Options: DENY
 X-Content-Type-Options: nosniff
@@ -273,7 +314,9 @@ Strict-Transport-Security: max-age=31536000
 ```
 
 ### 4. Test WAF Rules
+
 Try accessing with suspicious patterns:
+
 ```bash
 curl https://praxis.app/api/test?q=union%20select
 # Should be blocked by WAF
@@ -298,11 +341,13 @@ After implementation, you should achieve:
 ## 🔄 MAINTENANCE
 
 ### Weekly Tasks
+
 - [ ] Review Cloudflare Security Events
 - [ ] Check rate limit logs
 - [ ] Monitor blocked IPs
 
 ### Monthly Tasks
+
 - [ ] Update WAF rules based on attacks
 - [ ] Review and adjust rate limits
 - [ ] Check SSL certificate status
@@ -334,8 +379,8 @@ If you detect an attack:
 ## 📞 SUPPORT
 
 - **Cloudflare Support:** Only available on paid plans
-- **Cloudflare Community:** https://community.cloudflare.com
-- **Cloudflare Docs:** https://developers.cloudflare.com
+- **Cloudflare Community:** <https://community.cloudflare.com>
+- **Cloudflare Docs:** <https://developers.cloudflare.com>
 
 ---
 
@@ -370,6 +415,7 @@ If you detect an attack:
 ## 🎯 PRIORITY ACTIONS
 
 **Do this NOW:**
+
 1. ✅ Enable Cloudflare WAF
 2. ✅ Enable Bot Fight Mode
 3. ✅ Set up Rate Limiting rules (3 rules above)
@@ -378,12 +424,14 @@ If you detect an attack:
 6. ✅ Test security headers endpoint
 
 **Do this WEEK 1:**
+
 1. Set up monitoring alerts
 2. Review first week of security logs
 3. Adjust rate limits based on usage
 4. Consider upgrading Cloudflare plan
 
 **Ongoing:**
+
 1. Monitor Cloudflare Security Events daily
 2. Review blocked requests weekly
 3. Update WAF rules monthly
@@ -392,6 +440,7 @@ If you detect an attack:
 ---
 
 Your app is now significantly more secure against:
+
 - ✅ DevTools scraping
 - ✅ Automated bots
 - ✅ DDoS attacks
