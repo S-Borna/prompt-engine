@@ -200,10 +200,10 @@ export function PromptWizard({ selectedModel, selectedLanguage }: PromptWizardPr
                             <div className="flex items-center gap-3">
                                 <div
                                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${isCompleted
-                                            ? 'bg-emerald-500/20 text-emerald-400 ring-2 ring-emerald-500/50'
-                                            : isActive
-                                                ? 'bg-violet-500/20 text-violet-400 ring-2 ring-violet-500/50'
-                                                : 'bg-white/[0.04] text-white/30'
+                                        ? 'bg-emerald-500/20 text-emerald-400 ring-2 ring-emerald-500/50'
+                                        : isActive
+                                            ? 'bg-violet-500/20 text-violet-400 ring-2 ring-violet-500/50'
+                                            : 'bg-white/[0.04] text-white/30'
                                         }`}
                                 >
                                     {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-3 h-3" />}

@@ -323,8 +323,8 @@ function ModelInsightPopover({ modelId, isVisible, anchorRect, onClose }: ModelI
             role="tooltip"
             aria-hidden={!isVisible}
             className={`fixed z-[9999] pointer-events-none transition-all duration-150 ${isVisible
-                    ? 'opacity-100 scale-100 translate-y-0'
-                    : 'opacity-0 scale-[0.96] translate-y-1'
+                ? 'opacity-100 scale-100 translate-y-0'
+                : 'opacity-0 scale-[0.96] translate-y-1'
                 }`}
             style={{
                 left: `${left}px`,
@@ -544,8 +544,8 @@ export function ModelCardWithInsight({ model, isSelected, onSelect }: ModelCardW
                 onBlur={handleMouseLeave}
                 title={`${model.name} — ${model.family}`}
                 className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-200 ${isSelected
-                        ? 'bg-white/[0.08] ring-1 ring-white/20'
-                        : 'bg-white/[0.02] hover:bg-white/[0.05]'
+                    ? 'bg-white/[0.08] ring-1 ring-white/20'
+                    : 'bg-white/[0.02] hover:bg-white/[0.05]'
                     }`}
                 style={isSelected ? {
                     boxShadow: `0 0 16px -4px ${model.color}40`
