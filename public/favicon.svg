@@ -1,0 +1,21 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="64" height="64" fill="#09090b"/>
+
+  <!-- Glow effect -->
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Subtle glow layer -->
+  <rect x="13" y="13" width="38" height="38" fill="#8B5CF6" opacity="0.2" filter="url(#glow)"/>
+
+  <!-- Cursor block -->
+  <rect x="13" y="13" width="38" height="38" fill="#FFFFFF"/>
+</svg>

@@ -21,6 +21,16 @@ export const metadata: Metadata = {
   description: "Transform any rough idea into a perfectly crafted prompt. Visual tools, intelligent suggestions, and workflow automation for the modern AI era.",
   keywords: ["prompt engineering", "AI", "prompt builder", "ChatGPT", "Claude", "Gemini", "GPT-4", "prompt optimization"],
   authors: [{ name: "PRAXIS" }],
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-16.svg", sizes: "16x16", type: "image/svg+xml" },
+      { url: "/favicon-32.svg", sizes: "32x32", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.svg", sizes: "180x180", type: "image/svg+xml" },
+    ],
+  },
   openGraph: {
     title: "PRAXIS - Master the Art of Prompt Engineering",
     description: "Transform any rough idea into a perfectly crafted prompt that gets you exactly what you want from AI.",

@@ -1,0 +1,21 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with rounded corners for Apple -->
+  <rect width="180" height="180" rx="40" fill="#09090b"/>
+
+  <!-- Glow effect -->
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Subtle glow layer -->
+  <rect x="36" y="36" width="108" height="108" fill="#8B5CF6" opacity="0.25" filter="url(#glow)"/>
+
+  <!-- Cursor block -->
+  <rect x="36" y="36" width="108" height="108" fill="#FFFFFF"/>
+</svg>
