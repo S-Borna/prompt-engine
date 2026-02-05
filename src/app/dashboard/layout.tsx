@@ -182,13 +182,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                     onClick={() => setMobileMenuOpen(false)}
                                     title={sidebarCollapsed ? item.name : undefined}
                                     className={`group flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 ${isActive
-                                            ? 'bg-white/[0.05]'
-                                            : 'hover:bg-white/[0.03]'
+                                        ? 'bg-white/[0.05]'
+                                        : 'hover:bg-white/[0.03]'
                                         } ${sidebarCollapsed ? 'justify-center' : ''}`}
                                 >
                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${isActive
-                                            ? `bg-gradient-to-br ${item.gradient}`
-                                            : 'bg-white/[0.04] group-hover:bg-white/[0.06]'
+                                        ? `bg-gradient-to-br ${item.gradient}`
+                                        : 'bg-white/[0.04] group-hover:bg-white/[0.06]'
                                         }`}>
                                         <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-white/50 group-hover:text-white/70'}`} />
                                     </div>
@@ -223,8 +223,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                     onClick={() => setMobileMenuOpen(false)}
                                     title={sidebarCollapsed ? item.name : undefined}
                                     className={`group flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${isActive
-                                            ? 'bg-white/[0.04] text-white'
-                                            : 'text-white/40 hover:bg-white/[0.02] hover:text-white/60'
+                                        ? 'bg-white/[0.04] text-white'
+                                        : 'text-white/40 hover:bg-white/[0.02] hover:text-white/60'
                                         } ${sidebarCollapsed ? 'justify-center' : ''}`}
                                 >
                                     <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
@@ -250,8 +250,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                     onClick={() => setMobileMenuOpen(false)}
                                     title={sidebarCollapsed ? item.name : undefined}
                                     className={`group flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${isActive
-                                            ? 'bg-white/[0.04] text-white'
-                                            : 'text-white/40 hover:bg-white/[0.02] hover:text-white/60'
+                                        ? 'bg-white/[0.04] text-white'
+                                        : 'text-white/40 hover:bg-white/[0.02] hover:text-white/60'
                                         } ${sidebarCollapsed ? 'justify-center' : ''}`}
                                 >
                                     <item.icon className="w-[18px] h-[18px] flex-shrink-0" />

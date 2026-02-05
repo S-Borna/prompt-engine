@@ -314,8 +314,8 @@ export async function runEnhanced(
 
     // Simulate API latency (varies by model)
     const latency = adapter.family === 'gpt' ? 800 :
-                    adapter.family === 'claude' ? 900 :
-                    adapter.family === 'gemini' ? 700 : 600;
+        adapter.family === 'claude' ? 900 :
+            adapter.family === 'gemini' ? 700 : 600;
     await new Promise(resolve => setTimeout(resolve, latency));
 
     // Generate output WITH full adapter configuration
