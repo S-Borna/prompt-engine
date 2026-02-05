@@ -14,10 +14,19 @@
 
 import OpenAI from 'openai';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy-initialized OpenAI client (avoids build-time errors when API key is not available)
+let _openai: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+    if (!_openai) {
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            throw new Error('OPENAI_API_KEY environment variable is not set');
+        }
+        _openai = new OpenAI({ apiKey });
+    }
+    return _openai;
+}
 
 // The actual model we use for A/B testing
 const OPENAI_MODEL = 'gpt-4o-mini';
@@ -251,7 +260,7 @@ export async function runOriginal(
     const startTime = Date.now();
 
     try {
-        const completion = await openai.chat.completions.create({
+        const completion = await getOpenAIClient().chat.completions.create({
             model: OPENAI_MODEL,
             messages: [
                 { role: 'user', content: prompt }
@@ -311,7 +320,7 @@ export async function runEnhanced(
     const startTime = Date.now();
 
     try {
-        const completion = await openai.chat.completions.create({
+        const completion = await getOpenAIClient().chat.completions.create({
             model: OPENAI_MODEL,
             messages: [
                 { role: 'system', content: adapter.systemPrompt },

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Sparkles, ArrowRight, Zap, Target, Layers, Cpu, BarChart3, Shield } from 'lucide-react';
+import { Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRAXIS — Premium Landing Page
@@ -92,43 +92,27 @@ function TypeWriter({
   );
 }
 
-// Features data
-const features = [
+// Capabilities data - reframed for enterprise positioning
+const capabilities = [
   {
-    icon: Zap,
-    title: 'Instant Enhancement',
-    description: 'Transform vague prompts into detailed, effective instructions in seconds.',
-    color: '#8B5CF6',
+    title: 'Structural Enforcement',
+    description: 'Every prompt is decomposed into role, task, constraints, and output format',
+    impact: 'Eliminates ambiguity before it reaches the model',
   },
   {
-    icon: Target,
-    title: 'AI-Optimized',
-    description: 'Tailored outputs for GPT-4, Claude, Gemini, and other leading models.',
-    color: '#EC4899',
+    title: 'Model-Specific Adaptation',
+    description: 'Execution parameters are tuned per model family',
+    impact: 'Same intent, optimal delivery for GPT, Claude, Gemini, or Grok',
   },
   {
-    icon: Layers,
-    title: 'Context-Aware',
-    description: 'Understands intent and adds structure, constraints, and formatting.',
-    color: '#6366F1',
+    title: 'Inspectable Transformations',
+    description: 'Every enhancement is visible and reversible',
+    impact: 'Full audit trail for compliance and debugging',
   },
   {
-    icon: Cpu,
-    title: 'Multi-Model Support',
-    description: 'Optimize for any AI model with platform-specific enhancements.',
-    color: '#10B981',
-  },
-  {
-    icon: BarChart3,
-    title: 'Quality Scoring',
-    description: 'Real-time analysis showing exactly how your prompt improves.',
-    color: '#F59E0B',
-  },
-  {
-    icon: Shield,
-    title: 'Prompt Library',
-    description: 'Save, organize, and reuse your best prompts across projects.',
-    color: '#3B82F6',
+    title: 'Quality Metrics',
+    description: 'Prompts are scored on specificity, structure, and completeness',
+    impact: 'Quantified improvement before execution',
   },
 ];
 
@@ -205,7 +189,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/signup"
-              className="text-sm font-medium bg-white text-black px-4 py-2 rounded-lg hover:bg-white/90 transition-colors"
+              className="text-sm font-medium bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
             >
               Get Started
             </Link>
@@ -216,67 +200,72 @@ export default function LandingPage() {
       <main>
         {/* Hero Section */}
         <section className="relative pt-32 pb-24 overflow-hidden">
-          {/* Background Effects */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-violet-500/20 via-transparent to-transparent opacity-60" />
-            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
+          {/* Subtle ambient glow only - no grid */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-gradient-radial from-violet-500/[0.06] via-transparent to-transparent" />
           </div>
 
-          <div className="relative max-w-6xl mx-auto px-6">
+          <div className="relative max-w-6xl mx-auto px-6 flex flex-col items-center">
             {/* Badge */}
-            <div className="flex justify-center mb-6">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-sm font-medium">
-                <Sparkles className="w-3.5 h-3.5" />
-                AI-Powered Prompt Engineering
+            <div className="mb-8">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/50 text-sm font-medium">
+                Prompt Engineering System
               </span>
             </div>
 
-            {/* Headline */}
-            <h1 className="text-center text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-5">
-              Write Prompts That<br />
-              <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
-                Actually Work
+            {/* Headline - Enterprise positioning */}
+            <h1 className="text-center text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.08] mb-6">
+              <span className="block text-center">Precision prompts</span>
+              <span className="block text-center bg-gradient-to-r from-violet-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                Predictable results
               </span>
             </h1>
 
-            {/* Subtitle */}
-            <p className="text-center text-lg md:text-xl text-white/50 max-w-2xl mx-auto mb-8 leading-relaxed">
-              PRAXIS transforms your basic prompts into detailed, structured instructions
-              that get better results from any AI model.
+            {/* Subtitle - TRUE center alignment */}
+            <p className="text-center text-lg md:text-xl text-white/50 max-w-xl mx-auto mb-10 leading-relaxed">
+              PRAXIS formalizes your intent into execution-ready prompts<br />
+              Every output is structured, inspectable, and reproducible
             </p>
 
-            {/* CTA Button */}
-            <div className="flex justify-center mb-16">
+            {/* CTA Button - Visible with gradient background */}
+            <div className="mb-20">
               <Link
                 href="/signup"
-                className="group flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-violet-500 to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all"
+                className="group inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-violet-500 to-indigo-500 text-white font-medium rounded-lg shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all"
               >
-                Start Free
+                Start Building
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </div>
 
-            {/* Demo Window */}
+            {/* Demo Section with Framing */}
             <div id="demo" className="max-w-4xl mx-auto">
+              {/* Demo Context */}
+              <div className="flex justify-center mb-6">
+                <p className="text-sm text-white/40 max-w-lg text-center">
+                  PRAXIS does not rewrite your intent, it formalizes it into a structure that models can execute precisely
+                </p>
+              </div>
+
               <div className="rounded-2xl border border-white/[0.08] bg-[#0c0c0f] overflow-hidden shadow-2xl shadow-black/50">
                 {/* Window Chrome */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] bg-white/[0.02]">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                    <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                    <div className="w-3 h-3 rounded-full bg-white/20" />
+                    <div className="w-3 h-3 rounded-full bg-white/20" />
+                    <div className="w-3 h-3 rounded-full bg-white/20" />
                   </div>
-                  <span className="text-xs text-white/30 font-medium">PRAXIS — Live Demo</span>
+                  <span className="text-xs text-white/30 font-medium">Prompt Comparison</span>
                   <div className="w-16" />
                 </div>
 
                 {/* Demo Content */}
                 <div className="grid md:grid-cols-2 divide-x divide-white/[0.06]">
-                  {/* Before */}
+                  {/* Unstructured Prompt */}
                   <div className="p-6">
                     <div className="flex items-center gap-2 mb-4">
-                      <div className="w-2 h-2 rounded-full bg-red-400" />
-                      <span className="text-xs font-medium text-white/40 uppercase tracking-wider">Before</span>
+                      <div className="w-2 h-2 rounded-full bg-white/30" />
+                      <span className="text-xs font-medium text-white/40 uppercase tracking-wider">Unstructured Prompt</span>
                     </div>
 
                     <div className="space-y-4">
@@ -312,11 +301,11 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  {/* After */}
-                  <div className="p-6 bg-gradient-to-br from-violet-500/[0.03] to-transparent">
+                  {/* Execution-Ready Prompt */}
+                  <div className="p-6 bg-gradient-to-br from-violet-500/[0.02] to-transparent">
                     <div className="flex items-center gap-2 mb-4">
-                      <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                      <span className="text-xs font-medium text-white/40 uppercase tracking-wider">After PRAXIS</span>
+                      <div className="w-2 h-2 rounded-full bg-violet-400" />
+                      <span className="text-xs font-medium text-white/40 uppercase tracking-wider">Execution-Ready Prompt</span>
                     </div>
 
                     <div className="space-y-4">
@@ -357,9 +346,9 @@ export default function LandingPage() {
 
                 {/* Status Bar */}
                 <div className="px-4 py-2 border-t border-white/[0.06] bg-white/[0.01] flex items-center justify-between">
-                  <span className="text-[10px] text-white/30">Demo auto-loops every 15s</span>
+                  <span className="text-[10px] text-white/30">Continuous comparison</span>
                   <div className="flex items-center gap-4">
-                    <span className="text-[10px] text-white/30">Quality: <span className="text-red-400">32%</span> → <span className="text-emerald-400">94%</span></span>
+                    <span className="text-[10px] text-white/30">Structure score: <span className="text-white/40">12%</span> → <span className="text-violet-400">94%</span></span>
                   </div>
                 </div>
               </div>
@@ -367,102 +356,131 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Features Section */}
+        {/* Capabilities Section */}
         <section id="features" className="py-24 relative">
-          <div className="max-w-6xl mx-auto px-6">
+          <div className="max-w-5xl mx-auto px-6">
             {/* Section Header */}
-            <div className="text-center mb-16">
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.05] border border-white/[0.08] text-white/60 text-xs font-medium uppercase tracking-wider mb-6">
-                Features
-              </span>
-              <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-                Everything you need to<br />
-                <span className="bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
-                  master AI prompts
-                </span>
+            <div className="flex flex-col items-center text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4 text-white/90 text-center">
+                How it works
               </h2>
-              <p className="text-lg text-white/50 max-w-2xl mx-auto">
-                Powerful features wrapped in a simple, intuitive interface. Write better prompts, get better results.
+              <p className="text-base text-white/40 max-w-lg text-center">
+                Structure enforced before generation, every improvement visible and accountable
               </p>
             </div>
 
-            {/* Features Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {features.map((feature, i) => (
+            {/* Capabilities Grid - 2x2 */}
+            <div className="grid md:grid-cols-2 gap-8">
+              {capabilities.map((capability, i) => (
                 <div
                   key={i}
-                  className="group p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all"
+                  className="p-6 rounded-xl border border-white/[0.06] bg-white/[0.015]"
                 >
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
-                    style={{ backgroundColor: `${feature.color}15` }}
-                  >
-                    <feature.icon className="w-6 h-6" style={{ color: feature.color }} />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-sm text-white/50 leading-relaxed">{feature.description}</p>
+                  <h3 className="text-base font-medium mb-2 text-white/90">{capability.title}</h3>
+                  <p className="text-sm text-white/50 leading-relaxed mb-2">{capability.description}</p>
+                  <p className="text-sm text-white/30">{capability.impact}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section id="pricing" className="py-24 relative">
-          <div className="max-w-4xl mx-auto px-6">
-            <div className="relative rounded-3xl border border-white/[0.08] bg-gradient-to-br from-violet-500/10 via-transparent to-indigo-500/10 p-12 text-center overflow-hidden">
-              {/* Background glow */}
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-violet-500/10 rounded-full blur-3xl" />
-              </div>
-
-              <div className="relative">
-                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.05] border border-white/[0.08] text-white/60 text-xs font-medium uppercase tracking-wider mb-6">
-                  Get Started
-                </span>
-                <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-                  Ready to write<br />
-                  <span className="bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
-                    better prompts?
-                  </span>
-                </h2>
-                <p className="text-lg text-white/50 max-w-xl mx-auto mb-8">
-                  Join thousands of professionals who use PRAXIS to get better results from AI.
-                </p>
-
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <Link
-                    href="/signup"
-                    className="group flex items-center gap-2 px-8 py-4 bg-white text-black font-semibold rounded-xl hover:bg-white/90 transition-all"
-                  >
-                    Start Free — No Credit Card
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                  </Link>
+        {/* Trust Section - Principles, not claims */}
+        <section className="py-16 relative">
+          <div className="max-w-3xl mx-auto px-6">
+            <div className="border-t border-b border-white/[0.06] py-12">
+              <div className="grid md:grid-cols-3 gap-8 text-center">
+                <div>
+                  <CheckCircle2 className="w-5 h-5 text-white/30 mx-auto mb-3" />
+                  <p className="text-sm text-white/50">Structure enforced before generation</p>
+                </div>
+                <div>
+                  <CheckCircle2 className="w-5 h-5 text-white/30 mx-auto mb-3" />
+                  <p className="text-sm text-white/50">Every transformation is inspectable</p>
+                </div>
+                <div>
+                  <CheckCircle2 className="w-5 h-5 text-white/30 mx-auto mb-3" />
+                  <p className="text-sm text-white/50">Nothing is hidden from the user</p>
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* CTA Section - Calm, confident */}
+        <section id="pricing" className="py-24 relative">
+          <div className="max-w-2xl mx-auto px-6 flex flex-col items-center">
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4 text-white/90 text-center">
+              Start building with PRAXIS
+            </h2>
+            <p className="text-base text-white/40 max-w-md mb-8 text-center">
+              Free to start, no credit card required
+            </p>
+
+            <Link
+              href="/signup"
+              className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-violet-500 to-indigo-500 text-white font-medium rounded-lg shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all"
+            >
+              Create Account
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </section>
       </main>
 
       {/* Footer */}
       <footer className="border-t border-white/[0.06] py-12">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="max-w-5xl mx-auto px-6">
+          {/* Main Footer Content */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-8">
+            {/* Brand */}
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
                 <Sparkles className="w-3.5 h-3.5 text-white" />
               </div>
-              <span className="text-sm font-medium text-white/60">PRAXIS</span>
+              <span className="text-base font-semibold tracking-tight text-white/80">PRAXIS</span>
             </div>
 
-            <p className="text-sm text-white/30">
-              © 2026 PRAXIS. All rights reserved.
-            </p>
+            {/* Legal Links */}
+            <nav className="flex items-center gap-6">
+              <Link href="/legal/terms" className="text-sm text-white/40 hover:text-white/60 transition-colors">
+                Terms of Service
+              </Link>
+              <Link href="/legal/privacy" className="text-sm text-white/40 hover:text-white/60 transition-colors">
+                Privacy Policy
+              </Link>
+              <Link href="/legal/cookies" className="text-sm text-white/40 hover:text-white/60 transition-colors">
+                Cookie Policy
+              </Link>
+            </nav>
 
-            <p className="text-sm text-white/40">
-              Built and Designed by <span className="text-white/60">Said Borna</span>
-            </p>
+            {/* Contact */}
+            <a
+              href="mailto:said@saidborna.com"
+              className="text-sm text-white/40 hover:text-white/60 transition-colors"
+            >
+              said@saidborna.com
+            </a>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-white/[0.04] pt-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <p className="text-xs text-white/25">
+                © 2026 Said Borna · All rights reserved
+              </p>
+              <p className="text-xs text-white/30">
+                Built and designed by{' '}
+                <a
+                  href="https://saidborna.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/40 hover:text-white/60 transition-colors"
+                >
+                  Said Borna
+                </a>
+              </p>
+            </div>
           </div>
         </div>
       </footer>
