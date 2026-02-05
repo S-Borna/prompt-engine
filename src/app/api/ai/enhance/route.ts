@@ -56,7 +56,7 @@ function analyzeContent(prompt: string): ContentAnalysis {
     let intent: ContentAnalysis['intent'] = 'create';
     
     if (/\b(build|create|make|develop|implement|code|write.*code)\b/i.test(prompt) && 
-        /\b(app|application|website|system|api|function|program|script|tool)\b/i.test(prompt)) {
+        /\b(app|application|website|system|api|function|program|script|tool|hook|component|module|service|class|library)\b/i.test(prompt)) {
         intent = 'build';
     } else if (/\b(explain|what is|how does|why|describe|tell me about|walk me through)\b/i.test(prompt)) {
         intent = 'explain';
@@ -382,18 +382,20 @@ function buildCoreRequest(original: string, analysis: ContentAnalysis): string {
     }
     
     // For simple, non-actionable requests - minimal treatment
-    if (analysis.complexity === 'simple' && !['build', 'debug', 'compare', 'transform'].includes(analysis.intent)) {
+    // Explain/build/debug/compare/transform get proper handling even if short
+    const actionableIntents = ['build', 'debug', 'compare', 'transform', 'explain'];
+    if (analysis.complexity === 'simple' && !actionableIntents.includes(analysis.intent)) {
         return `${original}\n\nProvide a clear, direct response.`;
+    }
+    
+    // For explain intent - always get explanation structure
+    if (analysis.intent === 'explain') {
+        return `${original}\n\nExplain clearly with practical examples. Cover the key concepts and common use cases.`;
     }
     
     // For questions, reframe for comprehensive answer
     if (analysis.isQuestion || analysis.intent === 'question') {
         return `${original}\n\nProvide a thorough answer that addresses the core question and relevant context.`;
-    }
-    
-    // For explain intent
-    if (analysis.intent === 'explain') {
-        return `${original}\n\nExplain clearly with practical examples. Cover the key concepts and common use cases.`;
     }
     
     // For brainstorming, encourage variety
