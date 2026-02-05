@@ -190,8 +190,6 @@ function enhanceWithTripod(
 // POST - Enhance a raw prompt
 export async function POST(request: NextRequest) {
     try {
-        const session = await auth();
-
         const body = await request.json();
         const {
             rawPrompt,
@@ -210,39 +208,45 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Check usage limits for free users
-        if (session?.user?.email) {
-            const user = await prisma.user.findUnique({
-                where: { email: session.user.email },
-                select: { tier: true, promptsUsedToday: true, promptsResetAt: true },
-            });
+        // Try to check usage limits, but don't block enhancement if DB fails
+        try {
+            const session = await auth();
+            if (session?.user?.email) {
+                const user = await prisma.user.findUnique({
+                    where: { email: session.user.email },
+                    select: { tier: true, promptsUsedToday: true, promptsResetAt: true },
+                });
 
-            if (user?.tier === 'FREE') {
-                const now = new Date();
-                const resetAt = user.promptsResetAt ? new Date(user.promptsResetAt) : null;
+                if (user?.tier === 'FREE') {
+                    const now = new Date();
+                    const resetAt = user.promptsResetAt ? new Date(user.promptsResetAt) : null;
 
-                // Reset daily count if needed
-                if (!resetAt || now.getDate() !== resetAt.getDate()) {
-                    await prisma.user.update({
-                        where: { email: session.user.email },
-                        data: { promptsUsedToday: 0, promptsResetAt: now },
-                    });
-                } else if (user.promptsUsedToday >= 10) {
-                    return NextResponse.json(
-                        { error: 'Daily limit reached. Upgrade to Pro for unlimited enhancements.' },
-                        { status: 429 }
-                    );
+                    // Reset daily count if needed
+                    if (!resetAt || now.getDate() !== resetAt.getDate()) {
+                        await prisma.user.update({
+                            where: { email: session.user.email },
+                            data: { promptsUsedToday: 0, promptsResetAt: now },
+                        });
+                    } else if (user.promptsUsedToday >= 10) {
+                        return NextResponse.json(
+                            { error: 'Daily limit reached. Upgrade to Pro for unlimited enhancements.' },
+                            { status: 429 }
+                        );
+                    }
                 }
-            }
 
-            // Update usage count
-            await prisma.user.update({
-                where: { email: session.user.email },
-                data: { promptsUsedToday: { increment: 1 } },
-            });
+                // Update usage count
+                await prisma.user.update({
+                    where: { email: session.user.email },
+                    data: { promptsUsedToday: { increment: 1 } },
+                });
+            }
+        } catch (dbError) {
+            // Log but don't block - enhancement should work even if DB is unavailable
+            console.warn('Database check failed, continuing with enhancement:', dbError);
         }
 
-        // Use TRIPOD engine for enhancement
+        // Use TRIPOD engine for enhancement - this is the core functionality
         const result = enhanceWithTripod(inputPrompt, platform, refinementAnswers);
 
         return NextResponse.json({
