@@ -58,17 +58,18 @@ function analyzeContent(prompt: string): ContentAnalysis {
     if (/\b(build|create|make|develop|implement|code|write.*code)\b/i.test(prompt) && 
         /\b(app|application|website|system|api|function|program|script|tool|hook|component|module|service|class|library)\b/i.test(prompt)) {
         intent = 'build';
+    } else if (/\b(brainstorm|ideas?|suggestions?|options?|alternatives?|possibilities|creative.*(ways?|solutions?))\b/i.test(prompt)) {
+        intent = 'brainstorm';
     } else if (/\b(explain|what is|how does|why|describe|tell me about|walk me through)\b/i.test(prompt)) {
         intent = 'explain';
     } else if (/\b(convince|persuade|pitch|sell|propose|recommend)\b/i.test(prompt)) {
         intent = 'persuade';
-    } else if (/\b(brainstorm|ideas?|suggestions?|options?|alternatives?|possibilities)\b/i.test(prompt)) {
-        intent = 'brainstorm';
     } else if (/\b(debug|fix|error|bug|issue|problem|not working|broken|crash)\b/i.test(prompt)) {
         intent = 'debug';
     } else if (/\b(compare|versus|vs\.?|difference|better|which one|pros and cons)\b/i.test(prompt)) {
         intent = 'compare';
-    } else if (/\b(list|enumerate|give me|what are|show me all|examples of)\b/i.test(prompt)) {
+    } else if (/\b(list|enumerate|show me all|examples of)\b/i.test(prompt) && !/\bideas?\b/i.test(prompt)) {
+        // List intent, but not if asking for ideas (that's brainstorm)
         intent = 'list';
     } else if (/\b(convert|transform|translate|rewrite|change.*to|turn.*into)\b/i.test(prompt)) {
         intent = 'transform';
@@ -382,8 +383,8 @@ function buildCoreRequest(original: string, analysis: ContentAnalysis): string {
     }
     
     // For simple, non-actionable requests - minimal treatment
-    // Explain/build/debug/compare/transform get proper handling even if short
-    const actionableIntents = ['build', 'debug', 'compare', 'transform', 'explain'];
+    // These intents get proper handling even if prompt is short
+    const actionableIntents = ['build', 'debug', 'compare', 'transform', 'explain', 'brainstorm', 'list'];
     if (analysis.complexity === 'simple' && !actionableIntents.includes(analysis.intent)) {
         return `${original}\n\nProvide a clear, direct response.`;
     }
