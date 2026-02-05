@@ -52,40 +52,48 @@ function analyzeContent(prompt: string): ContentAnalysis {
     const words = prompt.split(/\s+/);
     const wordCount = words.length;
     
-    // ─── Intent Detection ───────────────────────────────────────────────
+    // ─── Intent Detection (English + Swedish) ───────────────────────────
     let intent: ContentAnalysis['intent'] = 'create';
     
-    if (/\b(build|create|make|develop|implement|code|write.*code)\b/i.test(prompt) && 
-        /\b(app|application|website|system|api|function|program|script|tool|hook|component|module|service|class|library)\b/i.test(prompt)) {
+    // BUILD: build/create/make + target (EN + SV)
+    if (/\b(build|create|make|develop|implement|code|write.*code|bygg|skapa|utveckla|programmera|skriv.*kod|gör)\b/i.test(prompt) && 
+        /\b(app|application|website|system|api|function|program|script|tool|hook|component|module|service|class|library|applikation|webbsida|hemsida|funktion|verktyg|komponent|tjänst)\b/i.test(prompt)) {
         intent = 'build';
-    } else if (/\b(brainstorm|ideas?|suggestions?|options?|alternatives?|possibilities|creative.*(ways?|solutions?))\b/i.test(prompt)) {
+    // BRAINSTORM (EN + SV)
+    } else if (/\b(brainstorm|ideas?|suggestions?|options?|alternatives?|possibilities|creative.*(ways?|solutions?)|idéer?|förslag|alternativ|möjligheter|ge mig.*idéer)\b/i.test(prompt)) {
         intent = 'brainstorm';
-    } else if (/\b(explain|what is|how does|why|describe|tell me about|walk me through)\b/i.test(prompt)) {
+    // EXPLAIN (EN + SV)
+    } else if (/\b(explain|what is|how does|why|describe|tell me about|walk me through|förklara|vad är|hur fungerar|varför|beskriv|berätta om)\b/i.test(prompt)) {
         intent = 'explain';
-    } else if (/\b(convince|persuade|pitch|sell|propose|recommend)\b/i.test(prompt)) {
+    // PERSUADE (EN + SV)
+    } else if (/\b(convince|persuade|pitch|sell|propose|recommend|övertyga|sälja|föreslå|rekommendera|pitcha)\b/i.test(prompt)) {
         intent = 'persuade';
-    } else if (/\b(debug|fix|error|bug|issue|problem|not working|broken|crash)\b/i.test(prompt)) {
+    // DEBUG (EN + SV)
+    } else if (/\b(debug|fix|error|bug|issue|problem|not working|broken|crash|fixa|fel|bugg|fungerar inte|trasig|kraschar|funkar inte)\b/i.test(prompt)) {
         intent = 'debug';
-    } else if (/\b(compare|versus|vs\.?|difference|better|which one|pros and cons)\b/i.test(prompt)) {
+    // COMPARE (EN + SV)
+    } else if (/\b(compare|versus|vs\.?|difference|better|which one|pros and cons|jämför|skillnad|bättre|vilken|för och nackdelar|mot)\b/i.test(prompt)) {
         intent = 'compare';
-    } else if (/\b(list|enumerate|show me all|examples of)\b/i.test(prompt) && !/\bideas?\b/i.test(prompt)) {
-        // List intent, but not if asking for ideas (that's brainstorm)
+    // LIST (EN + SV)
+    } else if (/\b(list|enumerate|show me all|examples of|lista|räkna upp|visa alla|exempel på|ge mig en lista)\b/i.test(prompt) && !/\b(ideas?|idéer?)\b/i.test(prompt)) {
         intent = 'list';
-    } else if (/\b(convert|transform|translate|rewrite|change.*to|turn.*into)\b/i.test(prompt)) {
+    // TRANSFORM (EN + SV)
+    } else if (/\b(convert|transform|translate|rewrite|change.*to|turn.*into|konvertera|omvandla|översätt|skriv om|ändra.*till|gör om)\b/i.test(prompt)) {
         intent = 'transform';
-    } else if (/^(what|how|why|when|where|who|can|could|should|would|is|are|do|does)\b/i.test(prompt) || prompt.includes('?')) {
+    // QUESTION (EN + SV)
+    } else if (/^(what|how|why|when|where|who|can|could|should|would|is|are|do|does|vad|hur|varför|när|var|vem|kan|borde|ska)\b/i.test(prompt) || prompt.includes('?')) {
         intent = 'question';
     }
     
-    // ─── Domain Detection ───────────────────────────────────────────────
+    // ─── Domain Detection (English + Swedish) ───────────────────────────
     let domain: ContentAnalysis['domain'] = 'general';
     
-    const softwareSignals = /\b(code|api|function|database|server|frontend|backend|deploy|git|npm|framework|library|react|node|python|javascript|typescript|sql|docker|aws|cloud)\b/i;
-    const businessSignals = /\b(revenue|profit|market|customer|sales|strategy|growth|roi|kpi|startup|investor|pitch|business model|pricing)\b/i;
-    const creativeSignals = /\b(design|art|music|story|creative|visual|aesthetic|brand|logo|illustration|animation|video|photo)\b/i;
-    const personalSignals = /\b(my|me|i want|help me|personal|self|life|career|relationship|goal|habit|motivation)\b/i;
-    const academicSignals = /\b(research|study|thesis|paper|citation|academic|literature|hypothesis|methodology|peer.?review)\b/i;
-    const technicalSignals = /\b(algorithm|data structure|complexity|architecture|protocol|specification|implementation|optimization)\b/i;
+    const softwareSignals = /\b(code|api|function|database|server|frontend|backend|deploy|git|npm|framework|library|react|node|python|javascript|typescript|sql|docker|aws|cloud|kod|databas|server|ramverk|bibliotek)\b/i;
+    const businessSignals = /\b(revenue|profit|market|customer|sales|strategy|growth|roi|kpi|startup|investor|pitch|business model|pricing|intäkt|vinst|marknad|kund|försäljning|strategi|tillväxt|affärsmodell|prissättning)\b/i;
+    const creativeSignals = /\b(design|art|music|story|creative|visual|aesthetic|brand|logo|illustration|animation|video|photo|konst|musik|berättelse|kreativ|visuell|estetik|varumärke|logotyp)\b/i;
+    const personalSignals = /\b(my|me|i want|help me|personal|self|life|career|relationship|goal|habit|motivation|jag|mig|min|mitt|hjälp mig|personlig|liv|karriär|relation|mål|vana)\b/i;
+    const academicSignals = /\b(research|study|thesis|paper|citation|academic|literature|hypothesis|methodology|peer.?review|forskning|studie|uppsats|avhandling|akademisk|litteratur|hypotes|metod)\b/i;
+    const technicalSignals = /\b(algorithm|data structure|complexity|architecture|protocol|specification|implementation|optimization|algoritm|datastruktur|komplexitet|arkitektur|protokoll|specifikation|implementering|optimering)\b/i;
     
     if (softwareSignals.test(prompt)) domain = 'software';
     else if (businessSignals.test(prompt)) domain = 'business';
