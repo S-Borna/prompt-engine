@@ -8,6 +8,11 @@ import {
     type TargetModel,
     type CompiledSpec,
 } from '@/lib/prompt-engine';
+import {
+    rewritePrompt,
+    validateRewriteQuality,
+    type RewrittenPrompt,
+} from '@/lib/prompt-rewriter';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRAXIS PROMPT ENGINE API
@@ -156,7 +161,7 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // ─── FULL PIPELINE ──────────────────────────────────────────────
+        // ─── FULL PIPELINE: AI-SYNTHESIZED PROMPTS ──────────────────────
         if (!inputPrompt || inputPrompt.trim().length === 0) {
             return NextResponse.json(
                 { error: 'Prompt is required' },
@@ -164,14 +169,59 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Execute full pipeline with legacy compatibility
-        const result = legacyEnhance(inputPrompt, platform, lang);
+        // Step 1: Compile the prompt to extract structure
+        const spec = compilePrompt(inputPrompt);
 
+        // Step 2: Add synthesis delay (400-700ms) so users perceive "thinking"
+        const synthesisDelayMs = 400 + Math.random() * 300; // 400-700ms
+        await new Promise(resolve => setTimeout(resolve, synthesisDelayMs));
+
+        // Step 3: Use AI to synthesize a natural language prompt
+        let rewrittenResult: RewrittenPrompt;
+        try {
+            rewrittenResult = await rewritePrompt({
+                spec,
+                language: lang === 'auto' ? spec.language : lang,
+                model: 'gpt-4o',
+                temperature: 0.4
+            });
+        } catch (error) {
+            console.error('Rewriter failed:', error);
+            return NextResponse.json(
+                { error: 'Failed to synthesize enhanced prompt' },
+                { status: 500 }
+            );
+        }
+
+        // Step 4: Validate quality
+        const validation = validateRewriteQuality(rewrittenResult);
+        if (!validation.valid) {
+            return NextResponse.json({
+                error: 'Enhanced prompt did not meet quality bar',
+                reason: validation.reason,
+                qualityScore: rewrittenResult.qualityScore,
+            }, { status: 400 });
+        }
+
+        // Step 5: Return the synthesized prompt
         return NextResponse.json({
-            ...result,
+            success: true,
+            enhanced: rewrittenResult.prompt,
+            original: inputPrompt,
             platform,
-            mode: 'pipeline',
+            mode: 'ai-synthesized',
             outputLanguage: lang,
+            quality: {
+                score: rewrittenResult.qualityScore,
+                meetsBar: rewrittenResult.meetsQualityBar,
+                specificityMultiplier: rewrittenResult.meta.specificityMultiplier,
+            },
+            meta: {
+                pipelineVersion: '3.0.0-ai',
+                synthesizedAt: rewrittenResult.meta.synthesizedAt,
+                originalLength: rewrittenResult.meta.originalLength,
+                enhancedLength: rewrittenResult.meta.rewrittenLength,
+            },
         });
 
     } catch (error) {
@@ -191,11 +241,12 @@ export async function POST(request: NextRequest) {
 export async function GET() {
     return NextResponse.json({
         pipeline: {
-            version: '1.0.0',
+            version: '3.0.0-ai',
+            architecture: 'AI-Synthesized Prompt Generation',
             stages: [
                 {
                     name: 'compile',
-                    description: 'Transforms raw input into structured specification',
+                    description: 'Transforms raw input into structured specification (deterministic)',
                     outputs: [
                         'OBJECTIVE',
                         'CONTEXT',
@@ -204,20 +255,31 @@ export async function GET() {
                         'ASSUMPTIONS',
                         'MISSING INFORMATION',
                         'CONFLICTS OR RISKS',
-                        'ASSEMBLER NOTES',
                     ],
                 },
                 {
-                    name: 'assemble',
-                    description: 'Generates final prompt from specification + template',
-                    inputs: ['CompiledSpec', 'TargetModel', 'OutputLanguage'],
+                    name: 'synthesize',
+                    description: 'AI rewrites the prompt using GPT-4 (non-deterministic, quality-driven)',
+                    inputs: ['CompiledSpec', 'Language'],
+                    outputs: ['Natural language prompt (no templates, no structure labels)'],
+                    model: 'gpt-4o',
+                    temperature: 0.4,
+                },
+                {
+                    name: 'validate',
+                    description: 'Quality check: ensures 3-5× specificity, no template markers',
+                    requirements: [
+                        'Specificity multiplier >= 3×',
+                        'Length >= 50 characters',
+                        'No template structure markers (ROLE:, TASK:, etc.)',
+                    ],
                 },
             ],
         },
         endpoints: {
             fullPipeline: 'POST /api/ai/enhance',
             compileOnly: 'POST /api/ai/enhance?stage=compile',
-            assembleOnly: 'POST /api/ai/enhance?stage=assemble',
+            assembleOnly: 'POST /api/ai/enhance?stage=assemble (DEPRECATED - use full pipeline)',
         },
         supportedModels: [
             'gpt-5', 'gpt-4', 'gpt-3.5',
@@ -225,11 +287,12 @@ export async function GET() {
             'gemini', 'grok', 'code-agent', 'general',
         ],
         supportedLanguages: ['en', 'sv', 'auto'],
-        behavioralLocks: [
-            'NO creative enhancement',
-            'NO guessing or assumption resolution',
-            'ALL ambiguity marked as UNDECIDED',
-            'Deterministic, reproducible output',
+        qualityGuarantees: [
+            'Enhanced prompt is 3-5× more specific than original',
+            'Natural language output (no visible structure)',
+            'AI-synthesized from scratch (not template-based)',
+            'Validated quality before delivery',
+            '400-700ms synthesis delay for perceived thinking',
         ],
     });
 }
