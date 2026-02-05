@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { usePromptStore } from '@/lib/prompt-store';
 import { EnhancedPromptOutput, EnhancedPromptResult } from '@/components/ui/EnhancedPromptOutput';
 import { PromptWizard } from '@/components/ui/PromptWizard';
+import { ModelCardWithInsight } from '@/components/ui/ModelInsightPopover';
 import Image from 'next/image';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -239,40 +240,14 @@ export default function SparkPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-1.5">
-                    {aiModels.map((model) => {
-                        const isSelected = selectedModel === model.id;
-                        return (
-                            <button
-                                key={model.id}
-                                onClick={() => setSelectedModel(model.id)}
-                                title={`${model.name} — ${model.family}`}
-                                className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-200 ${isSelected
-                                    ? 'bg-white/[0.08] ring-1 ring-white/20'
-                                    : 'bg-white/[0.02] hover:bg-white/[0.05]'
-                                    }`}
-                                style={isSelected ? {
-                                    boxShadow: `0 0 16px -4px ${model.color}40`
-                                } : {}}
-                            >
-                                <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${isSelected ? 'opacity-100' : 'opacity-50 group-hover:opacity-80'
-                                    }`}
-                                    style={{ backgroundColor: `${model.color}15` }}
-                                >
-                                    <Image
-                                        src={model.logo}
-                                        alt={model.family}
-                                        width={12}
-                                        height={12}
-                                        className="object-contain"
-                                    />
-                                </div>
-                                <span className={`text-xs font-medium transition-colors ${isSelected ? 'text-white' : 'text-white/50 group-hover:text-white/70'
-                                    }`}>
-                                    {model.name}
-                                </span>
-                            </button>
-                        );
-                    })}
+                    {aiModels.map((model) => (
+                        <ModelCardWithInsight
+                            key={model.id}
+                            model={model}
+                            isSelected={selectedModel === model.id}
+                            onSelect={() => setSelectedModel(model.id)}
+                        />
+                    ))}
                 </div>
             </div>
 

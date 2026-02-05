@@ -495,10 +495,414 @@ const PROMPT_TEMPLATES: Record<TargetModel, { prefix: string; structure: string;
     },
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// EXECUTION PROMPT GENERATOR
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Transforms internal spec into a PREMIUM EXECUTION PROMPT.
+// This is what gets shown to the user and sent to the LLM.
+//
+// REQUIRED SECTIONS (ALL MUST BE PRESENT):
+//   A. ROLE — Explicit expert identity
+//   B. AUDIENCE & LEVEL — Who the answer is for
+//   C. TASK DEFINITION — Clear, multi-step instruction
+//   D. CONSTRAINTS — Scope boundaries, what to avoid
+//   E. QUALITY BAR — What makes a good answer
+//   F. OUTPUT FORMAT — Structure, never freeform
+//
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface ExecutionPromptConfig {
+    role: string;
+    audience: string;
+    skillLevel: string;
+    taskSteps: string[];
+    constraints: string[];
+    qualityBar: string[];
+    outputFormat: string[];
+}
+
 /**
- * Formats the compiled spec into a section-based prompt
+ * Infers the expert role based on the objective and context
  */
-function formatSpecAsPrompt(spec: CompiledSpec, lang: 'en' | 'sv'): string {
+function inferExpertRole(spec: CompiledSpec, lang: 'en' | 'sv'): string {
+    const obj = spec.objective.toLowerCase();
+    const raw = spec.rawInput.toLowerCase();
+    
+    // Fitness/health topics
+    if (/chin|pull.?up|push.?up|träning|workout|exercise|gym|fitness|muscle|styrka|strength/i.test(raw)) {
+        return lang === 'sv' 
+            ? 'Du är en certifierad styrke- och konditionscoach med 15 års erfarenhet av att träna nybörjare till avancerade atleter. Du kombinerar vetenskapligt bevisade metoder med praktisk erfarenhet.'
+            : 'You are a certified strength and conditioning coach with 15 years of experience training beginners to advanced athletes. You combine evidence-based methods with practical experience.';
+    }
+    
+    // Cooking/recipes
+    if (/recept|recipe|cook|mat|food|bak|bake|ingredient|meal/i.test(raw)) {
+        return lang === 'sv'
+            ? 'Du är en professionell kock med utbildning från kulinariska institut och 12 års erfarenhet i restaurangkök. Du specialiserar dig på att göra avancerade tekniker tillgängliga för hemkockar.'
+            : 'You are a professional chef with culinary institute training and 12 years of restaurant kitchen experience. You specialize in making advanced techniques accessible to home cooks.';
+    }
+    
+    // Programming/code
+    if (/code|kod|program|app|software|api|function|develop|bygg|build|implement/i.test(raw)) {
+        return lang === 'sv'
+            ? 'Du är en senior mjukvaruutvecklare med 10+ års erfarenhet av full-stack utveckling. Du prioriterar läsbar, underhållbar kod och följer branschens bästa praxis.'
+            : 'You are a senior software developer with 10+ years of full-stack experience. You prioritize readable, maintainable code and follow industry best practices.';
+    }
+    
+    // Writing/content
+    if (/skriv|write|text|content|article|blog|copy|essay/i.test(raw)) {
+        return lang === 'sv'
+            ? 'Du är en erfaren copywriter och innehållsstrateg med bakgrund inom journalistik. Du behärskar konsten att kommunicera komplext innehåll på ett engagerande sätt.'
+            : 'You are an experienced copywriter and content strategist with a journalism background. You master the art of communicating complex content in an engaging way.';
+    }
+    
+    // Business/strategy
+    if (/business|affär|strateg|plan|market|företag|startup|revenue|profit/i.test(raw)) {
+        return lang === 'sv'
+            ? 'Du är en affärsstrateg och managementkonsult med MBA och erfarenhet från Fortune 500-bolag. Du fokuserar på praktiska, genomförbara rekommendationer.'
+            : 'You are a business strategist and management consultant with an MBA and Fortune 500 experience. You focus on practical, actionable recommendations.';
+    }
+    
+    // Learning/education
+    if (/lär|learn|förstå|understand|explain|förklara|study|studera|course|kurs/i.test(raw)) {
+        return lang === 'sv'
+            ? 'Du är en pedagogisk expert och lärare med specialisering i att bryta ner komplexa ämnen. Du använder analogier, exempel och stegvisa förklaringar för maximal förståelse.'
+            : 'You are a pedagogical expert and educator specializing in breaking down complex topics. You use analogies, examples, and step-by-step explanations for maximum comprehension.';
+    }
+    
+    // Default expert
+    return lang === 'sv'
+        ? 'Du är en senior expert och rådgivare med djup kunskap inom det aktuella området. Du kombinerar teoretisk förståelse med praktisk erfarenhet för att ge konkreta, användbara svar.'
+        : 'You are a senior expert and advisor with deep knowledge in the relevant domain. You combine theoretical understanding with practical experience to provide concrete, actionable answers.';
+}
+
+/**
+ * Infers audience and skill level from context
+ */
+function inferAudience(spec: CompiledSpec, lang: 'en' | 'sv'): { audience: string; level: string } {
+    const raw = spec.rawInput.toLowerCase();
+    
+    // Check for explicit skill indicators
+    if (/nybörjare|beginner|första gången|first time|aldrig|never|ny till/i.test(raw)) {
+        return {
+            audience: lang === 'sv' ? 'En nybörjare som är ny inom området' : 'A beginner who is new to the field',
+            level: lang === 'sv' ? 'Förklara grundläggande koncept, undvik jargong, inkludera definitioner' : 'Explain foundational concepts, avoid jargon, include definitions'
+        };
+    }
+    
+    if (/avancerad|advanced|erfaren|experienced|expert|professional/i.test(raw)) {
+        return {
+            audience: lang === 'sv' ? 'En erfaren utövare som söker optimering' : 'An experienced practitioner seeking optimization',
+            level: lang === 'sv' ? 'Hoppa över grunderna, fokusera på avancerade tekniker och nyanser' : 'Skip basics, focus on advanced techniques and nuances'
+        };
+    }
+    
+    // Default: intermediate
+    return {
+        audience: lang === 'sv' ? 'Någon med grundläggande förståelse som vill fördjupa sina kunskaper' : 'Someone with basic understanding looking to deepen their knowledge',
+        level: lang === 'sv' ? 'Anta viss förkunskap men förklara avancerade koncept vid behov' : 'Assume some prior knowledge but explain advanced concepts when needed'
+    };
+}
+
+/**
+ * Generates multi-step task definition from objective
+ */
+function generateTaskSteps(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
+    const requestType = spec.assemblerNotes.find(n => n.startsWith('REQUEST_TYPE:'));
+    const objective = spec.objective;
+    
+    if (requestType?.includes('BUILD/CREATE')) {
+        return lang === 'sv' ? [
+            `1. Analysera vad som behövs för: "${objective}"`,
+            '2. Bryt ner i tydliga, numrerade steg',
+            '3. Inkludera specifika detaljer och exempel för varje steg',
+            '4. Förklara varför varje steg är viktigt',
+            '5. Avsluta med vanliga misstag att undvika'
+        ] : [
+            `1. Analyze what is needed for: "${objective}"`,
+            '2. Break down into clear, numbered steps',
+            '3. Include specific details and examples for each step',
+            '4. Explain why each step matters',
+            '5. Conclude with common mistakes to avoid'
+        ];
+    }
+    
+    if (requestType?.includes('EXPLAIN')) {
+        return lang === 'sv' ? [
+            `1. Börja med en koncis sammanfattning av: "${objective}"`,
+            '2. Förklara de underliggande principerna och mekanismerna',
+            '3. Ge 2-3 konkreta exempel som illustrerar konceptet',
+            '4. Beskriv praktiska tillämpningar',
+            '5. Avsluta med vanliga missförstånd och hur man undviker dem'
+        ] : [
+            `1. Start with a concise summary of: "${objective}"`,
+            '2. Explain the underlying principles and mechanisms',
+            '3. Provide 2-3 concrete examples illustrating the concept',
+            '4. Describe practical applications',
+            '5. Conclude with common misconceptions and how to avoid them'
+        ];
+    }
+    
+    if (requestType?.includes('DEBUG/FIX')) {
+        return lang === 'sv' ? [
+            `1. Identifiera och diagnostisera problemet med: "${objective}"`,
+            '2. Förklara grundorsaken tydligt',
+            '3. Presentera lösningen steg för steg',
+            '4. Visa före/efter om tillämpligt',
+            '5. Ge tips för att förhindra problemet i framtiden'
+        ] : [
+            `1. Identify and diagnose the issue with: "${objective}"`,
+            '2. Explain the root cause clearly',
+            '3. Present the solution step by step',
+            '4. Show before/after if applicable',
+            '5. Provide tips to prevent the issue in the future'
+        ];
+    }
+    
+    if (requestType?.includes('COMPARE')) {
+        return lang === 'sv' ? [
+            `1. Definiera jämförelsekriterierna för: "${objective}"`,
+            '2. Analysera varje alternativ systematiskt',
+            '3. Presentera en tydlig jämförelsetabell',
+            '4. Diskutera för- och nackdelar för varje alternativ',
+            '5. Ge en konkret rekommendation baserad på olika användningsfall'
+        ] : [
+            `1. Define comparison criteria for: "${objective}"`,
+            '2. Analyze each option systematically',
+            '3. Present a clear comparison table',
+            '4. Discuss pros and cons for each option',
+            '5. Provide a concrete recommendation based on different use cases'
+        ];
+    }
+    
+    // Default general task
+    return lang === 'sv' ? [
+        `1. Adressera användarens fråga: "${objective}"`,
+        '2. Ge en strukturerad och heltäckande förklaring',
+        '3. Inkludera praktiska exempel eller tillämpningar',
+        '4. Lyft fram viktiga punkter att komma ihåg',
+        '5. Avsluta med nästa steg eller rekommendationer'
+    ] : [
+        `1. Address the user\'s question: "${objective}"`,
+        '2. Provide a structured and comprehensive explanation',
+        '3. Include practical examples or applications',
+        '4. Highlight key points to remember',
+        '5. Conclude with next steps or recommendations'
+    ];
+}
+
+/**
+ * Generates constraints including what to avoid
+ */
+function generateConstraints(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
+    const constraints: string[] = [];
+    
+    // Add spec constraints
+    for (const c of spec.constraints) {
+        constraints.push(`• ${c}`);
+    }
+    
+    // Add standard quality constraints
+    if (lang === 'sv') {
+        constraints.push('• Undvik vaga eller generiska svar som kan hittas överallt');
+        constraints.push('• Hoppa över onödiga inledningar som "Det är en bra fråga..."');
+        constraints.push('• Inga tomma fraser eller utfyllnad');
+        constraints.push('• Var specifik — om du nämner ett koncept, förklara det');
+    } else {
+        constraints.push('• Avoid vague or generic answers that could be found anywhere');
+        constraints.push('• Skip unnecessary preambles like "That\'s a great question..."');
+        constraints.push('• No filler phrases or padding');
+        constraints.push('• Be specific — if you mention a concept, explain it');
+    }
+    
+    // Add non-negotiables
+    for (const nn of spec.nonNegotiables) {
+        constraints.push(`• KRAV: ${nn}`);
+    }
+    
+    return constraints;
+}
+
+/**
+ * Generates quality bar expectations
+ */
+function generateQualityBar(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
+    const requestType = spec.assemblerNotes.find(n => n.startsWith('REQUEST_TYPE:'));
+    
+    if (lang === 'sv') {
+        const base = [
+            '✓ Svaret ska kännas skrivet av en människa med ämnesexpertis',
+            '✓ Varje påstående ska stödjas av resonemang eller exempel',
+            '✓ Läsaren ska kunna agera direkt på informationen'
+        ];
+        
+        if (requestType?.includes('BUILD/CREATE')) {
+            base.push('✓ Stegen ska vara tillräckligt detaljerade för att följa utan extern research');
+        }
+        if (requestType?.includes('EXPLAIN')) {
+            base.push('✓ En nybörjare ska förstå efter att ha läst, en expert ska bekräfta noggrannheten');
+        }
+        
+        return base;
+    } else {
+        const base = [
+            '✓ Response should feel written by a human with domain expertise',
+            '✓ Every claim should be supported by reasoning or examples',
+            '✓ Reader should be able to act on the information immediately'
+        ];
+        
+        if (requestType?.includes('BUILD/CREATE')) {
+            base.push('✓ Steps should be detailed enough to follow without external research');
+        }
+        if (requestType?.includes('EXPLAIN')) {
+            base.push('✓ A beginner should understand after reading, an expert should confirm accuracy');
+        }
+        
+        return base;
+    }
+}
+
+/**
+ * Generates output format specification
+ */
+function generateOutputFormat(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
+    const requestType = spec.assemblerNotes.find(n => n.startsWith('REQUEST_TYPE:'));
+    
+    if (lang === 'sv') {
+        if (requestType?.includes('BUILD/CREATE')) {
+            return [
+                '📋 Format: Numrerade steg med underrubriker',
+                '📏 Längd: Omfattande men koncis (500-1000 ord)',
+                '📐 Struktur: Sammanfattning → Steg → Tips → Vanliga misstag'
+            ];
+        }
+        if (requestType?.includes('EXPLAIN')) {
+            return [
+                '📋 Format: Förklarande prosa med rubriker',
+                '📏 Längd: Så lång som behövs för klarhet (400-800 ord)',
+                '📐 Struktur: Översikt → Principer → Exempel → Tillämpning'
+            ];
+        }
+        if (requestType?.includes('COMPARE')) {
+            return [
+                '📋 Format: Strukturerad jämförelse med tabell',
+                '📏 Längd: Medium (400-700 ord)',
+                '📐 Struktur: Introduktion → Jämförelsetabell → Analys → Rekommendation'
+            ];
+        }
+        // Default
+        return [
+            '📋 Format: Strukturerad med tydliga avsnitt',
+            '📏 Längd: Anpassad efter komplexitet',
+            '📐 Struktur: Tydlig början, utveckling och avslutning'
+        ];
+    } else {
+        if (requestType?.includes('BUILD/CREATE')) {
+            return [
+                '📋 Format: Numbered steps with subheadings',
+                '📏 Length: Comprehensive but concise (500-1000 words)',
+                '📐 Structure: Summary → Steps → Tips → Common Mistakes'
+            ];
+        }
+        if (requestType?.includes('EXPLAIN')) {
+            return [
+                '📋 Format: Explanatory prose with headers',
+                '📏 Length: As long as needed for clarity (400-800 words)',
+                '📐 Structure: Overview → Principles → Examples → Application'
+            ];
+        }
+        if (requestType?.includes('COMPARE')) {
+            return [
+                '📋 Format: Structured comparison with table',
+                '📏 Length: Medium (400-700 words)',
+                '📐 Structure: Introduction → Comparison Table → Analysis → Recommendation'
+            ];
+        }
+        // Default
+        return [
+            '📋 Format: Structured with clear sections',
+            '📏 Length: Adapted to complexity',
+            '📐 Structure: Clear beginning, development, and conclusion'
+        ];
+    }
+}
+
+/**
+ * Assembles the final EXECUTION PROMPT from all components
+ * This is what gets shown to the user AND sent to the LLM
+ */
+function assembleExecutionPrompt(config: ExecutionPromptConfig, lang: 'en' | 'sv'): string {
+    const sections: string[] = [];
+    
+    // A. ROLE
+    sections.push(`**ROLE**\n${config.role}`);
+    
+    // B. AUDIENCE & LEVEL
+    sections.push(`**AUDIENCE & LEVEL**\n${config.audience}\n${config.skillLevel}`);
+    
+    // C. TASK DEFINITION
+    const taskHeader = lang === 'sv' ? '**DIN UPPGIFT**' : '**YOUR TASK**';
+    sections.push(`${taskHeader}\n${config.taskSteps.join('\n')}`);
+    
+    // D. CONSTRAINTS
+    const constraintHeader = lang === 'sv' ? '**BEGRÄNSNINGAR**' : '**CONSTRAINTS**';
+    sections.push(`${constraintHeader}\n${config.constraints.join('\n')}`);
+    
+    // E. QUALITY BAR
+    const qualityHeader = lang === 'sv' ? '**KVALITETSKRAV**' : '**QUALITY BAR**';
+    sections.push(`${qualityHeader}\n${config.qualityBar.join('\n')}`);
+    
+    // F. OUTPUT FORMAT
+    const formatHeader = lang === 'sv' ? '**SVARFORMAT**' : '**OUTPUT FORMAT**';
+    sections.push(`${formatHeader}\n${config.outputFormat.join('\n')}`);
+    
+    return sections.join('\n\n');
+}
+
+/**
+ * MAIN TRANSFORMER: Internal Spec → Premium Execution Prompt
+ * 
+ * This function takes the compiler output and transforms it into
+ * a premium execution-grade prompt that:
+ * - Is visibly superior to any raw input
+ * - Forces the LLM into deeper reasoning
+ * - Makes A/B difference impossible to miss
+ */
+function transformSpecToExecutionPrompt(spec: CompiledSpec, lang: 'en' | 'sv'): string {
+    // Validate: objective is required
+    if (spec.objective === UNDECIDED || !spec.objective.trim()) {
+        return lang === 'sv' 
+            ? '[FEL: Kan inte generera körbar prompt utan tydligt mål. Vänligen specificera vad du vill uppnå.]'
+            : '[ERROR: Cannot generate execution prompt without clear objective. Please specify what you want to achieve.]';
+    }
+    
+    // Build config from spec analysis
+    const role = inferExpertRole(spec, lang);
+    const { audience, level } = inferAudience(spec, lang);
+    const taskSteps = generateTaskSteps(spec, lang);
+    const constraints = generateConstraints(spec, lang);
+    const qualityBar = generateQualityBar(spec, lang);
+    const outputFormat = generateOutputFormat(spec, lang);
+    
+    const config: ExecutionPromptConfig = {
+        role,
+        audience,
+        skillLevel: level,
+        taskSteps,
+        constraints,
+        qualityBar,
+        outputFormat
+    };
+    
+    return assembleExecutionPrompt(config, lang);
+}
+
+/**
+ * LEGACY: Formats spec as internal metadata (kept for debugging only)
+ * This should NEVER be shown to users or sent to LLMs
+ */
+function formatSpecAsInternalMetadata(spec: CompiledSpec, lang: 'en' | 'sv'): string {
     const sections: string[] = [];
 
     // OBJECTIVE section
@@ -526,40 +930,29 @@ function formatSpecAsPrompt(spec: CompiledSpec, lang: 'en' | 'sv'): string {
     }
 
     // OUTPUT REQUIREMENTS
-    // Derive from request type in assembler notes
     const requestType = spec.assemblerNotes.find(n => n.startsWith('REQUEST_TYPE:'));
     let outputReq = '';
 
     if (requestType?.includes('BUILD/CREATE')) {
-        if (lang === 'sv') {
-            outputReq = 'Ge en strukturerad lösning med tydliga steg och implementeringsdetaljer.';
-        } else {
-            outputReq = 'Provide a structured solution with clear steps and implementation details.';
-        }
+        outputReq = lang === 'sv'
+            ? 'Ge en strukturerad lösning med tydliga steg och implementeringsdetaljer.'
+            : 'Provide a structured solution with clear steps and implementation details.';
     } else if (requestType?.includes('EXPLAIN')) {
-        if (lang === 'sv') {
-            outputReq = 'Ge en tydlig förklaring med exempel.';
-        } else {
-            outputReq = 'Provide a clear explanation with examples.';
-        }
+        outputReq = lang === 'sv'
+            ? 'Ge en tydlig förklaring med exempel.'
+            : 'Provide a clear explanation with examples.';
     } else if (requestType?.includes('DEBUG/FIX')) {
-        if (lang === 'sv') {
-            outputReq = 'Identifiera problemet och ge en lösning med förklaring.';
-        } else {
-            outputReq = 'Identify the issue and provide a fix with explanation.';
-        }
+        outputReq = lang === 'sv'
+            ? 'Identifiera problemet och ge en lösning med förklaring.'
+            : 'Identify the issue and provide a fix with explanation.';
     } else if (requestType?.includes('COMPARE')) {
-        if (lang === 'sv') {
-            outputReq = 'Ge en strukturerad jämförelse med tydlig rekommendation.';
-        } else {
-            outputReq = 'Provide a structured comparison with clear recommendation.';
-        }
+        outputReq = lang === 'sv'
+            ? 'Ge en strukturerad jämförelse med tydlig rekommendation.'
+            : 'Provide a structured comparison with clear recommendation.';
     } else {
-        if (lang === 'sv') {
-            outputReq = 'Ge ett direkt och strukturerat svar.';
-        } else {
-            outputReq = 'Provide a direct and structured response.';
-        }
+        outputReq = lang === 'sv'
+            ? 'Ge ett direkt och strukturerat svar.'
+            : 'Provide a direct and structured response.';
     }
 
     sections.push(`## OUTPUT REQUIREMENTS\n${outputReq}`);
@@ -603,36 +996,19 @@ function generateWarnings(spec: CompiledSpec, lang: 'en' | 'sv'): string[] {
 /**
  * STAGE 2: PROMPT ASSEMBLER
  *
- * Generates a final prompt from the compiled specification.
- *
- * HARD RULES:
- * - Mechanical assembly ONLY
- * - NO creative additions
- * - Template-based structure
+ * Generates a PREMIUM EXECUTION PROMPT from the compiled specification.
+ * 
+ * This is what gets shown to users and sent to the LLM.
+ * The internal spec is NEVER exposed — only the execution prompt.
  */
 export function assemblePrompt(input: AssemblerInput): PipelineOutput {
     const { spec, targetModel, outputLanguage } = input;
     const lang = outputLanguage === 'auto' ? spec.language : outputLanguage;
 
-    const template = PROMPT_TEMPLATES[targetModel] || PROMPT_TEMPLATES.general;
-
-    // Build the assembled prompt
-    const parts: string[] = [];
-
-    // Add model-specific prefix (if any)
-    if (template.prefix) {
-        parts.push(template.prefix);
-    }
-
-    // Add the formatted specification
-    parts.push(formatSpecAsPrompt(spec, lang));
-
-    // Add model-specific suffix (if any)
-    if (template.suffix) {
-        parts.push(template.suffix);
-    }
-
-    const assembledPrompt = parts.join('\n\n');
+    // Transform internal spec into premium execution prompt
+    // This is the ONLY output — internal metadata is never shown
+    const assembledPrompt = transformSpecToExecutionPrompt(spec, lang);
+    
     const warnings = generateWarnings(spec, lang);
 
     // Determine if there are undecided elements
@@ -646,7 +1022,7 @@ export function assemblePrompt(input: AssemblerInput): PipelineOutput {
         spec,
         warnings,
         meta: {
-            pipelineVersion: '1.0.0',
+            pipelineVersion: '2.0.0', // Upgraded to execution prompt format
             targetModel,
             hasUndecidedElements,
             compiledAt: new Date().toISOString(),
