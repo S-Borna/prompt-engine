@@ -187,9 +187,10 @@ function selectParameters(analysis: ContentAnalysis): AdaptiveParams {
     };
     
     // ─── Persona Selection (only when truly relevant) ───────────────────
-    // Don't add persona for simple/personal requests
-    if (analysis.complexity === 'advanced' && analysis.domain === 'software') {
-        params.persona = 'senior software engineer';
+    // Persona selection based on intent and domain
+    // Build requests get developer persona unless trivial
+    if (analysis.intent === 'build' && analysis.domain === 'software') {
+        params.persona = analysis.complexity === 'advanced' ? 'senior software engineer' : 'experienced developer';
     } else if (analysis.complexity === 'advanced' && analysis.domain === 'business') {
         params.persona = 'experienced business strategist';
     } else if (analysis.domain === 'academic') {
@@ -197,17 +198,25 @@ function selectParameters(analysis: ContentAnalysis): AdaptiveParams {
     } else if (analysis.intent === 'debug') {
         params.persona = 'debugging specialist';
     }
-    // No persona for simple, personal, or general requests
+    // No persona for simple questions, personal, or general requests
     
     // ─── Structure Depth ────────────────────────────────────────────────
-    if (analysis.complexity === 'simple' || analysis.wordCount < 8) {
+    // Intent takes priority over word count for structure decisions
+    const isActionableIntent = ['build', 'debug', 'compare', 'transform'].includes(analysis.intent);
+    
+    if (analysis.complexity === 'simple' && !isActionableIntent && analysis.wordCount < 8) {
         params.structureDepth = 'minimal';
-    } else if (analysis.complexity === 'intermediate' || analysis.intent === 'question') {
-        params.structureDepth = 'light';
-    } else if (analysis.intent === 'build' && analysis.outputType === 'mixed') {
-        params.structureDepth = 'detailed';
+    } else if (analysis.intent === 'question' || analysis.intent === 'explain') {
+        params.structureDepth = analysis.complexity === 'simple' ? 'light' : 'moderate';
+    } else if (analysis.intent === 'build') {
+        // Build requests always get at least moderate structure
+        params.structureDepth = analysis.complexity === 'advanced' ? 'detailed' : 'moderate';
+    } else if (analysis.intent === 'debug' || analysis.intent === 'compare') {
+        params.structureDepth = 'moderate';
     } else if (analysis.complexity === 'advanced') {
         params.structureDepth = 'detailed';
+    } else if (analysis.complexity === 'intermediate') {
+        params.structureDepth = 'light';
     }
     
     // ─── Tone Selection ─────────────────────────────────────────────────
@@ -317,8 +326,11 @@ function enhancePrompt(rawPrompt: string, platform: string): EnhancementResult {
 function generateAdaptivePrompt(original: string, analysis: ContentAnalysis, params: AdaptiveParams): string {
     const parts: string[] = [];
     
+    // Actionable intents get persona even if prompt is short
+    const isActionableIntent = ['build', 'debug', 'compare'].includes(analysis.intent);
+    
     // ─── Opening: Persona (only if relevant) ────────────────────────────
-    if (params.persona && analysis.complexity !== 'simple') {
+    if (params.persona && (analysis.complexity !== 'simple' || isActionableIntent)) {
         parts.push(`You are a ${params.persona}.`);
     }
     
@@ -344,8 +356,33 @@ function generateAdaptivePrompt(original: string, analysis: ContentAnalysis, par
 }
 
 function buildCoreRequest(original: string, analysis: ContentAnalysis): string {
-    // For simple requests, just clarify the original
-    if (analysis.complexity === 'simple') {
+    // Intent-specific handling takes priority over complexity
+    
+    // For build requests (software) - always get proper structure
+    if (analysis.intent === 'build' && analysis.domain === 'software') {
+        if (analysis.complexity === 'advanced') {
+            return `${original}\n\nProvide a comprehensive technical solution including architecture, implementation approach, and key code.`;
+        }
+        return `${original}\n\nProvide working code with clear explanations. Include usage examples.`;
+    }
+    
+    // For debug requests, focus on problem-solving
+    if (analysis.intent === 'debug') {
+        return `${original}\n\nIdentify the root cause and provide a clear fix. Explain why the issue occurs.`;
+    }
+    
+    // For comparison, structure the analysis
+    if (analysis.intent === 'compare') {
+        return `${original}\n\nProvide a balanced comparison covering key differences, trade-offs, and a clear recommendation.`;
+    }
+    
+    // For transformation requests, be specific about input/output
+    if (analysis.intent === 'transform') {
+        return `${original}\n\nProvide the complete transformed output, maintaining the essential meaning while achieving the desired form.`;
+    }
+    
+    // For simple, non-actionable requests - minimal treatment
+    if (analysis.complexity === 'simple' && !['build', 'debug', 'compare', 'transform'].includes(analysis.intent)) {
         return `${original}\n\nProvide a clear, direct response.`;
     }
     
@@ -354,9 +391,9 @@ function buildCoreRequest(original: string, analysis: ContentAnalysis): string {
         return `${original}\n\nProvide a thorough answer that addresses the core question and relevant context.`;
     }
     
-    // For debug requests, focus on problem-solving
-    if (analysis.intent === 'debug') {
-        return `${original}\n\nIdentify the root cause and provide a clear fix. Explain why the issue occurs.`;
+    // For explain intent
+    if (analysis.intent === 'explain') {
+        return `${original}\n\nExplain clearly with practical examples. Cover the key concepts and common use cases.`;
     }
     
     // For brainstorming, encourage variety
@@ -364,27 +401,9 @@ function buildCoreRequest(original: string, analysis: ContentAnalysis): string {
         return `${original}\n\nGenerate diverse, creative options. Push beyond obvious first ideas.`;
     }
     
-    // For comparison, structure the analysis
-    if (analysis.intent === 'compare') {
-        return `${original}\n\nProvide a balanced comparison covering key differences, trade-offs, and a clear recommendation.`;
-    }
-    
     // For list requests, focus on comprehensiveness
     if (analysis.intent === 'list') {
         return `${original}\n\nProvide a comprehensive, well-organized list with brief context for each item.`;
-    }
-    
-    // For transformation requests, be specific about input/output
-    if (analysis.intent === 'transform') {
-        return `${original}\n\nProvide the complete transformed output, maintaining the essential meaning while achieving the desired form.`;
-    }
-    
-    // For build requests (software)
-    if (analysis.intent === 'build' && analysis.domain === 'software') {
-        if (analysis.complexity === 'advanced') {
-            return `${original}\n\nProvide a comprehensive technical solution including architecture, implementation approach, and key code.`;
-        }
-        return `${original}\n\nProvide working code with clear explanations of the approach.`;
     }
     
     // For persuasion
