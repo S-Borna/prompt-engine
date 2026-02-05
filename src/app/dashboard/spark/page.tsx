@@ -281,40 +281,43 @@ export default function SparkPage() {
                         )}
                     </div>
 
-                    <div className="flex-1 relative">
-                        <textarea
-                            ref={inputRef}
-                            value={input}
-                            onChange={handleInputChange}
-                            placeholder="Type or paste your prompt here..."
-                            className="w-full min-h-[180px] p-5 bg-white/[0.02] border border-white/[0.06] rounded-2xl text-white/90 placeholder-white/20 resize-none focus:outline-none focus:border-white/[0.1] focus:bg-white/[0.03] transition-all text-[15px] leading-relaxed"
-                        />
+                    {/* Input + Spark Button Container - button stays glued to textarea */}
+                    <div className="flex flex-col">
+                        <div className="relative">
+                            <textarea
+                                ref={inputRef}
+                                value={input}
+                                onChange={handleInputChange}
+                                placeholder="Type or paste your prompt here..."
+                                className="w-full min-h-[120px] p-5 bg-white/[0.02] border border-white/[0.06] rounded-t-2xl rounded-b-none text-white/90 placeholder-white/20 resize-none focus:outline-none focus:border-white/[0.1] focus:bg-white/[0.03] transition-all text-[15px] leading-relaxed"
+                                style={{ overflow: 'hidden' }}
+                            />
 
-                        {!input && (
-                            <div className="absolute bottom-4 left-4 right-4">
-                                <div className="flex flex-wrap gap-2">
-                                    {examplePrompts.map((example) => (
-                                        <button
-                                            key={example}
-                                            onClick={() => {
-                                                setInput(example);
-                                                inputRef.current?.focus();
-                                            }}
-                                            className="px-3 py-1.5 text-xs text-white/25 hover:text-white/40 bg-white/[0.02] hover:bg-white/[0.04] rounded-lg transition-colors"
-                                        >
-                                            {example}
-                                        </button>
-                                    ))}
+                            {!input && (
+                                <div className="absolute bottom-4 left-4 right-4">
+                                    <div className="flex flex-wrap gap-2">
+                                        {examplePrompts.map((example) => (
+                                            <button
+                                                key={example}
+                                                onClick={() => {
+                                                    setInput(example);
+                                                    inputRef.current?.focus();
+                                                }}
+                                                className="px-3 py-1.5 text-xs text-white/25 hover:text-white/40 bg-white/[0.02] hover:bg-white/[0.04] rounded-lg transition-colors"
+                                            >
+                                                {example}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
 
-                    <div className="mt-4">
+                        {/* Spark It Button - glued directly under textarea */}
                         <button
                             onClick={handleSpark}
                             disabled={!input.trim() || isProcessing}
-                            className="w-full flex items-center justify-center gap-3 py-4 bg-gradient-to-r from-violet-500 to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-violet-500/20 hover:shadow-xl hover:shadow-violet-500/25 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none transition-all"
+                            className="w-full flex items-center justify-center gap-3 py-4 bg-gradient-to-r from-violet-500 to-indigo-500 text-white font-semibold rounded-t-none rounded-b-2xl shadow-lg shadow-violet-500/20 hover:shadow-xl hover:shadow-violet-500/25 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none transition-all border-t-0"
                         >
                             {isProcessing ? (
                                 <>
