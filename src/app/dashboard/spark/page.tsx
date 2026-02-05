@@ -223,16 +223,6 @@ export default function SparkPage() {
 
     return (
         <div className="flex flex-col gap-6">
-            {/* Header - Centered and Premium */}
-            <div className="text-center py-2">
-                <h1 className="text-3xl font-semibold text-white tracking-tight mb-2">
-                    Transform your prompts
-                </h1>
-                <p className="text-white/50 text-sm">
-                    Select your AI model, paste any prompt, and see the difference in action
-                </p>
-            </div>
-
             {/* ═══════════════════════════════════════════════════════════════
                 AI MODEL SELECTOR — All on one row
             ═══════════════════════════════════════════════════════════════ */}

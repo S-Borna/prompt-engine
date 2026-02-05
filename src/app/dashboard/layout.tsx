@@ -291,7 +291,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 }}
             >
                 {/* Top Bar — Minimal, functional */}
-                <header className="sticky top-0 z-30 h-14 bg-[#09090b]/90 backdrop-blur-xl border-b border-white/[0.06]">
+                <header className="sticky top-0 z-30 h-20 bg-[#09090b]/90 backdrop-blur-xl border-b border-white/[0.06]">
                     <div className="h-full px-4 lg:px-6 flex items-center justify-between gap-4">
                         {/* Left: Mobile menu + Current tool */}
                         <div className="flex items-center gap-3">
@@ -312,16 +312,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             )}
                         </div>
 
-                        {/* Center: Search */}
-                        <div className="flex-1 max-w-md hidden sm:block">
-                            <button
-                                onClick={() => setShowSearch(true)}
-                                className="w-full flex items-center px-3 py-1.5 bg-white/[0.02] border border-white/[0.05] rounded-lg text-white/30 hover:bg-white/[0.04] hover:border-white/[0.08] transition-all text-left text-sm"
-                            >
-                                <Search className="w-4 h-4 mr-2 flex-shrink-0" />
-                                <span className="flex-1 truncate">Search...</span>
-                                <kbd className="hidden md:inline px-1.5 py-0.5 bg-white/[0.04] border border-white/[0.06] rounded text-[10px] text-white/30">⌘K</kbd>
-                            </button>
+                        {/* Center: Page Title */}
+                        <div className="flex-1 hidden sm:flex flex-col items-center justify-center text-center">
+                            <h1 className="text-3xl font-semibold text-white tracking-tight">
+                                Transform your prompts
+                            </h1>
+                            <p className="text-white/50 text-sm mt-1">
+                                Select your AI model, paste any prompt, and see the difference in action
+                            </p>
                         </div>
 
                         {/* Right: Actions */}
@@ -388,7 +386,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </header>
 
                 {/* Page Content — Spacious, focused */}
-                <main className="min-h-[calc(100vh-56px)]">
+                <main className="min-h-[calc(100vh-80px)]">
                     <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-6xl mx-auto">
                         {children}
                     </div>
