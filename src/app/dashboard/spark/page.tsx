@@ -87,8 +87,9 @@ export default function SparkPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     prompt: input,
+                    rawPrompt: input,
                     mode: effectiveMode,
-                    model: selectedModel,
+                    platform: selectedModel === 'gpt4' ? 'chatgpt' : selectedModel === 'claude' ? 'claude' : 'gemini',
                 }),
             });
 
@@ -99,16 +100,22 @@ export default function SparkPage() {
             const data = await response.json();
 
             // Build the result per contract
+            // API returns: { enhanced, tripod, changes, insights, scores, platform, mode }
             const promptResult: EnhancedPromptResult = {
                 originalPrompt: input,
-                enhancedPrompt: data.enhanced || data.result,
-                explanation: data.improvements || getDefaultExplanation(effectiveMode),
+                enhancedPrompt: data.enhanced || data.result || '',
+                explanation: data.changes || data.insights || getDefaultExplanation(effectiveMode),
                 meta: {
                     score: data.scores?.after || 85,
                     model: selectedModel,
                     mode: effectiveMode,
                 },
             };
+
+            // Validate we actually got an enhanced prompt
+            if (!promptResult.enhancedPrompt) {
+                throw new Error('No enhanced prompt returned');
+            }
 
             setResult(promptResult);
 
@@ -201,8 +208,8 @@ export default function SparkPage() {
                 <button
                     onClick={() => setShowSettings(!showSettings)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all ${showSettings
-                            ? 'bg-white/[0.06] text-white/70'
-                            : 'text-white/30 hover:text-white/50 hover:bg-white/[0.03]'
+                        ? 'bg-white/[0.06] text-white/70'
+                        : 'text-white/30 hover:text-white/50 hover:bg-white/[0.03]'
                         }`}
                 >
                     <Settings className="w-4 h-4" />
@@ -222,8 +229,8 @@ export default function SparkPage() {
                                         key={mod.id}
                                         onClick={() => setSelectedModifier(selectedModifier === mod.id ? null : mod.id)}
                                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selectedModifier === mod.id
-                                                ? 'bg-violet-500/20 text-violet-300'
-                                                : 'text-white/40 hover:text-white/60 hover:bg-white/[0.04]'
+                                            ? 'bg-violet-500/20 text-violet-300'
+                                            : 'text-white/40 hover:text-white/60 hover:bg-white/[0.04]'
                                             }`}
                                     >
                                         <mod.icon className="w-3 h-3" />
@@ -241,8 +248,8 @@ export default function SparkPage() {
                                         key={model.id}
                                         onClick={() => setSelectedModel(model.id)}
                                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${selectedModel === model.id
-                                                ? 'bg-white/[0.06] text-white/70'
-                                                : 'text-white/30 hover:text-white/50'
+                                            ? 'bg-white/[0.06] text-white/70'
+                                            : 'text-white/30 hover:text-white/50'
                                             }`}
                                     >
                                         <span>{model.icon}</span>

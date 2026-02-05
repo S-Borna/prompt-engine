@@ -27,6 +27,7 @@
 | 2026-02-04 | Railway Postgres ansluten | Produktionsdatabas behövdes | Alla tabeller skapade via `prisma db push` ✅ |
 | 2026-02-04 | Login/Register pages skapade | Användare behöver kunna logga in | Fungerande auth-flöde ✅ |
 | 2026-02-04 | CHANGELOG.md skapad | Krav på kontinuerlig dokumentation | Denna fil – protokoll etablerat ✅ |
+| 2026-02-05 | **KRITISK BUGGFIX: Spark enhancement** | Enhanced prompt visade bara inställningar, konverterade ej prompt | Fixat: API-fältnamn mismatch (changes/insights vs improvements), plattform-mappning, validering ✅ |
 | 2026-02-04 | API Routes: Prompts CRUD | Användare ska kunna spara/hämta prompts | `/api/prompts` + `/api/prompts/[id]` ✅ |
 | 2026-02-04 | API Routes: User Stats/XP | Spåra XP, streak, certifieringar | `/api/user/stats` med XP-system ✅ |
 | 2026-02-04 | Dashboard kopplad till databas | Visa riktiga data istället för mock | Hämtar stats från API ✅ |
