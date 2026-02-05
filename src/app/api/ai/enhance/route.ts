@@ -13,6 +13,7 @@ import {
     validateRewriteQuality,
     type RewrittenPrompt,
 } from '@/lib/prompt-rewriter';
+import { rateLimit, RateLimitPresets } from '@/lib/rate-limit';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRAXIS PROMPT ENGINE API
@@ -98,6 +99,27 @@ function mapOutputLanguage(lang: string | undefined): 'en' | 'sv' | 'auto' {
  *   spec               — (For stage=assemble) Compiled spec from Stage 1
  */
 export async function POST(request: NextRequest) {
+    // ─── RATE LIMITING ──────────────────────────────────────────────
+    const rateLimitResult = await rateLimit(request, RateLimitPresets.AI_CALLS);
+    
+    if (!rateLimitResult.allowed) {
+        return NextResponse.json(
+            { 
+                error: 'Rate limit exceeded',
+                resetTime: rateLimitResult.resetTime,
+                message: 'Too many requests. Please try again later.',
+            },
+            { 
+                status: 429,
+                headers: {
+                    'X-RateLimit-Limit': String(RateLimitPresets.AI_CALLS.maxRequests),
+                    'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+                    'X-RateLimit-Reset': String(rateLimitResult.resetTime),
+                }
+            }
+        );
+    }
+
     try {
         const { searchParams } = new URL(request.url);
         const stage = searchParams.get('stage');

@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { Providers } from "@/components/providers";
+import { SecurityShield } from "@/components/security/SecurityShield";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -53,6 +54,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} dark`}>
       <body className="font-sans antialiased bg-[#0a0a0f] text-white min-h-screen">
+        <SecurityShield 
+          enableDevToolsDetection={true}
+          enableContextMenuProtection={true}
+          enableConsoleProtection={true}
+        />
         <Providers>
           {children}
         </Providers>
