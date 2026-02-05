@@ -24,12 +24,12 @@ interface ContentAnalysis {
     complexity: 'simple' | 'intermediate' | 'advanced';
     outputType: 'code' | 'text' | 'plan' | 'list' | 'strategy' | 'explanation' | 'mixed';
     language: 'en' | 'sv'; // Detected input language
-    
+
     // Extracted elements
     subject: string;
     specificity: number; // 0-100 how specific the request is
     urgency: boolean;
-    
+
     // Detected context
     hasConstraints: boolean;
     hasAudience: boolean;
@@ -52,78 +52,78 @@ function analyzeContent(prompt: string): ContentAnalysis {
     const lower = prompt.toLowerCase();
     const words = prompt.split(/\s+/);
     const wordCount = words.length;
-    
+
     // ─── Intent Detection (English + Swedish) ───────────────────────────
     let intent: ContentAnalysis['intent'] = 'create';
-    
+
     // BUILD: build/create/make + target (EN + SV)
-    if (/\b(build|create|make|develop|implement|code|write.*code|bygg|skapa|utveckla|programmera|skriv.*kod|gör)\b/i.test(prompt) && 
+    if (/\b(build|create|make|develop|implement|code|write.*code|bygg|skapa|utveckla|programmera|skriv.*kod|gör)\b/i.test(prompt) &&
         /\b(app|application|website|system|api|function|program|script|tool|hook|component|module|service|class|library|applikation|webbsida|hemsida|funktion|verktyg|komponent|tjänst)\b/i.test(prompt)) {
         intent = 'build';
-    // BRAINSTORM (EN + SV)
+        // BRAINSTORM (EN + SV)
     } else if (/\b(brainstorm|ideas?|suggestions?|options?|alternatives?|possibilities|creative.*(ways?|solutions?)|idéer?|förslag|alternativ|möjligheter|ge mig.*idéer)\b/i.test(prompt)) {
         intent = 'brainstorm';
-    // EXPLAIN (EN + SV)
+        // EXPLAIN (EN + SV)
     } else if (/\b(explain|what is|how does|why|describe|tell me about|walk me through|förklara|vad är|hur fungerar|varför|beskriv|berätta om)\b/i.test(prompt)) {
         intent = 'explain';
-    // PERSUADE (EN + SV)
+        // PERSUADE (EN + SV)
     } else if (/\b(convince|persuade|pitch|sell|propose|recommend|övertyga|sälja|föreslå|rekommendera|pitcha)\b/i.test(prompt)) {
         intent = 'persuade';
-    // DEBUG (EN + SV)
+        // DEBUG (EN + SV)
     } else if (/\b(debug|fix|error|bug|issue|problem|not working|broken|crash|fixa|fel|bugg|fungerar inte|trasig|kraschar|funkar inte)\b/i.test(prompt)) {
         intent = 'debug';
-    // COMPARE (EN + SV)
+        // COMPARE (EN + SV)
     } else if (/\b(compare|versus|vs\.?|difference|better|which one|pros and cons|jämför|skillnad|bättre|vilken|för och nackdelar|mot)\b/i.test(prompt)) {
         intent = 'compare';
-    // LIST (EN + SV)
+        // LIST (EN + SV)
     } else if (/\b(list|enumerate|show me all|examples of|lista|räkna upp|visa alla|exempel på|ge mig en lista)\b/i.test(prompt) && !/\b(ideas?|idéer?)\b/i.test(prompt)) {
         intent = 'list';
-    // TRANSFORM (EN + SV)
+        // TRANSFORM (EN + SV)
     } else if (/\b(convert|transform|translate|rewrite|change.*to|turn.*into|konvertera|omvandla|översätt|skriv om|ändra.*till|gör om)\b/i.test(prompt)) {
         intent = 'transform';
-    // QUESTION (EN + SV)
+        // QUESTION (EN + SV)
     } else if (/^(what|how|why|when|where|who|can|could|should|would|is|are|do|does|vad|hur|varför|när|var|vem|kan|borde|ska)\b/i.test(prompt) || prompt.includes('?')) {
         intent = 'question';
     }
-    
+
     // ─── Domain Detection (English + Swedish) ───────────────────────────
     let domain: ContentAnalysis['domain'] = 'general';
-    
+
     const softwareSignals = /\b(code|api|function|database|server|frontend|backend|deploy|git|npm|framework|library|react|node|python|javascript|typescript|sql|docker|aws|cloud|kod|databas|server|ramverk|bibliotek)\b/i;
     const businessSignals = /\b(revenue|profit|market|customer|sales|strategy|growth|roi|kpi|startup|investor|pitch|business model|pricing|intäkt|vinst|marknad|kund|försäljning|strategi|tillväxt|affärsmodell|prissättning)\b/i;
     const creativeSignals = /\b(design|art|music|story|creative|visual|aesthetic|brand|logo|illustration|animation|video|photo|konst|musik|berättelse|kreativ|visuell|estetik|varumärke|logotyp)\b/i;
     const personalSignals = /\b(my|me|i want|help me|personal|self|life|career|relationship|goal|habit|motivation|jag|mig|min|mitt|hjälp mig|personlig|liv|karriär|relation|mål|vana)\b/i;
     const academicSignals = /\b(research|study|thesis|paper|citation|academic|literature|hypothesis|methodology|peer.?review|forskning|studie|uppsats|avhandling|akademisk|litteratur|hypotes|metod)\b/i;
     const technicalSignals = /\b(algorithm|data structure|complexity|architecture|protocol|specification|implementation|optimization|algoritm|datastruktur|komplexitet|arkitektur|protokoll|specifikation|implementering|optimering)\b/i;
-    
+
     if (softwareSignals.test(prompt)) domain = 'software';
     else if (businessSignals.test(prompt)) domain = 'business';
     else if (creativeSignals.test(prompt)) domain = 'creative';
     else if (personalSignals.test(prompt)) domain = 'personal';
     else if (academicSignals.test(prompt)) domain = 'academic';
     else if (technicalSignals.test(prompt)) domain = 'technical';
-    
+
     // ─── Complexity Detection ───────────────────────────────────────────
     let complexity: ContentAnalysis['complexity'] = 'intermediate';
     let complexityScore = 0;
-    
+
     // Simple indicators
     if (wordCount < 10) complexityScore -= 2;
     if (/\b(simple|basic|quick|easy|just|only)\b/i.test(prompt)) complexityScore -= 2;
     if (/\b(beginner|introduction|101|getting started)\b/i.test(prompt)) complexityScore -= 2;
-    
-    // Advanced indicators  
+
+    // Advanced indicators
     if (wordCount > 50) complexityScore += 1;
     if (/\b(advanced|complex|sophisticated|comprehensive|enterprise|scalable|production)\b/i.test(prompt)) complexityScore += 2;
     if (/\b(architecture|distributed|microservices|optimization|performance|security)\b/i.test(prompt)) complexityScore += 2;
     if ((prompt.match(/\b(must|should|require|include|ensure|constraint)\b/gi) || []).length >= 3) complexityScore += 1;
-    
+
     if (complexityScore <= -2) complexity = 'simple';
     else if (complexityScore >= 2) complexity = 'advanced';
-    
+
     // ─── Output Type Detection ──────────────────────────────────────────
     let outputType: ContentAnalysis['outputType'] = 'text';
-    
+
     if (intent === 'build' || /\b(code|function|script|implementation)\b/i.test(prompt)) {
         outputType = 'code';
     } else if (intent === 'list' || intent === 'brainstorm') {
@@ -135,41 +135,42 @@ function analyzeContent(prompt: string): ContentAnalysis {
     } else if (intent === 'explain' || intent === 'question') {
         outputType = 'explanation';
     }
-    
+
     // If building an app, it's mixed (code + plan)
     if (intent === 'build' && /\b(app|application|website|platform|system)\b/i.test(prompt)) {
         outputType = 'mixed';
     }
-    
+
     // ─── Extract Subject ────────────────────────────────────────────────
     const subject = prompt
         .replace(/^(please\s+)?(can you\s+)?(help me\s+)?(i need\s+)?(i want\s+)?(to\s+)?(write|create|build|make|design|analyze|explain|generate|give me)\s+(a|an|the|some|me)?\s*/i, '')
         .replace(/\s+(please|thanks|thank you|asap|urgently?)\.?$/i, '')
         .trim();
-    
+
     // ─── Specificity Score ──────────────────────────────────────────────
     let specificity = 30; // Base
-    
+
     if (wordCount >= 15) specificity += 15;
     if (wordCount >= 30) specificity += 10;
     if (/\d+/.test(prompt)) specificity += 10; // Has numbers
     if (/\b(specifically|exactly|must|should|require)\b/i.test(prompt)) specificity += 15;
     if (/\b(for|using|with|in|about)\b/i.test(prompt)) specificity += 10; // Has context words
     if (prompt.includes(':') || prompt.includes('-') || prompt.includes('\n')) specificity += 10;
-    
+
     specificity = Math.min(specificity, 100);
-    
+
     // ─── Other Flags ────────────────────────────────────────────────────
     const urgency = /\b(urgent|asap|quickly|immediately|now|deadline|time.?sensitive|brådskande|snabbt|omedelbart)\b/i.test(prompt);
     const hasConstraints = /\b(must|should|require|need|constraint|limit|only|no more than|at least|måste|ska|krav|begränsning|endast|minst|högst)\b/i.test(prompt);
     const hasAudience = /\b(for|to|audience|reader|user|customer|team|manager|client|för|till|målgrupp|läsare|användare|kund|team|chef)\b/i.test(prompt);
     const hasTechnicalTerms = /\b(api|sql|json|http|oauth|jwt|rest|graphql|websocket|tcp|docker|kubernetes)\b/i.test(prompt);
     const isQuestion = /\?/.test(prompt) || /^(what|how|why|when|where|who|can|could|should|would|is|are|do|does|vad|hur|varför|när|var|vem|kan|borde|ska)\b/i.test(prompt);
-    
+
     // ─── Language Detection ─────────────────────────────────────────────
-    const swedishIndicators = /\b(och|eller|för|att|det|är|jag|mig|min|mitt|ska|kan|hur|vad|varför|när|som|med|på|av|till|från|om|inte|den|ett|en|har|vara|blir|skulle|finns|också|bara|alla|denna|dessa|något|några|mycket|mer|mest|andra|första|sista|vilken|vilket|vilka|genom|under|över|mellan|utan|inom|sedan|efter|före|mot|vid|hos|åt|så|än|nu|här|där|skriv|skapa|bygg|förklara|jämför|fixa|ge mig|hjälp mig|fungerar|funkar)\b/i;
+    // Extensive Swedish word list for reliable detection
+    const swedishIndicators = /\b(och|eller|för|att|det|är|jag|mig|min|mitt|ska|kan|hur|vad|varför|när|som|med|på|av|till|från|om|inte|den|ett|en|har|vara|blir|skulle|finns|också|bara|alla|denna|dessa|något|några|mycket|mer|mest|andra|första|sista|vilken|vilket|vilka|genom|under|över|mellan|utan|inom|sedan|efter|före|mot|vid|hos|åt|så|än|nu|här|där|skriv|skapa|bygg|förklara|jämför|fixa|ge mig|hjälp mig|fungerar|funkar|recept|berätta|beskriv|gör|göra|vill|ville|behöver|behov|bra|bäst|bättre|bästa|snabb|snabbt|enkel|enkelt|enkla|svår|svårt|lätt|ny|nya|nytt|gammal|gamla|gammalt|stor|stora|stort|liten|lilla|litet|små|god|gott|goda|hög|högt|höga|låg|lågt|låga|lång|långt|långa|kort|korta|snäll|snällt|snygg|snyggt|kul|rolig|roligt|glad|glada|ledsen|ledsna|arg|arga|rädd|rädda|säker|säkert|osäker|tack|hej|hejdå|varsågod|ursäkta|förlåt|kanske|absolut|verkligen|egentligen|faktiskt|självklart|naturligtvis|alltid|aldrig|ibland|ofta|sällan|redan|fortfarande|ännu|dock|däremot|dessutom|alltså|nämligen|exempelvis|ungefär|cirka|nästan|helt|delvis|troligen|antagligen|förmodligen|möjligen|helst|hellre|snarare|åtminstone|åtgärd|åtgärda|öka|ökas|minska|minskas|ändra|ändras|förbättra|förbättras|utveckla|utvecklas|lära|lärare|elev|student|lektion|kurs|skola|universitet|arbete|jobb|hem|hemma|familj|vän|vänner|mat|äta|dricka|sova|vakna|leva|dö|komma|gå|springa|köra|flyga|simma|läsa|titta|höra|lyssna|prata|tala|säga|fråga|svara|tänka|tro|veta|förstå|minnas|glömma|känna|älska|hata|gilla|tycka|vilja|önska|hoppas|försöka|lyckas|misslyckas|börja|sluta|fortsätta|stanna|vänta|hjälpa|behöva|få|ta|ge|köpa|sälja|betala|kosta|spara|tjäna|förlora|vinna|spela|rita|måla|sjunga|dansa|jobba|studera|träna|vila|sova|drömma|vakna)\b/i;
     const language: 'en' | 'sv' = swedishIndicators.test(prompt) ? 'sv' : 'en';
-    
+
     return {
         intent,
         domain,
@@ -200,15 +201,15 @@ function selectParameters(analysis: ContentAnalysis): AdaptiveParams {
         constraints: [],
         skipSections: []
     };
-    
+
     const lang = analysis.language;
-    
+
     // ─── Persona Selection (only when truly relevant) ───────────────────
     // Persona selection based on intent and domain
     // Build requests get developer persona unless trivial
     if (analysis.intent === 'build' && analysis.domain === 'software') {
-        params.persona = analysis.complexity === 'advanced' 
-            ? t(texts.personas.seniorDev, lang) 
+        params.persona = analysis.complexity === 'advanced'
+            ? t(texts.personas.seniorDev, lang)
             : t(texts.personas.developer, lang);
     } else if (analysis.complexity === 'advanced' && analysis.domain === 'business') {
         params.persona = t(texts.personas.strategist, lang);
@@ -218,11 +219,11 @@ function selectParameters(analysis: ContentAnalysis): AdaptiveParams {
         params.persona = t(texts.personas.debugger, lang);
     }
     // No persona for simple questions, personal, or general requests
-    
+
     // ─── Structure Depth ────────────────────────────────────────────────
     // Intent takes priority over word count for structure decisions
     const isActionableIntent = ['build', 'debug', 'compare', 'transform'].includes(analysis.intent);
-    
+
     if (analysis.complexity === 'simple' && !isActionableIntent && analysis.wordCount < 8) {
         params.structureDepth = 'minimal';
     } else if (analysis.intent === 'question' || analysis.intent === 'explain') {
@@ -237,7 +238,7 @@ function selectParameters(analysis: ContentAnalysis): AdaptiveParams {
     } else if (analysis.complexity === 'intermediate') {
         params.structureDepth = 'light';
     }
-    
+
     // ─── Tone Selection ─────────────────────────────────────────────────
     if (analysis.domain === 'personal') {
         params.tone = 'friendly';
@@ -250,7 +251,7 @@ function selectParameters(analysis: ContentAnalysis): AdaptiveParams {
     } else if (analysis.complexity === 'simple') {
         params.tone = 'casual';
     }
-    
+
     // ─── Format Selection ───────────────────────────────────────────────
     if (analysis.outputType === 'code') {
         params.format = 'code';
@@ -265,7 +266,7 @@ function selectParameters(analysis: ContentAnalysis): AdaptiveParams {
     } else if (analysis.outputType === 'strategy') {
         params.format = 'numbered';
     }
-    
+
     // ─── Constraints (only if genuinely useful) ─────────────────────────
     if (analysis.urgency) {
         params.constraints.push(t(texts.constraints.concise, lang));
@@ -276,7 +277,7 @@ function selectParameters(analysis: ContentAnalysis): AdaptiveParams {
     if (analysis.domain === 'software' && analysis.complexity === 'advanced') {
         params.constraints.push(t(texts.constraints.edgeCases, lang));
     }
-    
+
     // ─── Skip Irrelevant Sections ───────────────────────────────────────
     if (analysis.complexity === 'simple') {
         params.skipSections.push('roadmap', 'phases', 'architecture');
@@ -287,7 +288,7 @@ function selectParameters(analysis: ContentAnalysis): AdaptiveParams {
     if (analysis.intent !== 'build') {
         params.skipSections.push('tech stack', 'database schema');
     }
-    
+
     return params;
 }
 
@@ -298,11 +299,11 @@ function selectParameters(analysis: ContentAnalysis): AdaptiveParams {
 function scorePrompt(prompt: string): number {
     let score = 20;
     const words = prompt.split(/\s+/).length;
-    
+
     if (words >= 10) score += 10;
     if (words >= 25) score += 10;
     if (words >= 50) score += 5;
-    
+
     if (/\b(you are|act as|as a)\b/i.test(prompt)) score += 15;
     if (/\d+/.test(prompt)) score += 5;
     if (/\b(must|should|need to|require|include|ensure)\b/i.test(prompt)) score += 10;
@@ -310,7 +311,7 @@ function scorePrompt(prompt: string): number {
     if (/\b(example|such as|like|e\.g\.|for instance)\b/i.test(prompt)) score += 5;
     if (/[:\-\n]/.test(prompt)) score += 5;
     if (/\b(context|background|situation)\b/i.test(prompt)) score += 10;
-    
+
     return Math.min(score, 100);
 }
 
@@ -319,17 +320,33 @@ function scorePrompt(prompt: string): number {
 // Generates prompts that feel custom-built for each unique input
 // ═══════════════════════════════════════════════════════════════════════════
 
-function enhancePrompt(rawPrompt: string, platform: string): EnhancementResult {
+type OutputLanguage = 'auto' | 'en' | 'sv' | 'sv-to-en';
+
+function enhancePrompt(rawPrompt: string, platform: string, outputLanguage: OutputLanguage = 'auto'): EnhancementResult {
     const prompt = rawPrompt.trim();
     const analysis = analyzeContent(prompt);
-    const params = selectParameters(analysis);
+    
+    // Override language based on user preference
+    // 'auto' = use detected language
+    // 'en' = always English output
+    // 'sv' = always Swedish output  
+    // 'sv-to-en' = input Swedish, output English
+    const effectiveLanguage: 'en' | 'sv' = 
+        outputLanguage === 'auto' ? analysis.language :
+        outputLanguage === 'sv-to-en' ? 'en' :
+        outputLanguage;
+    
+    // Update analysis with effective language
+    const analysisWithLang = { ...analysis, language: effectiveLanguage };
+    
+    const params = selectParameters(analysisWithLang);
     const beforeScore = scorePrompt(prompt);
-    
-    const enhanced = generateAdaptivePrompt(prompt, analysis, params);
-    const changes = generateChangeDescription(analysis, params);
-    
+
+    const enhanced = generateAdaptivePrompt(prompt, analysisWithLang, params);
+    const changes = generateChangeDescription(analysisWithLang, params);
+
     const afterScore = scorePrompt(enhanced);
-    
+
     return {
         enhanced,
         changes,
@@ -473,42 +490,42 @@ function t(textObj: { en: string; sv: string }, lang: 'en' | 'sv'): string {
 function generateAdaptivePrompt(original: string, analysis: ContentAnalysis, params: AdaptiveParams): string {
     const parts: string[] = [];
     const lang = analysis.language;
-    
+
     // Actionable intents get persona even if prompt is short
     const isActionableIntent = ['build', 'debug', 'compare'].includes(analysis.intent);
-    
+
     // ─── Opening: Persona (only if relevant) ────────────────────────────
     if (params.persona && (analysis.complexity !== 'simple' || isActionableIntent)) {
         const personaText = lang === 'sv' ? `Du är en ${params.persona}.` : `You are a ${params.persona}.`;
         parts.push(personaText);
     }
-    
+
     // ─── Core Request (always present, adapted) ─────────────────────────
     parts.push(buildCoreRequest(original, analysis));
-    
+
     // ─── Structure & Requirements (complexity-dependent) ────────────────
     if (params.structureDepth !== 'minimal') {
         parts.push(buildStructure(analysis, params));
     }
-    
+
     // ─── Constraints (only if genuinely relevant) ───────────────────────
     if (params.constraints.length > 0) {
         parts.push(buildConstraints(params.constraints, lang));
     }
-    
+
     // ─── Output Format (adapted to intent) ──────────────────────────────
     if (analysis.complexity !== 'simple' && !analysis.isQuestion) {
         parts.push(buildOutputGuidance(analysis, params));
     }
-    
+
     return parts.filter(Boolean).join('\n\n');
 }
 
 function buildCoreRequest(original: string, analysis: ContentAnalysis): string {
     const lang = analysis.language;
-    
+
     // Intent-specific handling takes priority over complexity
-    
+
     // For build requests (software) - always get proper structure
     if (analysis.intent === 'build' && analysis.domain === 'software') {
         if (analysis.complexity === 'advanced') {
@@ -516,54 +533,54 @@ function buildCoreRequest(original: string, analysis: ContentAnalysis): string {
         }
         return `${original}\n\n${t(texts.coreRequests.build, lang)}`;
     }
-    
+
     // For debug requests, focus on problem-solving
     if (analysis.intent === 'debug') {
         return `${original}\n\n${t(texts.coreRequests.debug, lang)}`;
     }
-    
+
     // For comparison, structure the analysis
     if (analysis.intent === 'compare') {
         return `${original}\n\n${t(texts.coreRequests.compare, lang)}`;
     }
-    
+
     // For transformation requests, be specific about input/output
     if (analysis.intent === 'transform') {
         return `${original}\n\n${t(texts.coreRequests.transform, lang)}`;
     }
-    
+
     // For simple, non-actionable requests - minimal treatment
     // These intents get proper handling even if prompt is short
     const actionableIntents = ['build', 'debug', 'compare', 'transform', 'explain', 'brainstorm', 'list'];
     if (analysis.complexity === 'simple' && !actionableIntents.includes(analysis.intent)) {
         return `${original}\n\n${t(texts.coreRequests.simple, lang)}`;
     }
-    
+
     // For explain intent - always get explanation structure
     if (analysis.intent === 'explain') {
         return `${original}\n\n${t(texts.coreRequests.explain, lang)}`;
     }
-    
+
     // For questions, reframe for comprehensive answer
     if (analysis.isQuestion || analysis.intent === 'question') {
         return `${original}\n\n${t(texts.coreRequests.question, lang)}`;
     }
-    
+
     // For brainstorming, encourage variety
     if (analysis.intent === 'brainstorm') {
         return `${original}\n\n${t(texts.coreRequests.brainstorm, lang)}`;
     }
-    
+
     // For list requests, focus on comprehensiveness
     if (analysis.intent === 'list') {
         return `${original}\n\n${t(texts.coreRequests.list, lang)}`;
     }
-    
+
     // For persuasion
     if (analysis.intent === 'persuade') {
         return `${original}\n\n${t(texts.coreRequests.persuade, lang)}`;
     }
-    
+
     // Default: enhance with context
     return `${original}\n\n${t(texts.coreRequests.default, lang)}`;
 }
@@ -571,7 +588,7 @@ function buildCoreRequest(original: string, analysis: ContentAnalysis): string {
 function buildStructure(analysis: ContentAnalysis, params: AdaptiveParams): string {
     const lang = analysis.language;
     const sections: string[] = [];
-    
+
     // ─── Light Structure (intermediate complexity) ──────────────────────
     if (params.structureDepth === 'light') {
         switch (analysis.intent) {
@@ -587,7 +604,7 @@ function buildStructure(analysis: ContentAnalysis, params: AdaptiveParams): stri
                 return t(texts.structures.defaultLight, lang);
         }
     }
-    
+
     // ─── Moderate Structure ─────────────────────────────────────────────
     if (params.structureDepth === 'moderate') {
         switch (analysis.domain) {
@@ -599,24 +616,24 @@ function buildStructure(analysis: ContentAnalysis, params: AdaptiveParams): stri
                     return t(texts.structures.softwareDebug, lang);
                 }
                 return t(texts.structures.softwareDefault, lang);
-                
+
             case 'business':
                 return t(texts.structures.business, lang);
-                
+
             case 'creative':
                 return t(texts.structures.creative, lang);
-                
+
             default:
                 return t(texts.structures.defaultModerate, lang);
         }
     }
-    
+
     // ─── Detailed Structure (advanced complexity) ───────────────────────
     if (params.structureDepth === 'detailed') {
         if (analysis.domain === 'software' && analysis.intent === 'build') {
             const skipArch = params.skipSections.includes('architecture');
             const skipRoadmap = params.skipSections.includes('roadmap');
-            
+
             if (lang === 'sv') {
                 sections.push('Ge:');
                 if (!skipArch) {
@@ -640,7 +657,7 @@ function buildStructure(analysis: ContentAnalysis, params: AdaptiveParams): stri
             }
             return sections.join('\n');
         }
-        
+
         if (analysis.domain === 'business') {
             if (lang === 'sv') {
                 return `Ge:
@@ -669,7 +686,7 @@ function buildStructure(analysis: ContentAnalysis, params: AdaptiveParams): stri
    - Implementation steps
    - Success metrics`;
         }
-        
+
         // Default detailed
         if (lang === 'sv') {
             return `Struktur:
@@ -684,7 +701,7 @@ function buildStructure(analysis: ContentAnalysis, params: AdaptiveParams): stri
 3. **Application** - How to use/implement
 4. **Considerations** - Edge cases, alternatives`;
     }
-    
+
     return '';
 }
 
@@ -699,7 +716,7 @@ function buildConstraints(constraints: string[], lang: 'en' | 'sv'): string {
 function buildOutputGuidance(analysis: ContentAnalysis, params: AdaptiveParams): string {
     const lang = analysis.language;
     const guides: string[] = [];
-    
+
     // Tone guidance (only if not obvious)
     if (params.tone === 'technical') {
         guides.push(t(texts.guidelines.technical, lang));
@@ -708,19 +725,19 @@ function buildOutputGuidance(analysis: ContentAnalysis, params: AdaptiveParams):
     } else if (params.tone === 'creative') {
         guides.push(t(texts.guidelines.creative, lang));
     }
-    
+
     // Format guidance (only if specific)
     if (params.format === 'code') {
         guides.push(t(texts.guidelines.code, lang));
     } else if (params.format === 'bullets' && analysis.intent !== 'list') {
         guides.push(t(texts.guidelines.bullets, lang));
     }
-    
+
     // Specificity reminder for vague prompts
     if (analysis.specificity < 50) {
         guides.push(t(texts.guidelines.specific, lang));
     }
-    
+
     if (guides.length === 0) return '';
     if (guides.length === 1) return guides[0] + '.';
     const header = lang === 'sv' ? 'Riktlinjer' : 'Guidelines';
@@ -729,7 +746,7 @@ function buildOutputGuidance(analysis: ContentAnalysis, params: AdaptiveParams):
 
 function generateChangeDescription(analysis: ContentAnalysis, params: AdaptiveParams): string[] {
     const changes: string[] = [];
-    
+
     // Intent-based change
     switch (analysis.intent) {
         case 'build':
@@ -756,7 +773,7 @@ function generateChangeDescription(analysis: ContentAnalysis, params: AdaptivePa
         default:
             changes.push('Added clarity and focus');
     }
-    
+
     // Structure-based change
     if (params.structureDepth === 'detailed') {
         changes.push('Added detailed response framework');
@@ -765,17 +782,17 @@ function generateChangeDescription(analysis: ContentAnalysis, params: AdaptivePa
     } else if (params.structureDepth === 'light') {
         changes.push('Added lightweight guidance');
     }
-    
+
     // Persona change
     if (params.persona) {
         changes.push(`Set expert context (${params.persona})`);
     }
-    
+
     // Domain-specific
     if (analysis.domain === 'software' && analysis.complexity === 'advanced') {
         changes.push('Included technical quality requirements');
     }
-    
+
     return changes;
 }
 
@@ -788,6 +805,7 @@ export async function POST(request: NextRequest) {
             prompt,
             platform = 'general',
             mode = 'improve',
+            outputLanguage = 'auto', // 'auto' | 'en' | 'sv' | 'sv-to-en'
         } = body;
 
         const inputPrompt = rawPrompt || prompt;
@@ -799,14 +817,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Use premium enhancement engine
-        const result = enhancePrompt(inputPrompt, platform);
+        // Use premium enhancement engine with language preference
+        const result = enhancePrompt(inputPrompt, platform, outputLanguage);
 
         return NextResponse.json({
             success: true,
             ...result,
             platform,
             mode,
+            outputLanguage,
         });
 
     } catch (error) {

@@ -2,27 +2,105 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
-    Sparkles, ArrowRight, Zap, Star, Loader2, AlertCircle, Settings
+    Sparkles, Loader2, AlertCircle, Check
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usePromptStore } from '@/lib/prompt-store';
 import { EnhancedPromptOutput, EnhancedPromptResult } from '@/components/ui/EnhancedPromptOutput';
+import Image from 'next/image';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SPARK — Flagship Prompt Enhancement Experience
-// Uses the global EnhancedPromptOutput contract
+// Premium AI model selection + enhanced prompt output
 // ═══════════════════════════════════════════════════════════════════════════
 
-const models = [
-    { id: 'gpt4', name: 'GPT-4', icon: '🤖' },
-    { id: 'claude', name: 'Claude 3.5', icon: '🧠' },
-    { id: 'gemini', name: 'Gemini Pro', icon: '✨' },
-];
-
-const modifiers = [
-    { id: 'expand', name: 'Expand', icon: ArrowRight },
-    { id: 'simplify', name: 'Simplify', icon: Zap },
-    { id: 'professional', name: 'Professional', icon: Star },
+// AI Model definitions — 10 models with official logos
+const aiModels = [
+    // GPT Family
+    { 
+        id: 'gpt-5.2', 
+        name: 'GPT 5.2', 
+        family: 'OpenAI',
+        logo: '/logos/openai.svg',
+        gradient: 'from-emerald-500 to-teal-600',
+        bgGlow: 'group-hover:shadow-emerald-500/20',
+    },
+    { 
+        id: 'gpt-5.1', 
+        name: 'GPT 5.1', 
+        family: 'OpenAI',
+        logo: '/logos/openai.svg',
+        gradient: 'from-emerald-500 to-teal-600',
+        bgGlow: 'group-hover:shadow-emerald-500/20',
+    },
+    // Claude Family
+    { 
+        id: 'claude-sonnet-4.5', 
+        name: 'Sonnet 4.5', 
+        family: 'Anthropic',
+        logo: '/logos/anthropic.svg',
+        gradient: 'from-orange-500 to-amber-600',
+        bgGlow: 'group-hover:shadow-orange-500/20',
+    },
+    { 
+        id: 'claude-opus-4.1', 
+        name: 'Opus 4.1', 
+        family: 'Anthropic',
+        logo: '/logos/anthropic.svg',
+        gradient: 'from-orange-500 to-amber-600',
+        bgGlow: 'group-hover:shadow-orange-500/20',
+    },
+    // Gemini Family
+    { 
+        id: 'gemini-3', 
+        name: 'Gemini 3', 
+        family: 'Google',
+        logo: '/logos/gemini.svg',
+        gradient: 'from-blue-500 to-indigo-600',
+        bgGlow: 'group-hover:shadow-blue-500/20',
+    },
+    { 
+        id: 'gemini-2.5', 
+        name: 'Gemini 2.5', 
+        family: 'Google',
+        logo: '/logos/gemini.svg',
+        gradient: 'from-blue-500 to-indigo-600',
+        bgGlow: 'group-hover:shadow-blue-500/20',
+    },
+    // Grok Family
+    { 
+        id: 'grok-3', 
+        name: 'Grok 3', 
+        family: 'xAI',
+        logo: '/logos/xai.svg',
+        gradient: 'from-slate-400 to-zinc-600',
+        bgGlow: 'group-hover:shadow-slate-400/20',
+    },
+    { 
+        id: 'grok-2', 
+        name: 'Grok 2', 
+        family: 'xAI',
+        logo: '/logos/xai.svg',
+        gradient: 'from-slate-400 to-zinc-600',
+        bgGlow: 'group-hover:shadow-slate-400/20',
+    },
+    // Other
+    { 
+        id: 'nano-banana-pro', 
+        name: 'Nano Banana Pro', 
+        family: 'Nano',
+        logo: '/logos/banana.svg',
+        gradient: 'from-yellow-400 to-orange-500',
+        bgGlow: 'group-hover:shadow-yellow-400/20',
+    },
+    { 
+        id: 'sora', 
+        name: 'Sora', 
+        family: 'OpenAI',
+        logo: '/logos/sora.svg',
+        gradient: 'from-pink-500 to-rose-600',
+        bgGlow: 'group-hover:shadow-pink-500/20',
+    },
 ];
 
 const examplePrompts = [
@@ -35,10 +113,8 @@ export default function SparkPage() {
     const [input, setInput] = useState('');
     const [result, setResult] = useState<EnhancedPromptResult | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [selectedModel, setSelectedModel] = useState('gpt4');
-    const [selectedModifier, setSelectedModifier] = useState<string | null>(null);
+    const [selectedModel, setSelectedModel] = useState('gpt-5.2');
     const [error, setError] = useState<string | null>(null);
-    const [showSettings, setShowSettings] = useState(false);
     const [shouldAnimate, setShouldAnimate] = useState(false);
 
     const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -79,7 +155,21 @@ export default function SparkPage() {
         setError(null);
         setShouldAnimate(true);
 
-        const effectiveMode = selectedModifier || 'enhance';
+        const effectiveMode = 'enhance';
+        
+        // Map model ID to platform
+        const platformMap: Record<string, string> = {
+            'gpt-5.2': 'chatgpt',
+            'gpt-5.1': 'chatgpt',
+            'claude-sonnet-4.5': 'claude',
+            'claude-opus-4.1': 'claude',
+            'gemini-3': 'gemini',
+            'gemini-2.5': 'gemini',
+            'grok-3': 'grok',
+            'grok-2': 'grok',
+            'nano-banana-pro': 'general',
+            'sora': 'general',
+        };
 
         try {
             const response = await fetch('/api/ai/enhance', {
@@ -89,7 +179,8 @@ export default function SparkPage() {
                     prompt: input,
                     rawPrompt: input,
                     mode: effectiveMode,
-                    platform: selectedModel === 'gpt4' ? 'chatgpt' : selectedModel === 'claude' ? 'claude' : 'gemini',
+                    platform: platformMap[selectedModel] || 'general',
+                    outputLanguage: 'auto',
                 }),
             });
 
@@ -121,7 +212,7 @@ export default function SparkPage() {
 
             addToHistory({
                 tool: 'spark',
-                action: `${selectedModifier || 'Spark'} enhancement`,
+                action: 'Spark enhancement',
                 input: input.slice(0, 100) + (input.length > 100 ? '...' : ''),
                 output: promptResult.enhancedPrompt.slice(0, 100) + '...',
             });
@@ -145,14 +236,14 @@ export default function SparkPage() {
 
             addToHistory({
                 tool: 'spark',
-                action: `${selectedModifier || 'Spark'} enhancement`,
+                action: 'Spark enhancement',
                 input: input.slice(0, 100) + (input.length > 100 ? '...' : ''),
                 output: enhanced.slice(0, 100) + '...',
             });
         } finally {
             setIsProcessing(false);
         }
-    }, [input, selectedModifier, selectedModel, addToHistory]);
+    }, [input, selectedModel, addToHistory]);
 
     const handleSave = useCallback(() => {
         if (!result) return;
@@ -161,7 +252,7 @@ export default function SparkPage() {
             title: input.slice(0, 50) + (input.length > 50 ? '...' : ''),
             content: result.originalPrompt,
             enhancedContent: result.enhancedPrompt,
-            tags: selectedModifier ? [selectedModifier, selectedModel] : [selectedModel],
+            tags: [selectedModel],
             folder: 'Personal',
             starred: false,
             tool: 'spark',
@@ -169,7 +260,7 @@ export default function SparkPage() {
         });
 
         toast.success('Saved to Library!');
-    }, [input, result, selectedModifier, selectedModel, addPrompt]);
+    }, [input, result, selectedModel, addPrompt]);
 
     const handleClear = () => {
         setInput('');
@@ -195,74 +286,70 @@ export default function SparkPage() {
     return (
         <div className="min-h-[calc(100vh-140px)] flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-semibold text-white tracking-tight mb-1">
-                        Transform your prompts
-                    </h1>
-                    <p className="text-white/40 text-sm">
-                        Paste any prompt and watch it become more effective
-                    </p>
-                </div>
-
-                <button
-                    onClick={() => setShowSettings(!showSettings)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all ${showSettings
-                        ? 'bg-white/[0.06] text-white/70'
-                        : 'text-white/30 hover:text-white/50 hover:bg-white/[0.03]'
-                        }`}
-                >
-                    <Settings className="w-4 h-4" />
-                    <span className="hidden sm:inline">Settings</span>
-                </button>
+            <div className="mb-8">
+                <h1 className="text-2xl font-semibold text-white tracking-tight mb-1">
+                    Transform your prompts
+                </h1>
+                <p className="text-white/40 text-sm">
+                    Select your AI model, paste any prompt, and watch it become more effective
+                </p>
             </div>
 
-            {/* Settings Panel */}
-            {showSettings && (
-                <div className="mb-6 p-5 bg-white/[0.02] rounded-2xl border border-white/[0.04]">
-                    <div className="flex flex-wrap items-center gap-6">
-                        <div className="flex items-center gap-3">
-                            <span className="text-xs text-white/30 uppercase tracking-wider">Style</span>
-                            <div className="flex items-center gap-1">
-                                {modifiers.map((mod) => (
-                                    <button
-                                        key={mod.id}
-                                        onClick={() => setSelectedModifier(selectedModifier === mod.id ? null : mod.id)}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selectedModifier === mod.id
-                                            ? 'bg-violet-500/20 text-violet-300'
-                                            : 'text-white/40 hover:text-white/60 hover:bg-white/[0.04]'
-                                            }`}
-                                    >
-                                        <mod.icon className="w-3 h-3" />
-                                        {mod.name}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+            {/* ═══════════════════════════════════════════════════════════════
+                CHOOSE AI MODEL — Clean logo grid, 2 rows × 5
+            ═══════════════════════════════════════════════════════════════ */}
+            <div className="mb-6">
+                <h2 className="text-xs font-medium text-white/40 uppercase tracking-wider mb-4">
+                    Choose AI Model
+                </h2>
+                <div className="grid grid-cols-5 gap-4 max-w-xl">
+                    {aiModels.map((model) => {
+                        const isSelected = selectedModel === model.id;
+                        return (
+                            <button
+                                key={model.id}
+                                onClick={() => setSelectedModel(model.id)}
+                                title={`${model.name} — ${model.family}`}
+                                className="group flex flex-col items-center gap-2"
+                            >
+                                {/* Logo with glow effect when selected */}
+                                <div className={`relative w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 bg-gradient-to-br ${model.gradient} ${
+                                    isSelected 
+                                        ? 'scale-110 shadow-xl shadow-current ring-2 ring-white/30'
+                                        : 'opacity-70 hover:opacity-100 hover:scale-105'
+                                }`}
+                                style={isSelected ? {
+                                    boxShadow: `0 0 20px 4px ${model.gradient.includes('emerald') ? 'rgba(16, 185, 129, 0.4)' : 
+                                                              model.gradient.includes('orange') ? 'rgba(249, 115, 22, 0.4)' : 
+                                                              model.gradient.includes('blue') ? 'rgba(59, 130, 246, 0.4)' : 
+                                                              model.gradient.includes('slate') ? 'rgba(148, 163, 184, 0.4)' : 
+                                                              model.gradient.includes('yellow') ? 'rgba(250, 204, 21, 0.4)' : 
+                                                              model.gradient.includes('pink') ? 'rgba(236, 72, 153, 0.4)' : 'rgba(255,255,255,0.3)'}`
+                                } : {}}>
+                                    <Image
+                                        src={model.logo}
+                                        alt={model.family}
+                                        width={24}
+                                        height={24}
+                                        className="object-contain"
+                                    />
+                                </div>
 
-                        <div className="flex items-center gap-3">
-                            <span className="text-xs text-white/30 uppercase tracking-wider">Model</span>
-                            <div className="flex items-center gap-1">
-                                {models.map((model) => (
-                                    <button
-                                        key={model.id}
-                                        onClick={() => setSelectedModel(model.id)}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${selectedModel === model.id
-                                            ? 'bg-white/[0.06] text-white/70'
-                                            : 'text-white/30 hover:text-white/50'
-                                            }`}
-                                    >
-                                        <span>{model.icon}</span>
-                                        {model.name}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+                                {/* Model name */}
+                                <span className={`text-[10px] font-medium transition-colors ${
+                                    isSelected ? 'text-white' : 'text-white/50 group-hover:text-white/80'
+                                }`}>
+                                    {model.name}
+                                </span>
+                            </button>
+                        );
+                    })}
                 </div>
-            )}
+            </div>
 
-            {/* Main Workspace */}
+            {/* ═══════════════════════════════════════════════════════════════
+                MAIN WORKSPACE — Input + Output
+            ═══════════════════════════════════════════════════════════════ */}
             <div className="flex-1 grid lg:grid-cols-2 gap-6 lg:gap-8">
                 {/* INPUT PANEL */}
                 <div className="flex flex-col">
@@ -281,7 +368,7 @@ export default function SparkPage() {
                         )}
                     </div>
 
-                    {/* Input + Spark Button Container - button stays glued to textarea */}
+                    {/* Input + Spark Button Container */}
                     <div className="flex flex-col">
                         <div className="relative">
                             <textarea
@@ -289,7 +376,7 @@ export default function SparkPage() {
                                 value={input}
                                 onChange={handleInputChange}
                                 placeholder="Type or paste your prompt here..."
-                                className="w-full min-h-[120px] p-5 bg-white/[0.02] border border-white/[0.06] rounded-t-2xl rounded-b-none text-white/90 placeholder-white/20 resize-none focus:outline-none focus:border-white/[0.1] focus:bg-white/[0.03] transition-all text-[15px] leading-relaxed"
+                                className="w-full min-h-[140px] p-5 bg-white/[0.02] border border-white/[0.06] rounded-t-2xl rounded-b-none text-white/90 placeholder-white/20 resize-none focus:outline-none focus:border-white/[0.1] focus:bg-white/[0.03] transition-all text-[15px] leading-relaxed"
                                 style={{ overflow: 'hidden' }}
                             />
 
@@ -313,7 +400,7 @@ export default function SparkPage() {
                             )}
                         </div>
 
-                        {/* Spark It Button - glued directly under textarea */}
+                        {/* Spark It Button */}
                         <button
                             onClick={handleSpark}
                             disabled={!input.trim() || isProcessing}
@@ -335,7 +422,7 @@ export default function SparkPage() {
                     </div>
                 </div>
 
-                {/* OUTPUT PANEL — Uses Global EnhancedPromptOutput */}
+                {/* OUTPUT PANEL */}
                 <div className="flex flex-col">
                     <EnhancedPromptOutput
                         result={result}

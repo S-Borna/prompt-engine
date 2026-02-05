@@ -14,28 +14,52 @@ import {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRAXIS Dashboard Layout — Premium Workspace Shell
-// Single primary canvas with receding sidebar
+// Focused sidebar with "Which AI?" educational panel
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Simplified main nav — only Spark
 const mainNav = [
     { name: 'Spark', href: '/dashboard/spark', icon: Wand2, color: 'text-violet-400', bg: 'bg-violet-500/20', gradient: 'from-violet-500 to-indigo-600' },
-    { name: 'Mind Map', href: '/dashboard/mindmap', icon: Brain, color: 'text-pink-400', bg: 'bg-pink-500/20', gradient: 'from-pink-500 to-rose-600' },
-    { name: 'Fusion', href: '/dashboard/fusion', icon: Layers, color: 'text-blue-400', bg: 'bg-blue-500/20', gradient: 'from-blue-500 to-cyan-600' },
-    { name: 'Personas', href: '/dashboard/personas', icon: Palette, color: 'text-orange-400', bg: 'bg-orange-500/20', gradient: 'from-orange-500 to-amber-600' },
-    { name: 'Code Whisper', href: '/dashboard/code', icon: Code, color: 'text-emerald-400', bg: 'bg-emerald-500/20', gradient: 'from-emerald-500 to-teal-600' },
-    { name: 'Precision', href: '/dashboard/precision', icon: Target, color: 'text-red-400', bg: 'bg-red-500/20', gradient: 'from-red-500 to-rose-600' },
 ];
 
+// Secondary nav — Library & History only
 const secondaryNav = [
     { name: 'Library', href: '/dashboard/library', icon: FolderOpen },
     { name: 'History', href: '/dashboard/history', icon: Clock },
-    { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
 ];
 
+// Settings nav — Settings & Billing only
 const settingsNav = [
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
     { name: 'Billing', href: '/dashboard/billing', icon: CreditCard },
-    { name: 'Integrations', href: '/dashboard/integrations', icon: Plug },
+];
+
+// "Which AI?" Educational content
+const aiModelsInfo = [
+    {
+        name: 'GPT',
+        logo: '/logos/openai.svg',
+        color: 'from-emerald-500 to-teal-600',
+        description: 'Excels at following structured instructions. Prefers explicit step-by-step prompts with clear output formats.',
+    },
+    {
+        name: 'Claude',
+        logo: '/logos/anthropic.svg',
+        color: 'from-orange-500 to-amber-600',
+        description: 'Strong at nuanced reasoning. Benefits from context-rich prompts with conversational framing.',
+    },
+    {
+        name: 'Gemini',
+        logo: '/logos/google.svg',
+        color: 'from-blue-500 to-indigo-600',
+        description: 'Multimodal native. Optimized for prompts combining analysis, code, and creative tasks.',
+    },
+    {
+        name: 'Grok',
+        logo: '/logos/xai.svg',
+        color: 'from-slate-400 to-zinc-600',
+        description: 'Real-time knowledge focus. Responds well to direct, concise queries with current context.',
+    },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -178,7 +202,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {/* Navigation */}
                 <nav className={`flex-1 overflow-y-auto py-6 ${sidebarCollapsed ? 'px-3' : 'px-4'}`}>
                     {/* Main Tools */}
-                    <div className="space-y-1 mb-8">
+                    <div className="space-y-1 mb-6">
                         {mainNav.map((item) => {
                             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                             return (
@@ -209,10 +233,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
 
                     {/* Divider */}
-                    <div className={`h-px bg-white/[0.04] mb-6 ${sidebarCollapsed ? 'mx-1' : 'mx-3'}`} />
+                    <div className={`h-px bg-white/[0.04] mb-4 ${sidebarCollapsed ? 'mx-1' : 'mx-3'}`} />
 
                     {/* Secondary Nav */}
-                    <div className="space-y-1 mb-8">
+                    <div className="space-y-1 mb-6">
                         {secondaryNav.map((item) => {
                             const isActive = pathname === item.href;
                             return (
@@ -234,7 +258,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
 
                     {/* Settings Nav */}
-                    <div className="space-y-1">
+                    <div className="space-y-1 mb-6">
                         {settingsNav.map((item) => {
                             const isActive = pathname === item.href;
                             return (
@@ -254,10 +278,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             );
                         })}
                     </div>
+
+                    {/* ═══════════════════════════════════════════════════════════
+                        "WHICH AI?" EDUCATIONAL PANEL — Always visible
+                    ═══════════════════════════════════════════════════════════ */}
+                    {!sidebarCollapsed && (
+                        <div className="mt-4 pt-4 border-t border-white/[0.04]">
+                            <div className="px-3 mb-3">
+                                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/30">
+                                    Which AI?
+                                </h3>
+                            </div>
+                            <div className="space-y-3 px-2">
+                                {aiModelsInfo.map((ai) => (
+                                    <div
+                                        key={ai.name}
+                                        className="p-3 bg-white/[0.02] rounded-xl border border-white/[0.04] hover:bg-white/[0.03] transition-colors"
+                                    >
+                                        <div className="flex items-center gap-2.5 mb-2">
+                                            <div className={`w-6 h-6 rounded-md bg-gradient-to-br ${ai.color} flex items-center justify-center`}>
+                                                <span className="text-[10px] font-bold text-white">
+                                                    {ai.name.charAt(0)}
+                                                </span>
+                                            </div>
+                                            <span className="text-xs font-medium text-white/80">{ai.name}</span>
+                                        </div>
+                                        <p className="text-[10px] leading-relaxed text-white/40">
+                                            {ai.description}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </nav>
 
                 {/* Collapse Toggle */}
-                <div className={`absolute bottom-4 ${sidebarCollapsed ? 'left-1/2 -translate-x-1/2' : 'right-4'}`}>
+                <div className={`p-4 border-t border-white/[0.04] ${sidebarCollapsed ? 'flex justify-center' : ''}`}>
                     <button
                         onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                         className="hidden lg:flex w-8 h-8 items-center justify-center rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-white/40 hover:text-white/60 transition-all"
@@ -265,25 +322,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <ChevronLeft className={`w-4 h-4 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} />
                     </button>
                 </div>
-
-                {/* Upgrade CTA — Only when expanded */}
-                {!sidebarCollapsed && (
-                    <div className="absolute bottom-16 left-4 right-4">
-                        <div className="p-4 bg-gradient-to-br from-violet-500/[0.08] to-indigo-500/[0.04] rounded-2xl border border-violet-500/10">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Zap className="w-4 h-4 text-violet-400" />
-                                <span className="text-sm font-medium text-white">Upgrade to Pro</span>
-                            </div>
-                            <p className="text-xs text-white/40 mb-3">Unlimited prompts & all tools</p>
-                            <Link
-                                href="/dashboard/billing"
-                                className="block w-full py-2 text-center bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 text-xs font-medium rounded-lg transition-colors"
-                            >
-                                Learn More
-                            </Link>
-                        </div>
-                    </div>
-                )}
             </aside>
 
             {/* Mobile Overlay */}
