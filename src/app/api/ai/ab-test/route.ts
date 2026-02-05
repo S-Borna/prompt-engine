@@ -44,14 +44,15 @@ export async function POST(request: NextRequest) {
         const adapter = getModelAdapter(model);
 
         // ═══════════════════════════════════════════════════════════════════
-        // CRITICAL: SEPARATE EXECUTION PATHS
+        // CRITICAL: PARALLEL EXECUTION — both run at the same time
         // ═══════════════════════════════════════════════════════════════════
 
-        // Original: Raw prompt, NO system prompt, default parameters
-        const originalResult = await runOriginal(rawPrompt, model);
-
-        // Enhanced: Enhanced prompt + system prompt + model-specific params
-        const enhancedResult = await runEnhanced(proPrompt, model);
+        const [originalResult, enhancedResult] = await Promise.all([
+            // Original: Raw prompt, NO system prompt, default parameters
+            runOriginal(rawPrompt, model),
+            // Enhanced: Enhanced prompt + system prompt + model-specific params
+            runEnhanced(proPrompt, model),
+        ]);
 
         // ═══════════════════════════════════════════════════════════════════
         // DEMO PARITY GUARANTEE — Block if enhanced isn't better
@@ -138,24 +139,20 @@ export async function POST(request: NextRequest) {
 export async function GET() {
     return NextResponse.json({
         name: 'PRAXIS A/B Test Engine',
-        version: '1.0.0',
-        description: 'Runs identical inference against raw and enhanced prompts',
+        version: '2.0.0',
+        description: 'Parallel execution of raw vs enhanced prompts with decision-forcing system prompts',
+        execution: 'parallel',
         supportedModels: [
             'gpt-5.2', 'gpt-5.1',
             'claude-opus-4.5', 'claude-sonnet-4.5',
             'gemini-3', 'gemini-2.5',
             'grok-3', 'grok-2',
         ],
-        metrics: [
-            'completeness',
-            'specificity',
-            'structureAdherence',
-        ],
         guarantees: [
-            'Identical model for both runs',
-            'Identical temperature (0.7)',
-            'Identical max tokens (2000)',
-            'Identical system messages',
+            'Same underlying model (gpt-4o-mini) for both runs',
+            'Original: no system prompt, temp=1.0, max_tokens=600',
+            'Enhanced: model-specific system prompt with decision-forcing, temp=0.5-0.6, max_tokens=2500-3000',
+            'Parallel execution for <50% latency vs sequential',
         ],
     });
 }

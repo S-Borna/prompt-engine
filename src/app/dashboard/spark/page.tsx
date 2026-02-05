@@ -7,6 +7,7 @@ import { usePromptStore } from '@/lib/prompt-store';
 import { EnhancedPromptOutput, EnhancedPromptResult } from '@/components/ui/EnhancedPromptOutput';
 import { PromptWizard } from '@/components/ui/PromptWizard';
 import { ModelCardWithInsight } from '@/components/ui/ModelInsightPopover';
+import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import Image from 'next/image';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -99,11 +100,17 @@ export default function SparkPage() {
             'sv-en': 'sv-to-en',
         };
 
+        const TIMEOUT_MS = 25_000; // Hard 25s timeout — kill the magic after this
+
         try {
-            // Step 1: Enhance the prompt
+            // ── Step 1: Enhance the prompt (with hard timeout) ──────────
+            const enhanceController = new AbortController();
+            const enhanceTimeout = setTimeout(() => enhanceController.abort(), TIMEOUT_MS);
+
             const response = await fetch('/api/ai/enhance', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                signal: enhanceController.signal,
                 body: JSON.stringify({
                     prompt: input,
                     rawPrompt: input,
@@ -112,12 +119,15 @@ export default function SparkPage() {
                     outputLanguage: languageMap[selectedLanguage] || 'auto',
                 }),
             });
+            clearTimeout(enhanceTimeout);
 
             if (!response.ok) throw new Error('Enhancement failed');
 
             const data = await response.json();
             const enhanced = data.enhanced || data.result || '';
+            if (!enhanced) throw new Error('No enhanced prompt returned');
 
+            // ── Show enhanced prompt IMMEDIATELY (no waiting for A/B) ───
             const promptResult: EnhancedPromptResult = {
                 originalPrompt: input,
                 enhancedPrompt: enhanced,
@@ -128,11 +138,10 @@ export default function SparkPage() {
                     mode: 'enhance',
                 },
             };
-
-            if (!promptResult.enhancedPrompt) throw new Error('No enhanced prompt returned');
-
             setResult(promptResult);
             setEnhancedPrompt(enhanced);
+            setIsProcessing(false); // Button is free — prompt is visible
+
             addToHistory({
                 tool: 'spark',
                 action: 'Spark enhancement',
@@ -140,50 +149,63 @@ export default function SparkPage() {
                 output: enhanced.slice(0, 100) + '...',
             });
 
-            // Step 2: Run A/B test to get both outputs
+            // ── Step 2: A/B test (non-blocking, independent timeout) ────
             setIsRunningRaw(true);
             setIsRunningEnhanced(true);
 
-            const abResponse = await fetch('/api/ai/ab-test', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    rawPrompt: input,
-                    proPrompt: enhanced,
-                    model: selectedModel,
-                    spec: data.spec,
-                }),
-            });
+            const abController = new AbortController();
+            const abTimeout = setTimeout(() => abController.abort(), TIMEOUT_MS);
 
-            if (abResponse.ok) {
-                const abData = await abResponse.json();
-                setRawOutput(abData.results?.outputA?.output || '');
-                setEnhancedOutput(abData.results?.outputB?.output || '');
+            try {
+                const abResponse = await fetch('/api/ai/ab-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: abController.signal,
+                    body: JSON.stringify({
+                        rawPrompt: input,
+                        proPrompt: enhanced,
+                        model: selectedModel,
+                        spec: data.spec,
+                    }),
+                });
+                clearTimeout(abTimeout);
+
+                if (abResponse.ok) {
+                    const abData = await abResponse.json();
+                    setRawOutput(abData.results?.outputA?.output || '');
+                    setEnhancedOutput(abData.results?.outputB?.output || '');
+                }
+            } catch (abErr) {
+                console.warn('[Spark] A/B test failed or timed out:', abErr);
+                // Don't reset existing enhanced prompt — it's already shown
+            } finally {
+                clearTimeout(abTimeout);
+                setIsRunningRaw(false);
+                setIsRunningEnhanced(false);
             }
-
-            setIsRunningRaw(false);
-            setIsRunningEnhanced(false);
 
         } catch (err) {
             console.error('[Spark] Enhancement failed, using local fallback:', err);
+            const isTimeout = err instanceof DOMException && err.name === 'AbortError';
             const enhanced = generateLocalEnhancement(input);
             const promptResult: EnhancedPromptResult = {
                 originalPrompt: input,
                 enhancedPrompt: enhanced,
                 explanation: getDefaultExplanation(),
-                meta: { score: 65, model: selectedModel, mode: 'enhance' },
+                meta: { score: 55, model: selectedModel, mode: 'enhance' },
             };
             setResult(promptResult);
             setEnhancedPrompt(enhanced);
-            setError('AI service unavailable — showing local enhancement. Results may be limited.');
-            toast.error('AI offline — using local fallback');
+            setError(isTimeout
+                ? 'Request timed out after 25s — showing local enhancement.'
+                : 'AI service unavailable — showing local enhancement.');
+            toast.error(isTimeout ? 'Timed out — local fallback' : 'AI offline — local fallback');
             addToHistory({
                 tool: 'spark',
-                action: 'Spark enhancement (offline)',
+                action: `Spark enhancement (${isTimeout ? 'timeout' : 'offline'})`,
                 input: input.slice(0, 100) + (input.length > 100 ? '...' : ''),
                 output: enhanced.slice(0, 100) + '...',
             });
-        } finally {
             setIsProcessing(false);
         }
     }, [input, selectedModel, selectedLanguage, addToHistory]);
@@ -410,7 +432,7 @@ export default function SparkPage() {
                                 </div>
                             </div>
                         ) : rawOutput ? (
-                            <pre className="whitespace-pre-wrap font-sans">{rawOutput}</pre>
+                            <MarkdownRenderer content={rawOutput} />
                         ) : (
                             <div className="flex items-center justify-center h-full min-h-[200px] text-white/20 text-sm">
                                 Output from your original prompt will appear here
@@ -435,7 +457,7 @@ export default function SparkPage() {
                                 </div>
                             </div>
                         ) : enhancedOutput ? (
-                            <pre className="whitespace-pre-wrap font-sans">{enhancedOutput}</pre>
+                            <MarkdownRenderer content={enhancedOutput} />
                         ) : (
                             <div className="flex items-center justify-center h-full min-h-[200px] text-white/20 text-sm">
                                 Output from your enhanced prompt will appear here
