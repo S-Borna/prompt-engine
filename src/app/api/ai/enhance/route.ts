@@ -130,225 +130,225 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
             {
                 error: 'Trial limit reached',
-                message: 'You've used all 100 trial prompts. Upgrade to Standard ($9.99/mo) for unlimited access.',
+                message: 'You've used all 100 trial prompts.Upgrade to Standard($9.99/ mo) for unlimited access.',
                 promptsUsed: currentUsage,
                 upgradeUrl: '/dashboard/billing',
             },
-            { status: 403 }
+    { status: 403 }
         );
-    }
+}
 
-    // ─── RATE LIMITING ──────────────────────────────────────────────
-    const rateLimitResult = await rateLimit(request, RateLimitPresets.AI_CALLS);
+// ─── RATE LIMITING ──────────────────────────────────────────────
+const rateLimitResult = await rateLimit(request, RateLimitPresets.AI_CALLS);
 
-    if (!rateLimitResult.allowed) {
-        return NextResponse.json(
-            {
-                error: 'Rate limit exceeded',
-                resetTime: rateLimitResult.resetTime,
-                message: 'Too many requests. Please try again later.',
-            },
-            {
-                status: 429,
-                headers: {
-                    'X-RateLimit-Limit': String(RateLimitPresets.AI_CALLS.maxRequests),
-                    'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-                    'X-RateLimit-Reset': String(rateLimitResult.resetTime),
-                }
+if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+        {
+            error: 'Rate limit exceeded',
+            resetTime: rateLimitResult.resetTime,
+            message: 'Too many requests. Please try again later.',
+        },
+        {
+            status: 429,
+            headers: {
+                'X-RateLimit-Limit': String(RateLimitPresets.AI_CALLS.maxRequests),
+                'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+                'X-RateLimit-Reset': String(rateLimitResult.resetTime),
             }
-        );
-    }
-
-    try {
-        const { searchParams } = new URL(request.url);
-        const stage = searchParams.get('stage');
-
-        const body = await request.json();
-        const {
-            rawPrompt,
-            prompt,
-            platform = 'general',
-            outputLanguage,
-            spec: providedSpec,
-        } = body;
-
-        const inputPrompt = rawPrompt || prompt;
-        const targetModel = mapPlatformToModel(platform);
-        const lang = mapOutputLanguage(outputLanguage);
-
-        // ─── STAGE 1 ONLY: Compile ──────────────────────────────────────
-        if (stage === 'compile') {
-            if (!inputPrompt || inputPrompt.trim().length === 0) {
-                return NextResponse.json(
-                    { error: 'Prompt is required for compilation' },
-                    { status: 400 }
-                );
-            }
-
-            const spec = compilePrompt(inputPrompt);
-
-            return NextResponse.json({
-                success: true,
-                stage: 'compile',
-                spec,
-                meta: {
-                    pipelineVersion: '1.0.0',
-                    compiledAt: new Date().toISOString(),
-                },
-            });
         }
+    );
+}
 
-        // ─── STAGE 2 ONLY: Assemble ─────────────────────────────────────
-        if (stage === 'assemble') {
-            if (!providedSpec) {
-                return NextResponse.json(
-                    { error: 'Compiled spec is required for assembly' },
-                    { status: 400 }
-                );
-            }
+try {
+    const { searchParams } = new URL(request.url);
+    const stage = searchParams.get('stage');
 
-            const output = assemblePrompt({
-                spec: providedSpec as CompiledSpec,
-                targetModel,
-                outputLanguage: lang,
-            });
+    const body = await request.json();
+    const {
+        rawPrompt,
+        prompt,
+        platform = 'general',
+        outputLanguage,
+        spec: providedSpec,
+    } = body;
 
-            return NextResponse.json({
-                success: true,
-                stage: 'assemble',
-                assembledPrompt: output.assembledPrompt,
-                warnings: output.warnings,
-                meta: output.meta,
-            });
-        }
+    const inputPrompt = rawPrompt || prompt;
+    const targetModel = mapPlatformToModel(platform);
+    const lang = mapOutputLanguage(outputLanguage);
 
-        // ─── FULL PIPELINE: AI-SYNTHESIZED PROMPTS ──────────────────────
+    // ─── STAGE 1 ONLY: Compile ──────────────────────────────────────
+    if (stage === 'compile') {
         if (!inputPrompt || inputPrompt.trim().length === 0) {
             return NextResponse.json(
-                { error: 'Prompt is required' },
+                { error: 'Prompt is required for compilation' },
                 { status: 400 }
             );
         }
 
-        // Step 1: Compile the prompt to extract structure
         const spec = compilePrompt(inputPrompt);
-        const resolvedLang = lang === 'auto' ? spec.language : lang;
-
-        // Step 2: Use AI to synthesize — with retry and fallback
-        const MAX_RETRIES = 2;
-        let rewrittenResult: RewrittenPrompt | null = null;
-        let lastError: string | null = null;
-
-        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-            try {
-                const result = await rewritePrompt({
-                    spec,
-                    language: resolvedLang,
-                    platform,
-                    model: 'gpt-4o-mini',
-                    // Slightly higher temperature on retry for variation
-                    temperature: attempt === 1 ? 0.5 : 0.65,
-                });
-
-                const validation = validateRewriteQuality(result);
-                if (validation.valid) {
-                    rewrittenResult = result;
-                    break;
-                }
-
-                lastError = validation.reason || 'Quality validation failed';
-                console.warn(`[enhance] Attempt ${attempt} failed quality check: ${lastError}`);
-
-                // If quality check fails but we have a result, keep it as fallback
-                if (!rewrittenResult && result.prompt.length > 50) {
-                    rewrittenResult = result;
-                }
-            } catch (error) {
-                lastError = error instanceof Error ? error.message : 'Unknown error';
-                console.error(`[enhance] Attempt ${attempt} error:`, lastError);
-            }
-        }
-
-        // Step 3: Fallback to deterministic pipeline if AI fails completely
-        if (!rewrittenResult || !rewrittenResult.prompt) {
-            console.warn('[enhance] All AI attempts failed, falling back to deterministic pipeline');
-            const fallbackOutput = executePipeline({
-                rawPrompt: inputPrompt,
-                targetModel,
-                outputLanguage: lang,
-            });
-
-            return NextResponse.json({
-                success: true,
-                enhanced: fallbackOutput.assembledPrompt,
-                original: inputPrompt,
-                platform,
-                mode: 'deterministic-fallback',
-                outputLanguage: lang,
-                quality: {
-                    score: 60,
-                    meetsBar: true,
-                    specificityMultiplier: 2.0,
-                },
-                spec: fallbackOutput.spec,
-                warnings: fallbackOutput.warnings,
-                meta: {
-                    pipelineVersion: '4.0.0',
-                    fallbackReason: lastError,
-                    synthesizedAt: new Date().toISOString(),
-                    originalLength: inputPrompt.length,
-                    enhancedLength: fallbackOutput.assembledPrompt.length,
-                },
-            });
-        }
-
-        // Step 4: Return the synthesized prompt
-        // Increment usage counter (except for executives)
-        if (!isExecutiveEmail(session.user.email)) {
-            const newUsage = incrementPromptUsage(session.user.email);
-            console.log(`✓ Prompt usage incremented for ${session.user.email}: ${newUsage}/100`);
-        }
 
         return NextResponse.json({
             success: true,
-            enhanced: rewrittenResult.prompt,
-            sections: rewrittenResult.sections,
-            improvements: rewrittenResult.improvements,
-            original: inputPrompt,
-            platform,
-            mode: 'ai-synthesized',
-            outputLanguage: lang,
-            quality: {
-                score: rewrittenResult.qualityScore,
-                meetsBar: rewrittenResult.meetsQualityBar,
-                specificityMultiplier: rewrittenResult.meta.specificityMultiplier,
-            },
+            stage: 'compile',
             spec,
             meta: {
-                pipelineVersion: '5.0.0',
-                synthesizedAt: rewrittenResult.meta.synthesizedAt,
-                originalLength: rewrittenResult.meta.originalLength,
-                enhancedLength: rewrittenResult.meta.rewrittenLength,
-                domain: rewrittenResult.meta.domain,
-                tokensIn: rewrittenResult.meta.tokensIn,
-                tokensOut: rewrittenResult.meta.tokensOut,
+                pipelineVersion: '1.0.0',
+                compiledAt: new Date().toISOString(),
             },
-            usage: !isExecutiveEmail(session.user.email)
-                ? {
-                    promptsUsed: getPromptUsage(session.user.email),
-                    promptsRemaining: Math.max(0, 100 - getPromptUsage(session.user.email)),
-                    isTrialUser: session.user.role === 'trial',
-                }
-                : undefined,
+        });
+    }
+
+    // ─── STAGE 2 ONLY: Assemble ─────────────────────────────────────
+    if (stage === 'assemble') {
+        if (!providedSpec) {
+            return NextResponse.json(
+                { error: 'Compiled spec is required for assembly' },
+                { status: 400 }
+            );
+        }
+
+        const output = assemblePrompt({
+            spec: providedSpec as CompiledSpec,
+            targetModel,
+            outputLanguage: lang,
         });
 
-    } catch (error) {
-        console.error('Pipeline error:', error);
+        return NextResponse.json({
+            success: true,
+            stage: 'assemble',
+            assembledPrompt: output.assembledPrompt,
+            warnings: output.warnings,
+            meta: output.meta,
+        });
+    }
+
+    // ─── FULL PIPELINE: AI-SYNTHESIZED PROMPTS ──────────────────────
+    if (!inputPrompt || inputPrompt.trim().length === 0) {
         return NextResponse.json(
-            { error: 'Failed to process prompt' },
-            { status: 500 }
+            { error: 'Prompt is required' },
+            { status: 400 }
         );
     }
+
+    // Step 1: Compile the prompt to extract structure
+    const spec = compilePrompt(inputPrompt);
+    const resolvedLang = lang === 'auto' ? spec.language : lang;
+
+    // Step 2: Use AI to synthesize — with retry and fallback
+    const MAX_RETRIES = 2;
+    let rewrittenResult: RewrittenPrompt | null = null;
+    let lastError: string | null = null;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            const result = await rewritePrompt({
+                spec,
+                language: resolvedLang,
+                platform,
+                model: 'gpt-4o-mini',
+                // Slightly higher temperature on retry for variation
+                temperature: attempt === 1 ? 0.5 : 0.65,
+            });
+
+            const validation = validateRewriteQuality(result);
+            if (validation.valid) {
+                rewrittenResult = result;
+                break;
+            }
+
+            lastError = validation.reason || 'Quality validation failed';
+            console.warn(`[enhance] Attempt ${attempt} failed quality check: ${lastError}`);
+
+            // If quality check fails but we have a result, keep it as fallback
+            if (!rewrittenResult && result.prompt.length > 50) {
+                rewrittenResult = result;
+            }
+        } catch (error) {
+            lastError = error instanceof Error ? error.message : 'Unknown error';
+            console.error(`[enhance] Attempt ${attempt} error:`, lastError);
+        }
+    }
+
+    // Step 3: Fallback to deterministic pipeline if AI fails completely
+    if (!rewrittenResult || !rewrittenResult.prompt) {
+        console.warn('[enhance] All AI attempts failed, falling back to deterministic pipeline');
+        const fallbackOutput = executePipeline({
+            rawPrompt: inputPrompt,
+            targetModel,
+            outputLanguage: lang,
+        });
+
+        return NextResponse.json({
+            success: true,
+            enhanced: fallbackOutput.assembledPrompt,
+            original: inputPrompt,
+            platform,
+            mode: 'deterministic-fallback',
+            outputLanguage: lang,
+            quality: {
+                score: 60,
+                meetsBar: true,
+                specificityMultiplier: 2.0,
+            },
+            spec: fallbackOutput.spec,
+            warnings: fallbackOutput.warnings,
+            meta: {
+                pipelineVersion: '4.0.0',
+                fallbackReason: lastError,
+                synthesizedAt: new Date().toISOString(),
+                originalLength: inputPrompt.length,
+                enhancedLength: fallbackOutput.assembledPrompt.length,
+            },
+        });
+    }
+
+    // Step 4: Return the synthesized prompt
+    // Increment usage counter (except for executives)
+    if (!isExecutiveEmail(session.user.email)) {
+        const newUsage = incrementPromptUsage(session.user.email);
+        console.log(`✓ Prompt usage incremented for ${session.user.email}: ${newUsage}/100`);
+    }
+
+    return NextResponse.json({
+        success: true,
+        enhanced: rewrittenResult.prompt,
+        sections: rewrittenResult.sections,
+        improvements: rewrittenResult.improvements,
+        original: inputPrompt,
+        platform,
+        mode: 'ai-synthesized',
+        outputLanguage: lang,
+        quality: {
+            score: rewrittenResult.qualityScore,
+            meetsBar: rewrittenResult.meetsQualityBar,
+            specificityMultiplier: rewrittenResult.meta.specificityMultiplier,
+        },
+        spec,
+        meta: {
+            pipelineVersion: '5.0.0',
+            synthesizedAt: rewrittenResult.meta.synthesizedAt,
+            originalLength: rewrittenResult.meta.originalLength,
+            enhancedLength: rewrittenResult.meta.rewrittenLength,
+            domain: rewrittenResult.meta.domain,
+            tokensIn: rewrittenResult.meta.tokensIn,
+            tokensOut: rewrittenResult.meta.tokensOut,
+        },
+        usage: !isExecutiveEmail(session.user.email)
+            ? {
+                promptsUsed: getPromptUsage(session.user.email),
+                promptsRemaining: Math.max(0, 100 - getPromptUsage(session.user.email)),
+                isTrialUser: session.user.role === 'trial',
+            }
+            : undefined,
+    });
+
+} catch (error) {
+    console.error('Pipeline error:', error);
+    return NextResponse.json(
+        { error: 'Failed to process prompt' },
+        { status: 500 }
+    );
+}
 }
 
 /**

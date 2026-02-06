@@ -57,7 +57,7 @@ export async function middleware(request: NextRequest) {
         base-uri 'self';
         form-action 'self';
     `.replace(/\s{2,}/g, ' ').trim();
-    
+
     response.headers.set('Content-Security-Policy', cspHeader);
 
     // Permissions Policy (formerly Feature-Policy)

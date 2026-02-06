@@ -9,12 +9,14 @@ PRAXIS now has a complete email verification system with fraud prevention and a 
 ## 🔐 **How It Works**
 
 ### 1. **User Signup**
+
 - User enters email and password on `/signup`
 - Account is created via `/api/auth/register`
 - System automatically sends a verification email to the user's inbox
 - User is redirected to `/verify-pending` page
 
 ### 2. **Email Verification**
+
 - User receives a branded HTML email with a **Verify Email** button
 - Clicking the button goes to `/api/auth/verify?token=...`
 - Server verifies the token (24-hour expiry)
@@ -23,12 +25,14 @@ PRAXIS now has a complete email verification system with fraud prevention and a 
 - User is redirected to `/login` with success message
 
 ### 3. **Dashboard Access**
+
 - Middleware checks if user is authenticated
 - Middleware checks if email is verified
 - Unverified users are redirected to `/verify-pending`
 - Verified users can access the dashboard
 
 ### 4. **100-Prompt Trial Limit**
+
 - Every AI prompt generation increments the usage counter
 - Trial users see their remaining prompts (e.g., "95/100")
 - After 100 prompts, they get an upgrade prompt:
@@ -103,19 +107,22 @@ PRAXIS now has a complete email verification system with fraud prevention and a 
    - Redirects to `/verify-pending` after signup (instead of auto-login)
 
 6. **`.env.local`**
-   - Added `SENDGRID_API_KEY=your-sendgrid-api-key-here`
+   - Added `SENDGRID_API_KEY` (stored securely, not committed)
 
 ---
 
 ## 🧪 **Testing the Flow**
 
 ### **1. Test Email Integration**
+
 ```bash
 node test-email.js
 ```
+
 Check your inbox for verification and welcome emails.
 
 ### **2. Test Full Signup Flow**
+
 1. Go to `/signup`
 2. Enter a real email (use a throwaway or your own)
 3. Check inbox for verification email
@@ -125,6 +132,7 @@ Check your inbox for verification and welcome emails.
 7. Access dashboard
 
 ### **3. Test 100-Prompt Limit**
+
 1. Sign up with a new account
 2. Use the Spark or Precision pages to generate prompts
 3. After 100 prompts, you should see the upgrade message
@@ -181,12 +189,14 @@ Check your inbox for verification and welcome emails.
 ## 🚨 **Fraud Prevention**
 
 ### **Current Measures**
+
 1. ✅ **Email verification** — Requires 1 real email per account
 2. ✅ **Rate limiting** — 5 AI calls per minute (IP-based)
 3. ✅ **100-prompt trial limit** — Prevents abuse of free tier
 4. ✅ **Executive bypass** — `said@saidborna.com` gets unlimited access
 
 ### **Future Hardening (Optional)**
+
 - **Device fingerprinting** — Track browser/device signatures
 - **Disposable email blocking** — Block temp-mail domains
 - **IP cooldowns** — Limit signups per IP per hour
@@ -197,17 +207,20 @@ Check your inbox for verification and welcome emails.
 ## 💰 **Pricing Enforcement**
 
 ### **Trial (Free for 7 days)**
+
 - ✅ 100 prompts total (enforced in `/api/ai/enhance`)
 - ✅ All features unlocked
 - ✅ No credit card required
 - ❌ After 100 prompts → upgrade prompt shown
 
 ### **Standard ($9.99/mo)**
+
 - ✅ Unlimited prompts (no counter)
 - ✅ $6 profit margin (implies $3.99 API costs)
 - ⏳ Payment integration needed (Stripe)
 
 ### **Premium ($14.99/mo)**
+
 - ✅ Unlimited prompts (no counter)
 - ✅ $8 profit margin (implies $6.99 API costs)
 - ⏳ Payment integration needed (Stripe)
@@ -227,6 +240,7 @@ SENDGRID_API_KEY=your-sendgrid-api-key-here
 ## 🎨 **Email Design**
 
 Both verification and welcome emails use:
+
 - ✨ PRAXIS branding (gradient logo box)
 - 🌑 Dark mode design (#09090b background)
 - 🔵 Gradient buttons (violet → indigo)
@@ -238,23 +252,29 @@ Both verification and welcome emails use:
 ## ⚠️ **Production Considerations**
 
 ### **Replace In-Memory Stores**
+
 Current implementation uses in-memory storage for:
+
 1. Verification tokens (`/src/lib/verification.ts`)
 2. Verified emails (`/src/lib/auth.ts`)
 3. Prompt usage counters (`/src/lib/usage-tracker.ts`)
 
 **Production solution:**
+
 - Use **Redis** for fast, persistent storage
 - OR use **Prisma database** with indexed queries
 - OR use **Upstash Redis** (serverless-friendly)
 
 ### **Token Security**
+
 - Current: Random 32-char string
 - Production: Use JWT with `NEXTAUTH_SECRET` signing
 - OR use crypto.randomBytes(32).toString('hex')
 
 ### **Email Domain Validation**
+
 Add to `/src/lib/verification.ts`:
+
 ```ts
 const DISPOSABLE_DOMAINS = ['tempmail.com', 'guerrillamail.com', ...];
 ```
