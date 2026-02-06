@@ -1,8 +1,8 @@
 # PRAXIS — Design Specification
 
-> **Version:** 1.0  
-> **Senast uppdaterad:** 2026-02-06  
-> **Syfte:** Extremt detaljerad designspecifikation för hela PRAXIS-plattformen.  
+> **Version:** 1.0
+> **Senast uppdaterad:** 2026-02-06
+> **Syfte:** Extremt detaljerad designspecifikation för hela PRAXIS-plattformen.
 > Används som referensdokument för framtida projekt, onboarding och design-konsistens.
 
 ---
@@ -307,30 +307,36 @@ html {
 ### Keyframe-animationer (globals.css)
 
 #### `fadeIn`
+
 ```css
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 ```
+
 **Användning:** Hero-element med staggered delay, global `.animate-fade-in`
 
 #### `pulse`
+
 ```css
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.5; }
 }
 ```
+
 **Användning:** Typewriter cursor, critical trial warning, processing indicators
 
 #### `spin`
+
 ```css
 @keyframes spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
 ```
+
 **Användning:** Loader2-ikon (processing state), transforming-animation
 
 ### Hero Staggered Entrance
@@ -361,6 +367,7 @@ function RevealSection({ children, delay = 0 }) {
 ```
 
 **Staggered delays per sektion:**
+
 - Feature cards: `delay={i * 80}` (0, 80, 160, 240, 320, 400ms)
 - How It Works: `delay={i * 120}` (0, 120, 240ms)
 - Pricing: `delay={0}`, `delay={100}`, `delay={200}`
@@ -619,6 +626,7 @@ const { data: session, status } = useSession();
 **Prompt counter:** `text-lg font-bold tabular-nums` — färg följer warning state
 
 **Progress bar:**
+
 - **Container:** `h-1.5 bg-white/[0.06] rounded-full`
 - **Fill:** Gradient baserat på state, `transition-all duration-700 ease-out`
   - normal: `from-violet-500 to-indigo-500`
@@ -628,10 +636,12 @@ const { data: session, status } = useSession();
 - **Min-width:** `Math.max(2, (promptsRemaining / TRIAL_LIMIT) * 100)%`
 
 **Trial days countdown:**
+
 - "Free Trial" label + `Xd left` eller "Expired"
 - Separator: `border-b border-white/[0.04]`
 
 **Warning messages (critical/warning):**
+
 - AlertTriangle-ikon + text
 - "Upgrade to Pro" CTA-länk: Gradient pill till `/dashboard/billing`
 
@@ -713,6 +723,7 @@ const { data: session, status } = useSession();
 **API:** `POST /api/ai/enhance` med `mode: 'enhance'`, timeout 30s
 
 **AI Models:**
+
 | ID | Namn | Familj | Färg |
 |----|------|--------|------|
 | gpt-5.2 | GPT 5.2 | OpenAI | #10b981 |
@@ -743,6 +754,7 @@ const { data: session, status } = useSession();
 | 3 | Get Result | StructuredPromptOutput |
 
 **Step Indicator:**
+
 - Cirkel: `w-7 h-7 rounded-full`
 - Completed: `bg-emerald-500` med CheckCircle2-ikon
 - Active: `bg-violet-500/20 text-violet-300 ring-2 ring-violet-500/50`
@@ -750,6 +762,7 @@ const { data: session, status } = useSession();
 - Connector: `w-16 h-px` (emerald-500 om completed, white/[0.08] annars)
 
 **Fråge-kort (Step 2):**
+
 - Container: `rounded-2xl bg-white/[0.02] border border-white/[0.06] p-6`
 - Fråge-nummer: `w-6 h-6 rounded-full bg-violet-500/15`
 - Options: Selectable cards med transition:
@@ -759,6 +772,7 @@ const { data: session, status } = useSession();
 - Navigation: Back-knapp (ghost) + "Generate Prompt" (gradient, disabled om < 3 svar)
 
 **API:**
+
 - Step 1→2: `POST /api/ai/refine?stage=questions`
 - Step 2→3: `POST /api/ai/refine?stage=generate`
 
@@ -771,6 +785,7 @@ const { data: session, status } = useSession();
 **Layout:** Sidebar (folders, 208px) + Main content
 
 **Features:**
+
 - **View modes:** Grid / List toggle (`bg-white/[0.08]` for active)
 - **Search:** Fulltext sök i titel, content, tags
 - **Folders:** All, Personal, Work, Templates, Starred — med räknare
@@ -786,6 +801,7 @@ const { data: session, status } = useSession();
 **Syfte:** Activity timeline — Postgres-backed med localStorage fallback.
 
 **Features:**
+
 - **Date grouping:** Today, Yesterday, [date]
 - **Tool filters:** spark, precision, mindmap, fusion, personas, code — med gradient-ikoner
 - **Expandable items:** Visar full input/output
@@ -800,12 +816,14 @@ const { data: session, status } = useSession();
 **Tabs:** Profile, Notifications, Appearance, Security, Language
 
 **Profile:**
+
 - Avatar med gradient (initial-baserad)
 - Form: First Name, Last Name, Email, Bio
 - "Change Avatar" button (coming soon)
 - Save gradient CTA
 
 **Notifications:**
+
 - Toggle switches: `w-14 h-8 rounded-full`
   - ON: `bg-violet-500`
   - OFF: `bg-white/20`
@@ -813,6 +831,7 @@ const { data: session, status } = useSession();
 - Items: Email, Push, Product Updates, Tips & Tutorials
 
 **Appearance:**
+
 - Theme cards: Light (Sun), Dark (Moon), System (Monitor)
 - Selected: `border-2 border-violet-500 bg-violet-500/10`
 
@@ -821,6 +840,7 @@ const { data: session, status } = useSession();
 **Fil:** `src/app/dashboard/billing/page.tsx` (236 rader)
 
 **Features:**
+
 - **Billing cycle toggle:** Monthly / Yearly (−20% i emerald)
 - **Current Plan Banner:** Icon + plan name + usage info
 - **3 plan cards:** Free, Pro ($19), Team ($49)
@@ -858,6 +878,7 @@ export default function DashboardPage() {
 ### Buttons
 
 #### Primary CTA (Landing)
+
 ```
 inline-flex items-center gap-2.5
 px-8 py-3.5
@@ -870,6 +891,7 @@ transition-all text-base
 ```
 
 #### Secondary CTA (Landing)
+
 ```
 inline-flex items-center gap-2
 px-8 py-3.5
@@ -879,6 +901,7 @@ rounded-xl transition-all text-base
 ```
 
 #### Dashboard Action Button
+
 ```
 flex items-center gap-2
 px-4 py-2.5
@@ -890,6 +913,7 @@ transition-all
 ```
 
 #### Ghost Button
+
 ```
 px-4 py-2 text-sm
 text-white/50 hover:text-white/70
@@ -900,6 +924,7 @@ rounded-xl transition-colors
 ### Form Elements
 
 #### Text Input (Dashboard)
+
 ```
 w-full px-4 py-2.5
 bg-white/[0.02] border border-white/[0.06]
@@ -910,6 +935,7 @@ transition-all
 ```
 
 #### Textarea (Prompt Input)
+
 ```
 w-full min-h-[160px] p-6
 bg-transparent text-white/90 placeholder-white/20
@@ -1309,6 +1335,7 @@ Centered: gradient icon box + "Your enhanced prompt will appear here" (white/20)
 ```
 
 **Funktioner:**
+
 - **DevTools Detection:** Upptäcker öppna devtools
 - **Context Menu Protection:** Blockerar högerklick
 - **Console Protection:** Skyddar mot konsol-injection
