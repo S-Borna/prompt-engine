@@ -4,6 +4,30 @@ import { auth } from '@/lib/auth';
 
 export async function middleware(request: NextRequest) {
     const pathname = request.nextUrl.pathname;
+    const origin = request.headers.get('origin') || '';
+
+    // ─── EXTENSION API: Skip session auth (uses Bearer token) ──────────
+    if (pathname.startsWith('/api/extension/')) {
+        // Handle CORS preflight
+        if (request.method === 'OPTIONS') {
+            const preflightHeaders: Record<string, string> = {};
+            if (origin.startsWith('chrome-extension://')) {
+                preflightHeaders['Access-Control-Allow-Origin'] = origin;
+                preflightHeaders['Access-Control-Allow-Methods'] = 'POST, OPTIONS';
+                preflightHeaders['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+                preflightHeaders['Access-Control-Max-Age'] = '86400';
+            }
+            return new NextResponse(null, { status: 204, headers: preflightHeaders });
+        }
+        // Let extension routes handle their own auth via Bearer token
+        const response = NextResponse.next();
+        if (origin.startsWith('chrome-extension://')) {
+            response.headers.set('Access-Control-Allow-Origin', origin);
+            response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+            response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        }
+        return response;
+    }
 
     // ─── AUTH CHECKS (for protected routes) ────────────────────────────
     const protectedRoutes = ['/dashboard', '/api/ai'];

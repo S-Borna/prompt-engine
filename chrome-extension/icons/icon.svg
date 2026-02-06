@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#0a0a0f"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#6366f1"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="128" height="128" rx="24" fill="url(#bg)"/>
+  <!-- Star / Spark icon -->
+  <g transform="translate(64,64)">
+    <!-- Main spark rays -->
+    <path d="M0,-40 L4,-12 L0,-16 L-4,-12 Z" fill="url(#accent)"/>
+    <path d="M0,40 L4,12 L0,16 L-4,12 Z" fill="url(#accent)"/>
+    <path d="M-40,0 L-12,4 L-16,0 L-12,-4 Z" fill="url(#accent)"/>
+    <path d="M40,0 L12,4 L16,0 L12,-4 Z" fill="url(#accent)"/>
+    <!-- Diagonal rays -->
+    <path d="M-28,-28 L-10,-6 L-12,-12 L-6,-10 Z" fill="url(#accent)" opacity="0.7"/>
+    <path d="M28,28 L10,6 L12,12 L6,10 Z" fill="url(#accent)" opacity="0.7"/>
+    <path d="M28,-28 L10,-6 L12,-12 L6,-10 Z" fill="url(#accent)" opacity="0.7"/>
+    <path d="M-28,28 L-10,6 L-12,12 L-6,10 Z" fill="url(#accent)" opacity="0.7"/>
+    <!-- Center circle -->
+    <circle r="6" fill="url(#accent)"/>
+    <circle r="3" fill="#e2e8f0"/>
+  </g>
+  <!-- P letter subtle -->
+  <text x="64" y="76" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="42" fill="url(#accent)" opacity="0.15">P</text>
+</svg>

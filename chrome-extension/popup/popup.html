@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRAXIS</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+    <!-- LOGIN VIEW -->
+    <div id="login-view" class="view">
+        <div class="header">
+            <div class="logo">⚡ PRAXIS</div>
+            <p class="tagline">Enhance your AI prompts</p>
+        </div>
+        <div class="login-form">
+            <input type="email" id="login-email" placeholder="Email" autocomplete="email">
+            <input type="password" id="login-password" placeholder="Password" autocomplete="current-password">
+            <button id="login-btn" class="btn-primary">Sign In</button>
+            <div id="login-error" class="error hidden"></div>
+            <p class="login-link">No account? <a href="https://praxis.saidborna.com/signup" target="_blank">Sign up
+                    free</a></p>
+        </div>
+    </div>
+
+    <!-- MAIN VIEW -->
+    <div id="main-view" class="view hidden">
+        <div class="header">
+            <div class="header-row">
+                <div class="logo">⚡ PRAXIS</div>
+                <button id="logout-btn" class="btn-icon" title="Sign out">✕</button>
+            </div>
+            <div id="user-info" class="user-info"></div>
+        </div>
+
+        <div class="enhance-section">
+            <textarea id="prompt-input" placeholder="Paste your prompt here..." rows="4"></textarea>
+
+            <div class="platform-row">
+                <select id="platform-select">
+                    <option value="general">Any AI</option>
+                    <option value="chatgpt">ChatGPT</option>
+                    <option value="claude">Claude</option>
+                    <option value="gemini">Gemini</option>
+                    <option value="grok">Grok</option>
+                </select>
+                <button id="enhance-btn" class="btn-primary">
+                    <span id="enhance-text">Enhance ⚡</span>
+                    <span id="enhance-loading" class="hidden">Enhancing...</span>
+                </button>
+            </div>
+
+            <div id="usage-bar" class="usage-bar hidden">
+                <div class="usage-track">
+                    <div id="usage-fill" class="usage-fill"></div>
+                </div>
+                <span id="usage-text" class="usage-text"></span>
+            </div>
+        </div>
+
+        <!-- RESULT -->
+        <div id="result-section" class="result-section hidden">
+            <div class="result-header">
+                <span class="result-label">Enhanced prompt</span>
+                <button id="copy-btn" class="btn-small">Copy</button>
+            </div>
+            <div id="result-text" class="result-text"></div>
+            <div id="score-badge" class="score-badge hidden"></div>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>
