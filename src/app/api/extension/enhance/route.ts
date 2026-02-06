@@ -11,7 +11,7 @@ import {
 } from '@/lib/prompt-rewriter';
 import { rateLimit, RateLimitPresets } from '@/lib/rate-limit';
 import { isExecutiveEmail } from '@/lib/auth';
-import { verifyExtensionToken } from '../auth/route';
+import { verifyExtensionToken } from '@/lib/extension-token';
 import { getPromptUsage, incrementPromptUsage, hasExceededTrialLimit } from '@/lib/usage-tracker';
 
 // ═══════════════════════════════════════════════════════════════════════════
