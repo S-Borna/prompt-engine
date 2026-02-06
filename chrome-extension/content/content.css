@@ -20,7 +20,19 @@
     box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
     transition: all 0.2s ease;
     z-index: 99999;
-    opacity: 0.9;
+    opacity: 0;
+    animation: praxis-fade-in 0.4s ease 0.1s forwards;
+}
+
+@keyframes praxis-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 0.9;
+        transform: translateY(0);
+    }
 }
 
 #praxis-enhance-btn:hover {
@@ -44,6 +56,42 @@
 
 #praxis-enhance-btn svg {
     flex-shrink: 0;
+}
+
+/* First-time tooltip */
+#praxis-enhance-btn.praxis-first-time::after {
+    content: '← Click here to enhance your prompt';
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: #1a1a2e;
+    color: #e2e8f0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    animation: praxis-tooltip-pulse 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+#praxis-enhance-btn.praxis-first-time::before {
+    content: '';
+    position: absolute;
+    left: calc(100% + 4px);
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-right: 6px solid #1a1a2e;
+}
+
+@keyframes praxis-tooltip-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
 }
 
 /* ─── Toast Notification ────────────────────────────────────── */

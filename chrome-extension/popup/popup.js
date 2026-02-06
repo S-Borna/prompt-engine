@@ -5,6 +5,8 @@
 const API_BASE = 'https://praxis.saidborna.com';
 
 // ─── DOM REFS ─────────────────────────────────────────────────
+const welcomeModal = document.getElementById('welcome-modal');
+const welcomeContinueBtn = document.getElementById('welcome-continue-btn');
 const loginView = document.getElementById('login-view');
 const mainView = document.getElementById('main-view');
 const loginEmail = document.getElementById('login-email');
@@ -28,12 +30,29 @@ const usageText = document.getElementById('usage-text');
 
 // ─── INIT ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+    // Check if first-time user
+    const { praxis_seen_welcome } = await chrome.storage.local.get('praxis_seen_welcome');
+    
+    if (!praxis_seen_welcome) {
+        // Show welcome modal for first-time users
+        welcomeModal.classList.remove('hidden');
+        return;
+    }
+
+    // Returning users — check session
     const session = await getSession();
     if (session) {
         showMainView(session);
     } else {
         showLoginView();
     }
+});
+
+// ─── WELCOME MODAL ────────────────────────────────────────────
+welcomeContinueBtn.addEventListener('click', async () => {
+    await chrome.storage.local.set({ praxis_seen_welcome: true });
+    welcomeModal.classList.add('hidden');
+    showLoginView();
 });
 
 // ─── AUTH ──────────────────────────────────────────────────────

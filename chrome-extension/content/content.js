@@ -137,6 +137,18 @@
         enhanceBtn.title = 'Enhance with PRAXIS';
         enhanceBtn.addEventListener('click', handleEnhanceClick);
 
+        // Check if this is the first time seeing the button
+        chrome.storage.local.get('praxis_seen_button', (data) => {
+            if (!data.praxis_seen_button) {
+                enhanceBtn.classList.add('praxis-first-time');
+                chrome.storage.local.set({ praxis_seen_button: true });
+                // Remove tooltip after 8 seconds
+                setTimeout(() => {
+                    enhanceBtn.classList.remove('praxis-first-time');
+                }, 8000);
+            }
+        });
+
         document.body.appendChild(enhanceBtn);
         positionButton();
     }
@@ -182,7 +194,7 @@
 
             if (response.error) {
                 if (response.needsLogin) {
-                    showToast('Sign in to PRAXIS extension first');
+                    showToast('Click the ⚡ PRAXIS icon in your toolbar to sign in');
                 } else {
                     showToast(response.error);
                 }

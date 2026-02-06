@@ -23,40 +23,19 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ── Live Before/After Demo Data ──
-const BEFORE_PROMPT = `Write a function to sort an array`;
+const BEFORE_PROMPT = `Help me plan a healthy weekly meal plan`;
 
-const AFTER_SECTIONS = [
-  {
-    label: 'EXPERT ROLE',
-    border: 'border-violet-500/40',
-    text: 'You are a senior software engineer specializing in algorithm design and performance optimization with 10+ years of experience in production systems.',
-  },
-  {
-    label: 'MAIN OBJECTIVE',
-    border: 'border-indigo-500/40',
-    text: 'Implement a robust, production-ready array sorting function that handles edge cases, supports multiple data types, and is optimized for performance.',
-  },
-  {
-    label: 'CONTEXT & BACKGROUND',
-    border: 'border-blue-500/40',
-    text: 'This function will be used in a high-throughput data pipeline processing 50k+ records per batch. Memory efficiency and time complexity matter.',
-  },
-  {
-    label: 'OUTPUT FORMAT',
-    border: 'border-cyan-500/40',
-    text: 'Provide the implementation in TypeScript with JSDoc comments, followed by a complexity analysis table (best/avg/worst case) and 5 unit test examples.',
-  },
-  {
-    label: 'CONSTRAINTS',
-    border: 'border-amber-500/40',
-    text: 'DO NOT use built-in .sort() method. DO NOT assume array contains only numbers. Handle null/undefined values gracefully. Maximum O(n log n) time complexity.',
-  },
-  {
-    label: 'APPROACH & GUIDELINES',
-    border: 'border-emerald-500/40',
-    text: 'Use a hybrid approach: QuickSort for large arrays (>1000 elements), InsertionSort for small partitions (<16 elements). Include type guards and input validation.',
-  },
-];
+const AFTER_PROMPT = `You are an experienced nutritionist and meal planning expert with 8+ years helping clients achieve their health goals through sustainable dietary changes.
+
+Create a comprehensive 7-day meal plan for a busy professional who wants to eat healthier, lose weight gradually, and save time on meal prep.
+
+The person works full-time (9-5), has moderate cooking skills, prefers simple recipes, and needs meals they can prep in advance. Budget is moderate ($80-100/week). They want to reduce processed foods and increase vegetables.
+
+Provide the meal plan as a structured table with breakfast, lunch, dinner, and snacks for each day. Include a separate grocery list organized by category (produce, proteins, pantry items). Add prep time estimates and 3 make-ahead tips.
+
+DO NOT include exotic ingredients that are hard to find. DO NOT suggest meals requiring more than 45 minutes of active cooking time. Avoid recipes with more than 10 ingredients.
+
+Prioritize variety to prevent boredom, balance macronutrients in each meal, and make sure recipes are actually achievable for someone with limited time. Include portion sizes and estimated calorie ranges.`;
 
 // ── Platform logos for carousel ──
 const PLATFORMS = [
@@ -134,9 +113,7 @@ function LiveDemo() {
     setPhase('transforming');
     setTimeout(() => {
       setPhase('after');
-      for (let i = 0; i < AFTER_SECTIONS.length; i++) {
-        setTimeout(() => setVisibleSections(i + 1), i * 150);
-      }
+      setTimeout(() => setVisibleSections(1), 200);
     }, 1200);
   }, []);
 
@@ -234,23 +211,19 @@ function LiveDemo() {
               </div>
             </div>
 
-            {AFTER_SECTIONS.map((section, i) => (
+            <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-5">
               <div
-                key={section.label}
-                className={`pl-4 border-l-2 ${section.border} transition-all duration-500 ${i < visibleSections ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}
+                className={`transition-all duration-700 ${visibleSections > 0 ? 'opacity-100' : 'opacity-0'}`}
               >
-                <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/25 mb-1">
-                  {section.label}
-                </div>
-                <p className="text-white/65 text-[13px] leading-relaxed">
-                  {section.text}
+                <p className="text-white/70 text-sm leading-relaxed whitespace-pre-line">
+                  {AFTER_PROMPT}
                 </p>
               </div>
-            ))}
+            </div>
 
-            {visibleSections >= AFTER_SECTIONS.length && (
+            {visibleSections > 0 && (
               <div className="flex items-center justify-between pt-4 border-t border-white/[0.06] mt-4">
-                <span className="text-[11px] text-white/20">6 sections · 142 words · Platform-optimized</span>
+                <span className="text-[11px] text-white/20">180 words · Structured · Expert-level</span>
                 <button
                   onClick={reset}
                   className="text-[11px] text-violet-400/60 hover:text-violet-400 transition-colors"
@@ -339,8 +312,7 @@ export default function LandingPage() {
 
             {/* Sub-headline */}
             <p className="text-lg md:text-xl text-white/45 max-w-2xl mx-auto mb-12 leading-relaxed text-center">
-              Transform any prompt into a structured, platform-optimized
-              instruction set — in seconds.
+              Transform any prompt into a structured, platform-optimized instruction set — in seconds.
             </p>
 
             {/* Dual CTA */}
@@ -394,8 +366,7 @@ export default function LandingPage() {
                   One prompt. <span className="text-violet-400">Six dimensions.</span>
                 </h2>
                 <p className="text-base text-white/40 max-w-lg mx-auto text-center">
-                  See how a simple prompt becomes a comprehensive,
-                  execution-ready instruction set.
+                  See how a simple prompt becomes a comprehensive, execution-ready instruction set.
                 </p>
               </div>
             </RevealSection>
@@ -430,8 +401,7 @@ export default function LandingPage() {
                   Prompt engineering, <span className="text-violet-400">systematized</span>
                 </h2>
                 <p className="text-base text-white/40 max-w-lg mx-auto text-center">
-                  A systematic approach to getting better results
-                  from any AI model.
+                  A systematic approach to getting better results from any AI model.
                 </p>
               </div>
             </RevealSection>
