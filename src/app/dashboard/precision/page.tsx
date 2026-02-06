@@ -168,9 +168,11 @@ export default function RefinePage() {
         }
     }, [prompt, selectedModel, questions, answers, customAnswers, domain, addToHistory]);
 
-    const handleSave = useCallback(() => {
+    const handleSave = useCallback(async () => {
         if (!result) return;
         const flatPrompt = Object.values(result.sections).filter(Boolean).join('\n\n');
+
+        // Save to local store (localStorage cache)
         addPrompt({
             title: prompt.slice(0, 50) + (prompt.length > 50 ? '...' : ''),
             content: prompt,
@@ -181,6 +183,25 @@ export default function RefinePage() {
             tool: 'precision',
             metadata: result.meta,
         });
+
+        // Save to Postgres
+        try {
+            await fetch('/api/prompts/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: prompt.slice(0, 80),
+                    originalPrompt: prompt,
+                    enhancedPrompt: flatPrompt,
+                    tags: [selectedModel, 'refined'],
+                    tool: 'precision',
+                    sections: result.sections,
+                }),
+            });
+        } catch (e) {
+            console.warn('Failed to save to database:', e);
+        }
+
         toast.success('Saved to Library!');
     }, [prompt, result, selectedModel, addPrompt]);
 

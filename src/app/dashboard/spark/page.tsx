@@ -145,12 +145,13 @@ export default function SparkPage() {
         }
     }, [input, selectedModel, selectedLanguage, addToHistory]);
 
-    const handleSave = useCallback(() => {
+    const handleSave = useCallback(async () => {
         if (!structuredResult) return;
         const { sections } = structuredResult;
         const flatPrompt = [sections.expertRole, sections.mainObjective, sections.contextBackground, sections.outputFormat, sections.constraints, sections.approachGuidelines]
             .filter(Boolean).join('\n\n');
 
+        // Save to local store (localStorage cache)
         addPrompt({
             title: input.slice(0, 50) + (input.length > 50 ? '...' : ''),
             content: input,
@@ -161,6 +162,25 @@ export default function SparkPage() {
             tool: 'spark',
             metadata: structuredResult.meta,
         });
+
+        // Save to Postgres
+        try {
+            await fetch('/api/prompts/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: input.slice(0, 80),
+                    originalPrompt: input,
+                    enhancedPrompt: flatPrompt,
+                    tags: [selectedModel],
+                    tool: 'spark',
+                    sections,
+                }),
+            });
+        } catch (e) {
+            console.warn('Failed to save to database:', e);
+        }
+
         toast.success('Saved to Library!');
     }, [input, structuredResult, selectedModel, addPrompt]);
 

@@ -6,6 +6,8 @@ import {
     validateRewriteQuality,
 } from '@/lib/prompt-rewriter';
 import { compilePrompt } from '@/lib/prompt-engine';
+import { auth, isExecutiveEmail } from '@/lib/auth';
+import { getPromptUsage, incrementPromptUsage, hasExceededTrialLimit } from '@/lib/usage-tracker';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REFINE API — AI-generated wizard questions + structured refinement
@@ -28,6 +30,46 @@ function getClient(): OpenAI {
  *   2. ?stage=generate  — Generate structured prompt from answers
  */
 export async function POST(request: NextRequest) {
+    // ─── AUTHENTICATION & VERIFICATION ──────────────────────────────
+    const session = await auth();
+
+    if (!session?.user) {
+        return NextResponse.json(
+            { error: 'Authentication required' },
+            { status: 401 }
+        );
+    }
+
+    if (!session.user.isVerified && !isExecutiveEmail(session.user.email)) {
+        return NextResponse.json(
+            { error: 'Email verification required. Please check your inbox.' },
+            { status: 403 }
+        );
+    }
+
+    // Check 100-prompt trial limit (only on generate stage, not questions)
+    const { searchParams: sp } = new URL(request.url);
+    const stageCheck = sp.get('stage') || 'questions';
+
+    if (
+        stageCheck === 'generate' &&
+        session.user.role === 'trial' &&
+        !isExecutiveEmail(session.user.email) &&
+        await hasExceededTrialLimit(session.user.email, 100)
+    ) {
+        const currentUsage = await getPromptUsage(session.user.email);
+        return NextResponse.json(
+            {
+                error: 'Trial limit reached',
+                message: "You've used all 100 trial prompts. Upgrade to Standard ($9.99/mo) for unlimited access.",
+                promptsUsed: currentUsage,
+                upgradeUrl: '/dashboard/billing',
+            },
+            { status: 403 }
+        );
+    }
+
+    // ─── RATE LIMITING ──────────────────────────────────────────────
     const rateLimitResult = await rateLimit(request, RateLimitPresets.AI_CALLS);
     if (!rateLimitResult.allowed) {
         return NextResponse.json(
@@ -149,6 +191,38 @@ RULES:
 
             const elapsed = Date.now() - startTime;
 
+            // Increment usage counter (except for executives)
+            if (!isExecutiveEmail(session.user.email)) {
+                const newUsage = await incrementPromptUsage(session.user.email);
+                console.log(`✓ Refine usage incremented for ${session.user.email}: ${newUsage}/100`);
+            }
+
+            // Save refined prompt to database
+            try {
+                const { getPrisma } = await import('@/lib/prisma');
+                const prisma = getPrisma();
+                const dbUser = await prisma.user.findUnique({
+                    where: { email: session.user.email.toLowerCase() },
+                    select: { id: true },
+                });
+                if (dbUser) {
+                    await prisma.prompt.create({
+                        data: {
+                            userId: dbUser.id,
+                            fullPrompt: result.prompt,
+                            task: result.sections?.mainObjective || prompt,
+                            role: result.sections?.expertRole || null,
+                            instructions: result.sections?.approachGuidelines || null,
+                            output: result.sections?.outputFormat || null,
+                            title: prompt.slice(0, 80),
+                            tags: [platform || 'general', 'refined'],
+                        },
+                    });
+                }
+            } catch (saveErr) {
+                console.warn('[refine] Failed to save prompt to DB:', saveErr);
+            }
+
             return NextResponse.json({
                 success: true,
                 enhanced: result.prompt,
@@ -166,6 +240,13 @@ RULES:
                     model: platform || 'chatgpt',
                     domain: result.meta.domain,
                 },
+                usage: !isExecutiveEmail(session.user.email)
+                    ? {
+                        promptsUsed: await getPromptUsage(session.user.email),
+                        promptsRemaining: Math.max(0, 100 - await getPromptUsage(session.user.email)),
+                        isTrialUser: session.user.role === 'trial',
+                    }
+                    : undefined,
             });
         }
 
