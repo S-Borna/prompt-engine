@@ -29,6 +29,7 @@ model User {
   lastActiveAt  DateTime?
   promptsUsedToday Int    @default(0)
   promptsResetAt   DateTime?
+  trialEndsAt      DateTime?  // 7-day trial countdown — set on first login
 
   // Stripe
   stripeCustomerId    String?   @unique

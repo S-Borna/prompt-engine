@@ -11,65 +11,72 @@
     window.__praxisInjected = true;
 
     // ─── Platform Detection ────────────────────────────────────
+    // ─── Helper: Insert text with paragraph breaks ──────────
+    function setFormattedContent(el, text) {
+        el.focus();
+        // Split on double newlines or period+space for readable paragraphs
+        const paragraphs = text.split(/\n{2,}/).filter(p => p.trim());
+        
+        if (el.getAttribute('contenteditable') === 'true') {
+            el.innerHTML = '';
+            paragraphs.forEach(para => {
+                const p = document.createElement('p');
+                p.textContent = para.trim();
+                el.appendChild(p);
+            });
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+        } else if (el.tagName === 'TEXTAREA') {
+            const nativeSet = Object.getOwnPropertyDescriptor(
+                window.HTMLTextAreaElement.prototype, 'value'
+            )?.set;
+            if (nativeSet) {
+                nativeSet.call(el, text);
+            } else {
+                el.value = text;
+            }
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+        } else {
+            el.innerText = text;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }
+
     const PLATFORMS = {
         chatgpt: {
             match: () => location.hostname.includes('chatgpt.com') || location.hostname.includes('chat.openai.com'),
-            getTextarea: () => document.querySelector('#prompt-textarea, textarea[data-id="root"]'),
-            getTextContent: (el) => el.innerText || el.textContent,
-            setTextContent: (el, text) => {
-                el.focus();
-                // ChatGPT uses contenteditable div (ProseMirror)
-                if (el.getAttribute('contenteditable') === 'true') {
-                    // Clear existing content
-                    el.innerHTML = '';
-                    const p = document.createElement('p');
-                    p.textContent = text;
-                    el.appendChild(p);
-                    // Dispatch input event to trigger React state update
-                    el.dispatchEvent(new Event('input', { bubbles: true }));
-                } else {
-                    // Fallback for textarea
-                    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-                        window.HTMLTextAreaElement.prototype, 'value'
-                    ).set;
-                    nativeInputValueSetter.call(el, text);
-                    el.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            },
+            getTextarea: () => document.querySelector(
+                '#prompt-textarea, [id*="prompt"][contenteditable], div[contenteditable="true"][data-placeholder], textarea[placeholder]'
+            ),
+            getTextContent: (el) => el.innerText || el.textContent || el.value || '',
+            setTextContent: (el, text) => setFormattedContent(el, text),
             platform: 'chatgpt',
         },
         claude: {
             match: () => location.hostname.includes('claude.ai'),
-            getTextarea: () => document.querySelector('[contenteditable="true"].ProseMirror, div[contenteditable="true"]'),
-            getTextContent: (el) => el.innerText || el.textContent,
-            setTextContent: (el, text) => {
-                el.focus();
-                el.innerHTML = '';
-                const p = document.createElement('p');
-                p.textContent = text;
-                el.appendChild(p);
-                el.dispatchEvent(new Event('input', { bubbles: true }));
-            },
+            getTextarea: () => document.querySelector(
+                '[contenteditable="true"].ProseMirror, div[contenteditable="true"], fieldset [contenteditable]'
+            ),
+            getTextContent: (el) => el.innerText || el.textContent || '',
+            setTextContent: (el, text) => setFormattedContent(el, text),
             platform: 'claude',
         },
         gemini: {
             match: () => location.hostname.includes('gemini.google.com'),
-            getTextarea: () => document.querySelector('.ql-editor, [contenteditable="true"]'),
-            getTextContent: (el) => el.innerText || el.textContent,
-            setTextContent: (el, text) => {
-                el.focus();
-                if (el.getAttribute('contenteditable') === 'true') {
-                    el.innerHTML = '';
-                    const p = document.createElement('p');
-                    p.textContent = text;
-                    el.appendChild(p);
-                    el.dispatchEvent(new Event('input', { bubbles: true }));
-                } else {
-                    el.value = text;
-                    el.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            },
+            getTextarea: () => document.querySelector(
+                '.ql-editor, [contenteditable="true"], div[role="textbox"]'
+            ),
+            getTextContent: (el) => el.innerText || el.textContent || '',
+            setTextContent: (el, text) => setFormattedContent(el, text),
             platform: 'gemini',
+        },
+        grok: {
+            match: () => location.hostname.includes('grok.com') || location.hostname.includes('x.com/i/grok'),
+            getTextarea: () => document.querySelector(
+                'textarea, [contenteditable="true"], div[role="textbox"]'
+            ),
+            getTextContent: (el) => el.innerText || el.textContent || el.value || '',
+            setTextContent: (el, text) => setFormattedContent(el, text),
+            platform: 'grok',
         },
     };
 

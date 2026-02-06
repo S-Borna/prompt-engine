@@ -194,6 +194,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                             level: true,
                             streak: true,
                             tier: true,
+                            trialEndsAt: true,
                         },
                     });
 
@@ -202,7 +203,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     token.xp = dbUser?.xp ?? 0;
                     token.level = dbUser?.level ?? 1;
                     token.streak = dbUser?.streak ?? 0;
-                    if (dbUser?.tier) token.tier = dbUser.tier;
+
+                    // Executive emails ALWAYS get CREATOR — DB value cannot override
+                    if (isExecutiveEmail(user.email)) {
+                        token.tier = 'CREATOR';
+                        token.trialEndsAt = null;
+                    } else if (dbUser?.tier) {
+                        token.tier = dbUser.tier;
+                    }
+
+                    // Auto-set 7-day trial start for free users on first login
+                    if (!isExecutiveEmail(user.email) && !dbUser?.trialEndsAt && (dbUser?.tier === 'FREE' || !dbUser?.tier)) {
+                        const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                        await prisma.user.update({
+                            where: { email: (user.email as string).toLowerCase() },
+                            data: { trialEndsAt: trialEnd },
+                        }).catch(() => { });
+                        token.trialEndsAt = trialEnd.toISOString();
+                    } else {
+                        token.trialEndsAt = dbUser?.trialEndsAt?.toISOString() || null;
+                    }
                 } catch (dbErr) {
                     console.warn('JWT callback: DB lookup failed, using defaults:', dbErr);
                     token.isVerified = isExecutiveEmail(user.email);
@@ -226,6 +246,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 session.user.level = (token.level as number) || 1;
                 session.user.streak = (token.streak as number) || 0;
                 session.user.promptsUsedToday = (token.promptsUsedToday as number) || 0;
+                session.user.trialEndsAt = (token.trialEndsAt as string) || null;
             }
             return session;
         },
@@ -254,6 +275,7 @@ declare module 'next-auth' {
             level: number;
             streak: number;
             promptsUsedToday: number;
+            trialEndsAt: string | null;
         };
     }
 
@@ -266,6 +288,7 @@ declare module 'next-auth' {
         level?: number;
         streak?: number;
         promptsUsedToday?: number;
+        trialEndsAt?: string | null;
     }
 }
 

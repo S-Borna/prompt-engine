@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import {
-    Settings, User, Bell, Shield, Key, Globe,
+    Settings, User, Bell, Shield, Globe,
     ChevronRight, Check, Moon, Sun, Monitor, Save, Info
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -36,25 +36,16 @@ export default function SettingsPage() {
         tips: true,
     });
 
-    // API Keys state
-    const [openaiKey, setOpenaiKey] = useState('');
-    const [anthropicKey, setAnthropicKey] = useState('');
-
     const tabs = [
         { id: 'profile', name: 'Profile', icon: User },
         { id: 'notifications', name: 'Notifications', icon: Bell },
         { id: 'appearance', name: 'Appearance', icon: Moon },
         { id: 'security', name: 'Security', icon: Shield },
-        { id: 'api', name: 'API Keys', icon: Key },
         { id: 'language', name: 'Language', icon: Globe },
     ];
 
     const handleSaveProfile = () => {
         toast.success('Profile saved (demo mode)');
-    };
-
-    const handleSaveApiKeys = () => {
-        toast.success('API keys saved (demo mode)');
     };
 
     return (
@@ -247,48 +238,6 @@ export default function SettingsPage() {
                             <div className="flex items-center gap-2 text-sm text-white/40">
                                 <Info className="w-4 h-4" />
                                 <span>Security features require a production database</span>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'api' && (
-                        <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-6 space-y-6">
-                            <h2 className="text-lg font-semibold text-white">API Keys</h2>
-                            <p className="text-white/50">Connect your own AI providers for enhanced usage</p>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-white/70 mb-2">OpenAI API Key</label>
-                                    <input
-                                        type="password"
-                                        value={openaiKey}
-                                        onChange={(e) => setOpenaiKey(e.target.value)}
-                                        placeholder="sk-..."
-                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 font-mono focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-white/70 mb-2">Anthropic API Key</label>
-                                    <input
-                                        type="password"
-                                        value={anthropicKey}
-                                        onChange={(e) => setAnthropicKey(e.target.value)}
-                                        placeholder="sk-ant-..."
-                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 font-mono focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50"
-                                    />
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={handleSaveApiKeys}
-                                className="px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white font-semibold rounded-xl"
-                            >
-                                Save API Keys
-                            </button>
-
-                            <div className="flex items-center gap-2 text-sm text-white/40">
-                                <Info className="w-4 h-4" />
-                                <span>API keys are stored locally in demo mode</span>
                             </div>
                         </div>
                     )}

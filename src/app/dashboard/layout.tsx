@@ -7,7 +7,7 @@ import { signOut, useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import {
     Wand2, FolderOpen, Clock, Settings, CreditCard,
-    Search, ChevronDown, Sparkles, LogOut,
+    Search, Sparkles, LogOut,
     Menu, X, Plus, ChevronLeft, SlidersHorizontal,
     Crown, Zap, AlertTriangle, ArrowUpRight
 } from 'lucide-react';
@@ -51,24 +51,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const { data: session, update: updateSession } = useSession();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-    const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [isDesktop, setIsDesktop] = useState(false);
     const [livePromptsUsed, setLivePromptsUsed] = useState<number | null>(null);
-    const userMenuRef = useRef<HTMLDivElement>(null);
     const searchRef = useRef<HTMLInputElement>(null);
-
-    // Close user menu when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-                setUserMenuOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
 
     // Detect desktop viewport
     useEffect(() => {
@@ -135,10 +122,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const userInitial = userName.charAt(0).toUpperCase();
     const userTier = (session?.user as Record<string, unknown>)?.tier as string || 'FREE';
     const promptsUsed = livePromptsUsed ?? (Number((session?.user as Record<string, unknown>)?.promptsUsed) || 0);
+    const trialEndsAt = (session?.user as Record<string, unknown>)?.trialEndsAt as string | null;
     const isCreator = userTier === 'CREATOR';
     const isPaid = ['CREATOR', 'PRO', 'TEAM', 'ENTERPRISE'].includes(userTier);
     const TRIAL_LIMIT = 100;
     const promptsRemaining = isPaid ? Infinity : Math.max(0, TRIAL_LIMIT - promptsUsed);
+
+    // Trial countdown — days remaining
+    const trialDaysLeft = (() => {
+        if (isPaid || !trialEndsAt) return null;
+        const diff = new Date(trialEndsAt).getTime() - Date.now();
+        if (diff <= 0) return 0;
+        return Math.ceil(diff / (1000 * 60 * 60 * 24));
+    })();
+    const trialExpired = trialDaysLeft !== null && trialDaysLeft <= 0;
 
     // Tier display config
     const tierConfig: Record<string, { label: string; gradient: string; icon: typeof Crown; glow: string }> = {
@@ -306,9 +303,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     PROFILE CARD + PROMPT COUNTER — Sidebar bottom
                 ═══════════════════════════════════════════════════════ */}
                 <div className={`border-t border-white/[0.04] ${sidebarCollapsed ? 'p-2' : 'p-3'}`}>
-                    {/* Trial Prompt Counter — Only for free users */}
+                    {/* Trial Info — Only for free users */}
                     {!isPaid && !sidebarCollapsed && (
-                        <div className={`mb-3 rounded-xl p-3 transition-all duration-500 ${counterWarning === 'critical'
+                        <div className={`mb-3 rounded-xl p-3 transition-all duration-500 ${trialExpired
+                            ? 'bg-red-500/10 border border-red-500/20'
+                            : counterWarning === 'critical'
                                 ? 'bg-red-500/10 border border-red-500/20 animate-pulse'
                                 : counterWarning === 'warning'
                                     ? 'bg-amber-500/10 border border-amber-500/15'
@@ -316,15 +315,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                         ? 'bg-amber-500/[0.06] border border-amber-500/10'
                                         : 'bg-white/[0.02] border border-white/[0.04]'
                             }`}>
+                            {/* Trial days countdown */}
+                            {trialDaysLeft !== null && (
+                                <div className="flex items-center justify-between mb-2.5 pb-2.5 border-b border-white/[0.04]">
+                                    <span className={`text-[10px] font-semibold uppercase tracking-wider ${trialExpired ? 'text-red-400' : trialDaysLeft <= 2 ? 'text-amber-400' : 'text-white/40'}`}>
+                                        Free Trial
+                                    </span>
+                                    {trialExpired ? (
+                                        <span className="text-xs font-bold text-red-400">Expired</span>
+                                    ) : (
+                                        <span className={`text-xs font-bold tabular-nums ${trialDaysLeft <= 2 ? 'text-amber-400' : 'text-white/60'}`}>
+                                            {trialDaysLeft}d left
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                            {/* Prompt counter */}
                             <div className="flex items-center justify-between mb-2">
                                 <span className={`text-[10px] font-semibold uppercase tracking-wider ${counterWarning === 'critical' ? 'text-red-400' :
-                                        counterWarning === 'warning' ? 'text-amber-400' : 'text-white/40'
+                                    counterWarning === 'warning' ? 'text-amber-400' : 'text-white/40'
                                     }`}>
                                     Prompts Remaining
                                 </span>
                                 <span className={`text-lg font-bold tabular-nums ${counterWarning === 'critical' ? 'text-red-400' :
-                                        counterWarning === 'warning' ? 'text-amber-400' :
-                                            counterWarning === 'notice' ? 'text-amber-300' : 'text-white/80'
+                                    counterWarning === 'warning' ? 'text-amber-400' :
+                                        counterWarning === 'notice' ? 'text-amber-300' : 'text-white/80'
                                     }`}>
                                     {promptsRemaining}
                                 </span>
@@ -333,9 +348,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden mb-2">
                                 <div
                                     className={`h-full rounded-full transition-all duration-700 ease-out ${counterWarning === 'critical' ? 'bg-gradient-to-r from-red-500 to-red-400' :
-                                            counterWarning === 'warning' ? 'bg-gradient-to-r from-amber-500 to-amber-400' :
-                                                counterWarning === 'notice' ? 'bg-gradient-to-r from-amber-500/70 to-yellow-400' :
-                                                    'bg-gradient-to-r from-violet-500 to-indigo-500'
+                                        counterWarning === 'warning' ? 'bg-gradient-to-r from-amber-500 to-amber-400' :
+                                            counterWarning === 'notice' ? 'bg-gradient-to-r from-amber-500/70 to-yellow-400' :
+                                                'bg-gradient-to-r from-violet-500 to-indigo-500'
                                         }`}
                                     style={{ width: `${Math.max(2, (promptsRemaining / TRIAL_LIMIT) * 100)}%` }}
                                 />
@@ -378,8 +393,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {!isPaid && sidebarCollapsed && (
                         <div className="mb-2 flex justify-center" title={`${promptsRemaining} prompts remaining`}>
                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold tabular-nums ${counterWarning === 'critical' ? 'bg-red-500/15 text-red-400 animate-pulse' :
-                                    counterWarning === 'warning' ? 'bg-amber-500/15 text-amber-400' :
-                                        'bg-white/[0.04] text-white/50'
+                                counterWarning === 'warning' ? 'bg-amber-500/15 text-amber-400' :
+                                    'bg-white/[0.04] text-white/50'
                                 }`}>
                                 {promptsRemaining}
                             </div>
@@ -388,15 +403,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                     {/* Profile Card */}
                     <div className={`rounded-xl transition-all duration-200 ${sidebarCollapsed
-                            ? 'flex flex-col items-center gap-2'
-                            : `p-3 ${isCreator ? 'bg-gradient-to-br from-amber-500/[0.06] to-orange-500/[0.04] border border-amber-500/10' : 'bg-white/[0.02] border border-white/[0.04]'}`
+                        ? 'flex flex-col items-center gap-2'
+                        : `p-3 ${isCreator ? 'bg-gradient-to-br from-amber-500/[0.06] to-orange-500/[0.04] border border-amber-500/10' : 'bg-white/[0.02] border border-white/[0.04]'}`
                         }`}>
                         {/* Avatar + Info */}
                         <div className={`flex items-center ${sidebarCollapsed ? 'flex-col' : 'gap-3'}`}>
                             <div className={`relative flex-shrink-0 ${sidebarCollapsed ? '' : ''}`}>
                                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold ${isCreator
-                                        ? 'bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 text-white shadow-lg shadow-amber-500/20'
-                                        : `bg-gradient-to-br ${tier.gradient} text-white`
+                                    ? 'bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 text-white shadow-lg shadow-amber-500/20'
+                                    : `bg-gradient-to-br ${tier.gradient} text-white`
                                     }`}>
                                     {userInitial}
                                 </div>
@@ -509,9 +524,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             </p>
                         </div>
 
-                        {/* Right: Actions */}
+                        {/* Right: New Prompt */}
                         <div className="flex items-center gap-2">
-                            {/* New Prompt */}
                             <button
                                 onClick={handleNewPrompt}
                                 className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-500 to-indigo-500 text-white text-sm font-medium rounded-lg hover:shadow-lg hover:shadow-violet-500/20 transition-all"
@@ -519,112 +533,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <Plus className="w-4 h-4" />
                                 <span>New</span>
                             </button>
-
-                            {/* User Menu */}
-                            <div className="relative" ref={userMenuRef}>
-                                <button
-                                    onClick={() => setUserMenuOpen(!userMenuOpen)}
-                                    className={`flex items-center gap-2 p-1 rounded-lg transition-all ${isCreator ? 'hover:bg-amber-500/[0.06]' : 'hover:bg-white/[0.04]'
-                                        }`}
-                                >
-                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-bold ${isCreator
-                                            ? 'bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 shadow-md shadow-amber-500/20'
-                                            : `bg-gradient-to-br ${tier.gradient}`
-                                        }`}>
-                                        {userInitial}
-                                    </div>
-                                    {isPaid && (
-                                        <span className={`hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-gradient-to-r ${tier.gradient} text-white`}>
-                                            <TierIcon className="w-2.5 h-2.5" />
-                                            {tier.label}
-                                        </span>
-                                    )}
-                                    <ChevronDown className={`w-3.5 h-3.5 text-white/40 hidden sm:block transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
-                                </button>
-
-                                {userMenuOpen && (
-                                    <div className={`absolute right-0 mt-2 w-64 rounded-xl border shadow-2xl py-1.5 z-50 ${isCreator
-                                            ? 'bg-[#0c0c0f] border-amber-500/15'
-                                            : 'bg-[#0c0c0f] border-white/[0.06]'
-                                        }`}>
-                                        {/* Profile Header */}
-                                        <div className={`px-4 py-3 border-b ${isCreator ? 'border-amber-500/10' : 'border-white/[0.04]'}`}>
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold ${isCreator
-                                                        ? 'bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 text-white shadow-lg shadow-amber-500/20'
-                                                        : `bg-gradient-to-br ${tier.gradient} text-white`
-                                                    }`}>
-                                                    {userInitial}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <span className="font-semibold text-white text-sm truncate">{userName}</span>
-                                                        {isPaid && (
-                                                            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-gradient-to-r ${tier.gradient} text-white`}>
-                                                                <TierIcon className="w-2.5 h-2.5" />
-                                                                {tier.label}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="text-xs text-white/40 truncate">{userEmail}</div>
-                                                    {isCreator && (
-                                                        <div className="text-[10px] text-amber-400/60 mt-0.5">✦ Unlimited access — no limits</div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            {/* Prompt usage for free tier */}
-                                            {!isPaid && (
-                                                <div className="mt-3 p-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
-                                                    <div className="flex items-center justify-between mb-1.5">
-                                                        <span className="text-[10px] font-medium uppercase tracking-wider text-white/40">Usage</span>
-                                                        <span className={`text-xs font-bold tabular-nums ${counterWarning === 'critical' ? 'text-red-400' :
-                                                                counterWarning === 'warning' ? 'text-amber-400' : 'text-white/60'
-                                                            }`}>
-                                                            {promptsUsed} / {TRIAL_LIMIT}
-                                                        </span>
-                                                    </div>
-                                                    <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
-                                                        <div
-                                                            className={`h-full rounded-full transition-all ${counterWarning === 'critical' ? 'bg-red-500' :
-                                                                    counterWarning === 'warning' ? 'bg-amber-500' :
-                                                                        'bg-violet-500'
-                                                                }`}
-                                                            style={{ width: `${Math.min(100, (promptsUsed / TRIAL_LIMIT) * 100)}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="py-1">
-                                            <Link
-                                                href="/dashboard/settings"
-                                                className="flex items-center gap-2.5 px-3 py-2 text-sm text-white/60 hover:bg-white/[0.04] transition-colors"
-                                                onClick={() => setUserMenuOpen(false)}
-                                            >
-                                                <Settings className="w-4 h-4" />
-                                                Settings
-                                            </Link>
-                                            <Link
-                                                href="/dashboard/billing"
-                                                className="flex items-center gap-2.5 px-3 py-2 text-sm text-white/60 hover:bg-white/[0.04] transition-colors"
-                                                onClick={() => setUserMenuOpen(false)}
-                                            >
-                                                <CreditCard className="w-4 h-4" />
-                                                Billing & Plans
-                                            </Link>
-                                        </div>
-                                        <div className="border-t border-white/[0.04] pt-1">
-                                            <button
-                                                onClick={handleSignOut}
-                                                className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
-                                            >
-                                                <LogOut className="w-4 h-4" />
-                                                Sign Out
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
                         </div>
                     </div>
                 </header>
