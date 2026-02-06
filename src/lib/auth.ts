@@ -2,14 +2,14 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import GitHub from 'next-auth/providers/github';
-import bcrypt from 'bcryptjs';
-import { createVerificationToken } from './verification';
-import { sendVerificationEmail } from './email';
-import { getPrisma } from './prisma';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRAXIS Auth Configuration
 // PostgreSQL-backed via Prisma — JWT sessions for Cloudflare Workers edge
+//
+// CRITICAL: All Prisma/pg/bcrypt imports are DYNAMIC (inside functions)
+// to avoid loading Node.js-only modules in the Cloudflare Workers edge.
+// Middleware imports this file → top-level pg import = instant crash.
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Executive accounts — unlimited access, no rate limits
@@ -19,6 +19,7 @@ const EXECUTIVE_EMAILS = ['said@saidborna.com'];
  * Mark an email as verified in the database
  */
 export async function markEmailVerified(email: string): Promise<void> {
+    const { getPrisma } = await import('./prisma');
     const prisma = getPrisma();
     await prisma.user.upsert({
         where: { email: email.toLowerCase() },
@@ -38,6 +39,7 @@ export async function isEmailVerified(email: string | null | undefined): Promise
     if (!email) return false;
     if (isExecutiveEmail(email)) return true;
 
+    const { getPrisma } = await import('./prisma');
     const prisma = getPrisma();
     const user = await prisma.user.findUnique({
         where: { email: email.toLowerCase() },
@@ -91,6 +93,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                     if (!email || password.length < 1) return null;
 
+                    // Dynamic imports to avoid loading pg/bcrypt in edge
+                    const { getPrisma } = await import('./prisma');
+                    const bcrypt = (await import('bcryptjs')).default;
                     const prisma = getPrisma();
 
                     // Look up user in database
@@ -128,9 +133,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         },
                     });
 
-                    // Send verification email
-                    const token = await createVerificationToken(email);
-                    await sendVerificationEmail(email, token);
+                    // Send verification email (dynamic import)
+                    try {
+                        const { createVerificationToken } = await import('./verification');
+                        const { sendVerificationEmail } = await import('./email');
+                        const token = await createVerificationToken(email);
+                        await sendVerificationEmail(email, token);
+                    } catch (emailErr) {
+                        console.warn('Failed to send verification email:', emailErr);
+                    }
 
                     return {
                         id: newUser.id,
@@ -170,26 +181,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 token.role = getUserRole(user.email);
                 token.tier = isExecutiveEmail(user.email) ? 'EXECUTIVE' : 'FREE';
 
-                // Fetch verification status from DB
-                const prisma = getPrisma();
-                const dbUser = await prisma.user.findUnique({
-                    where: { email: (user.email as string).toLowerCase() },
-                    select: {
-                        emailVerified: true,
-                        promptsUsedToday: true,
-                        xp: true,
-                        level: true,
-                        streak: true,
-                        tier: true,
-                    },
-                });
+                // Fetch verification status from DB (dynamic import)
+                try {
+                    const { getPrisma } = await import('./prisma');
+                    const prisma = getPrisma();
+                    const dbUser = await prisma.user.findUnique({
+                        where: { email: (user.email as string).toLowerCase() },
+                        select: {
+                            emailVerified: true,
+                            promptsUsedToday: true,
+                            xp: true,
+                            level: true,
+                            streak: true,
+                            tier: true,
+                        },
+                    });
 
-                token.isVerified = isExecutiveEmail(user.email) || !!dbUser?.emailVerified;
-                token.promptsUsed = dbUser?.promptsUsedToday ?? 0;
-                token.xp = dbUser?.xp ?? 0;
-                token.level = dbUser?.level ?? 1;
-                token.streak = dbUser?.streak ?? 0;
-                if (dbUser?.tier) token.tier = dbUser.tier;
+                    token.isVerified = isExecutiveEmail(user.email) || !!dbUser?.emailVerified;
+                    token.promptsUsed = dbUser?.promptsUsedToday ?? 0;
+                    token.xp = dbUser?.xp ?? 0;
+                    token.level = dbUser?.level ?? 1;
+                    token.streak = dbUser?.streak ?? 0;
+                    if (dbUser?.tier) token.tier = dbUser.tier;
+                } catch (dbErr) {
+                    console.warn('JWT callback: DB lookup failed, using defaults:', dbErr);
+                    token.isVerified = isExecutiveEmail(user.email);
+                    token.promptsUsed = 0;
+                    token.xp = 0;
+                    token.level = 1;
+                    token.streak = 0;
+                }
             }
             return token;
         },

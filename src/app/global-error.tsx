@@ -1,13 +1,19 @@
 'use client';
 
-import { useEffect } from 'react';
-import { Sparkles, RefreshCw, Home } from 'lucide-react';
-import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Global Error Boundary - Catches all unhandled errors
-// Displays a branded, calm fallback UI instead of raw error screens
+// Global Error Boundary — Warm, humorous fallback for total crashes
+// No external imports (lucide, Link, etc.) since the entire app is down
 // ═══════════════════════════════════════════════════════════════════════════
+
+const QUOTES = [
+    "Even the best prompts need a second try sometimes.",
+    "Our servers are doing their version of 'thinking...'",
+    "Plot twist: the AI needed a prompt to fix itself.",
+    "We're rewriting the error prompt as we speak.",
+    "This is what happens when you skip the constraints section.",
+];
 
 export default function GlobalError({
     error,
@@ -16,8 +22,9 @@ export default function GlobalError({
     error: Error & { digest?: string };
     reset: () => void;
 }) {
+    const [quote] = useState(() => QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+
     useEffect(() => {
-        // Log error for monitoring (replace with your error tracking service)
         console.error('Global error caught:', error);
     }, [error]);
 
@@ -30,144 +37,109 @@ export default function GlobalError({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        backgroundColor: '#0a0a0f',
+                        backgroundColor: '#050507',
                         color: 'white',
-                        fontFamily: 'system-ui, -apple-system, sans-serif',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                         padding: '24px',
+                        WebkitFontSmoothing: 'antialiased',
                     }}
                 >
                     {/* Background glow */}
-                    <div
-                        style={{
-                            position: 'fixed',
-                            inset: 0,
-                            pointerEvents: 'none',
-                            overflow: 'hidden',
-                        }}
-                    >
-                        <div
-                            style={{
-                                position: 'absolute',
-                                width: '400px',
-                                height: '400px',
-                                backgroundColor: 'rgb(139,92,246)',
-                                opacity: 0.1,
-                                filter: 'blur(100px)',
-                                top: '50%',
-                                left: '50%',
-                                transform: 'translate(-50%, -50%)',
-                            }}
-                        />
+                    <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+                        <div style={{
+                            position: 'absolute', width: '500px', height: '500px',
+                            background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)',
+                            top: '40%', left: '50%', transform: 'translate(-50%, -50%)',
+                        }} />
                     </div>
 
-                    <div
-                        style={{
-                            position: 'relative',
-                            zIndex: 10,
-                            maxWidth: '420px',
-                            textAlign: 'center',
-                        }}
-                    >
-                        {/* Logo */}
-                        <div
-                            style={{
-                                width: '64px',
-                                height: '64px',
-                                borderRadius: '16px',
-                                background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                margin: '0 auto 24px',
-                            }}
-                        >
-                            <Sparkles style={{ width: '32px', height: '32px', color: 'white' }} />
+                    <div style={{ position: 'relative', zIndex: 10, maxWidth: '460px', textAlign: 'center' }}>
+                        {/* Animated logo */}
+                        <div style={{
+                            width: '72px', height: '72px', borderRadius: '18px',
+                            background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            margin: '0 auto 28px', fontSize: '32px',
+                            boxShadow: '0 0 60px rgba(139,92,246,0.2)',
+                        }}>
+                            ✦
                         </div>
 
-                        <h1
-                            style={{
-                                fontSize: '24px',
-                                fontWeight: 700,
-                                marginBottom: '12px',
-                                color: 'white',
-                            }}
-                        >
-                            Something went wrong
+                        <h1 style={{
+                            fontSize: '26px', fontWeight: 700, marginBottom: '8px',
+                            color: '#ffffff', letterSpacing: '-0.3px',
+                        }}>
+                            Oops, vi snubblade
                         </h1>
 
-                        <p
-                            style={{
-                                fontSize: '15px',
-                                color: 'rgba(255,255,255,0.6)',
-                                lineHeight: 1.6,
-                                marginBottom: '32px',
-                            }}
-                        >
-                            We encountered an unexpected error. Don't worry — your data is safe.
-                            Please try again or return to the home page.
+                        <p style={{
+                            fontSize: '15px', color: 'rgba(255,255,255,0.5)',
+                            lineHeight: 1.7, marginBottom: '8px',
+                        }}>
+                            Något gick fel på vår sida — inte din. Vi är medvetna om det och jobbar
+                            för fullt med att fixa det. Håll ut! 💪
                         </p>
 
-                        <div
-                            style={{
-                                display: 'flex',
-                                gap: '12px',
-                                justifyContent: 'center',
-                                flexWrap: 'wrap',
-                            }}
-                        >
+                        {/* Humorous quote */}
+                        <p style={{
+                            fontSize: '13px', fontStyle: 'italic',
+                            color: 'rgba(139,92,246,0.6)', marginBottom: '32px',
+                            lineHeight: 1.5,
+                        }}>
+                            &ldquo;{quote}&rdquo;
+                        </p>
+
+                        {/* Buttons */}
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
                             <button
                                 onClick={reset}
                                 style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    padding: '12px 24px',
-                                    fontSize: '14px',
-                                    fontWeight: 600,
+                                    display: 'inline-flex', alignItems: 'center', gap: '8px',
+                                    padding: '12px 28px', fontSize: '14px', fontWeight: 600,
                                     background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '10px',
-                                    cursor: 'pointer',
+                                    color: 'white', border: 'none', borderRadius: '10px',
+                                    cursor: 'pointer', transition: 'transform 0.15s',
                                 }}
+                                onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.03)')}
+                                onMouseOut={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                             >
-                                <RefreshCw style={{ width: '16px', height: '16px' }} />
-                                Try Again
+                                🔄 Försök igen
                             </button>
 
-                            <Link
+                            <a
                                 href="/"
                                 style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    padding: '12px 24px',
-                                    fontSize: '14px',
-                                    fontWeight: 500,
-                                    backgroundColor: 'rgba(255,255,255,0.08)',
-                                    color: 'rgba(255,255,255,0.8)',
-                                    border: '1px solid rgba(255,255,255,0.15)',
-                                    borderRadius: '10px',
-                                    textDecoration: 'none',
+                                    display: 'inline-flex', alignItems: 'center', gap: '8px',
+                                    padding: '12px 28px', fontSize: '14px', fontWeight: 500,
+                                    backgroundColor: 'rgba(255,255,255,0.06)',
+                                    color: 'rgba(255,255,255,0.7)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '10px', textDecoration: 'none',
+                                    transition: 'background 0.15s',
                                 }}
+                                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)')}
+                                onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)')}
                             >
-                                <Home style={{ width: '16px', height: '16px' }} />
-                                Go Home
-                            </Link>
+                                🏠 Startsidan
+                            </a>
                         </div>
 
-                        {/* Error reference (optional, for support) */}
-                        {error.digest && (
-                            <p
-                                style={{
-                                    marginTop: '32px',
-                                    fontSize: '12px',
-                                    color: 'rgba(255,255,255,0.3)',
-                                }}
-                            >
-                                Error ID: {error.digest}
+                        {/* Status note */}
+                        <div style={{
+                            marginTop: '40px', padding: '16px 20px',
+                            backgroundColor: 'rgba(255,255,255,0.02)',
+                            border: '1px solid rgba(255,255,255,0.05)',
+                            borderRadius: '12px',
+                        }}>
+                            <p style={{ margin: 0, fontSize: '12px', color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                                🟢 Teamet har fått notis och tittar på det. Din data är trygg.
+                                {error.digest && (
+                                    <span style={{ display: 'block', marginTop: '6px', fontFamily: 'monospace', fontSize: '11px', color: 'rgba(255,255,255,0.2)' }}>
+                                        Ref: {error.digest}
+                                    </span>
+                                )}
                             </p>
-                        )}
+                        </div>
                     </div>
                 </div>
             </body>
