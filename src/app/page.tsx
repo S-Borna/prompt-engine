@@ -361,11 +361,11 @@ export default function LandingPage() {
         <section id="demo" className="py-24 relative">
           <div className="max-w-4xl mx-auto px-6">
             <RevealSection>
-              <div className="text-center mb-12">
+              <div className="text-center mb-12 mx-auto max-w-4xl">
                 <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
                   One prompt. <span className="text-violet-400">Six dimensions.</span>
                 </h2>
-                <p className="text-base text-white/40 max-w-lg mx-auto text-center">
+                <p className="text-base text-white/40 max-w-lg mx-auto">
                   See how a simple prompt becomes a comprehensive, execution-ready instruction set.
                 </p>
               </div>
@@ -396,11 +396,11 @@ export default function LandingPage() {
         <section id="features" className="py-24 relative">
           <div className="max-w-5xl mx-auto px-6">
             <RevealSection>
-              <div className="text-center mb-16">
+              <div className="text-center mb-16 mx-auto max-w-4xl">
                 <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
                   Prompt engineering, <span className="text-violet-400">systematized</span>
                 </h2>
-                <p className="text-base text-white/40 max-w-lg mx-auto text-center">
+                <p className="text-base text-white/40 max-w-lg mx-auto">
                   A systematic approach to getting better results from any AI model.
                 </p>
               </div>
@@ -463,7 +463,7 @@ export default function LandingPage() {
         <section className="py-24 relative">
           <div className="max-w-4xl mx-auto px-6">
             <RevealSection>
-              <div className="text-center mb-16">
+              <div className="text-center mb-16 mx-auto max-w-4xl">
                 <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
                   Three steps to <span className="text-violet-400">perfect prompts</span>
                 </h2>
@@ -504,11 +504,11 @@ export default function LandingPage() {
         <section id="pricing" className="py-24 relative">
           <div className="max-w-5xl mx-auto px-6">
             <RevealSection>
-              <div className="text-center mb-16">
+              <div className="text-center mb-16 mx-auto max-w-4xl">
                 <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
                   Simple, transparent pricing
                 </h2>
-                <p className="text-base text-white/40 max-w-lg mx-auto text-center">
+                <p className="text-base text-white/40 max-w-lg mx-auto">
                   Start free. Upgrade when you need more.
                 </p>
               </div>
@@ -633,7 +633,7 @@ export default function LandingPage() {
                 Your prompts deserve<br />
                 <span className="bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">better engineering</span>
               </h2>
-              <p className="text-base text-white/40 mb-10 max-w-md mx-auto text-center">
+              <p className="text-base text-white/40 mb-10 max-w-md mx-auto">
                 Stop feeding AI models vague instructions and hoping for the best. Start with structure. Start with PRAXIS.
               </p>
               <Link
