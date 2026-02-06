@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { NextRequest } from 'next/server';
+import { auth, isExecutiveEmail } from '@/lib/auth';
 
 interface RateLimitConfig {
     /** Maximum requests per window */
@@ -25,11 +26,22 @@ const rateLimitStore: RateLimitStore = {};
 
 /**
  * Rate limit middleware for API routes
+ * Executive accounts bypass all limits automatically
  */
 export async function rateLimit(
     req: NextRequest,
     config: RateLimitConfig
 ): Promise<{ allowed: boolean; remaining: number; resetTime: number }> {
+    // Executive bypass — check session for unlimited access
+    try {
+        const session = await auth();
+        if (session?.user?.email && isExecutiveEmail(session.user.email)) {
+            return { allowed: true, remaining: 999, resetTime: 0 };
+        }
+    } catch {
+        // Auth check failed — continue with normal rate limiting
+    }
+
     const key = config.keyGenerator
         ? config.keyGenerator(req)
         : getClientIdentifier(req);

@@ -44,12 +44,22 @@ function getOpenAIClient(): OpenAI {
 export interface PromptRewriterConfig {
     spec: CompiledSpec;
     language: 'en' | 'sv';
+    platform?: string;
     model?: string;
     temperature?: number;
 }
 
 export interface RewrittenPrompt {
     prompt: string;
+    sections: {
+        expertRole: string;
+        mainObjective: string;
+        contextBackground: string;
+        outputFormat: string;
+        constraints: string;
+        approachGuidelines: string;
+    };
+    improvements: string[];
     qualityScore: number;
     meetsQualityBar: boolean;
     meta: {
@@ -58,6 +68,8 @@ export interface RewrittenPrompt {
         specificityMultiplier: number;
         synthesizedAt: string;
         domain: string;
+        tokensIn?: number;
+        tokensOut?: number;
     };
 }
 
@@ -259,43 +271,99 @@ export async function rewritePrompt(
     const {
         spec,
         language,
+        platform = 'general',
         model = 'gpt-4o-mini',
         temperature = 0.5
     } = config;
 
     const client = getOpenAIClient();
     const domain = detectDomain(spec.rawInput);
-    const metaPrompt = buildRewriterMetaPrompt(spec, language, domain);
+    const metaPrompt = buildRewriterMetaPrompt(spec, language, domain, platform);
 
     try {
         const completion = await client.chat.completions.create({
             model,
             temperature,
-            max_tokens: 1500,
+            max_tokens: 2000,
+            response_format: { type: 'json_object' },
             messages: [
                 { role: 'system', content: metaPrompt.systemPrompt },
                 { role: 'user', content: metaPrompt.userPrompt }
             ],
         });
 
-        const synthesizedPrompt = completion.choices[0]?.message?.content?.trim() || '';
+        const raw = completion.choices[0]?.message?.content?.trim() || '';
+        const tokensIn = completion.usage?.prompt_tokens;
+        const tokensOut = completion.usage?.completion_tokens;
 
-        if (!synthesizedPrompt) {
+        if (!raw) {
             throw new Error('Rewriter produced empty output');
         }
 
+        // Parse structured JSON response
+        let parsed: {
+            expertRole?: string;
+            mainObjective?: string;
+            contextBackground?: string;
+            outputFormat?: string;
+            constraints?: string;
+            approachGuidelines?: string;
+            improvements?: string[];
+        };
+
+        try {
+            parsed = JSON.parse(raw);
+        } catch {
+            // Fallback: treat entire response as a single section
+            parsed = {
+                expertRole: '',
+                mainObjective: raw,
+                contextBackground: '',
+                outputFormat: '',
+                constraints: '',
+                approachGuidelines: '',
+                improvements: ['Enhanced prompt clarity and structure'],
+            };
+        }
+
+        const sections = {
+            expertRole: (parsed.expertRole || '').trim(),
+            mainObjective: (parsed.mainObjective || '').trim(),
+            contextBackground: (parsed.contextBackground || '').trim(),
+            outputFormat: (parsed.outputFormat || '').trim(),
+            constraints: (parsed.constraints || '').trim(),
+            approachGuidelines: (parsed.approachGuidelines || '').trim(),
+        };
+
+        const improvements = parsed.improvements || [
+            'Added expert context and role definition',
+            'Specified clear objectives and deliverables',
+            'Included relevant constraints and requirements',
+        ];
+
+        // Assemble flat prompt text from sections (for A/B testing and copying)
+        const flatPrompt = [
+            sections.expertRole,
+            sections.mainObjective,
+            sections.contextBackground,
+            sections.outputFormat,
+            sections.constraints,
+            sections.approachGuidelines,
+        ].filter(Boolean).join('\n\n');
+
         // Calculate quality metrics
         const originalLength = spec.rawInput.length;
-        const rewrittenLength = synthesizedPrompt.length;
+        const rewrittenLength = flatPrompt.length;
         const specificityMultiplier = rewrittenLength / Math.max(1, originalLength);
 
-        // Adaptive quality bar — short inputs naturally get higher multipliers
         const minMultiplier = originalLength < 30 ? 2.0 : originalLength < 80 ? 2.5 : 3.0;
         const qualityScore = Math.min(100, Math.round((specificityMultiplier / minMultiplier) * 80));
         const meetsQualityBar = specificityMultiplier >= minMultiplier && rewrittenLength >= 100;
 
         return {
-            prompt: synthesizedPrompt,
+            prompt: flatPrompt,
+            sections,
+            improvements,
             qualityScore,
             meetsQualityBar,
             meta: {
@@ -304,6 +372,8 @@ export async function rewritePrompt(
                 specificityMultiplier: Math.round(specificityMultiplier * 10) / 10,
                 synthesizedAt: new Date().toISOString(),
                 domain,
+                tokensIn,
+                tokensOut,
             }
         };
 
@@ -317,82 +387,219 @@ export async function rewritePrompt(
 // META-PROMPT BUILDER — The brain of the rewriter
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PLATFORM-SPECIFIC PROMPT FORMATTING
+// Each AI model responds best to different prompt structures.
+// This ensures the generated prompt is optimized for where the user
+// will actually paste and use it.
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface PlatformProfile {
+    name: string;
+    formattingRules: { en: string; sv: string };
+}
+
+const PLATFORM_PROFILES: Record<string, PlatformProfile> = {
+    chatgpt: {
+        name: 'ChatGPT (OpenAI)',
+        formattingRules: {
+            en: `TARGET PLATFORM: ChatGPT (OpenAI GPT models)
+Optimize the generated prompt for how GPT models work best:
+- Use clear ## markdown headers to separate sections
+- Structure with hierarchical bullet points for complex requirements
+- Include explicit output format specifications ("Respond in X format")
+- Add "Think step-by-step" cues for reasoning-heavy tasks
+- GPT excels at following multi-part structured instructions
+- Use numbered lists for sequential steps
+- Be explicit about what to include AND what to exclude`,
+            sv: `MÅLPLATTFORM: ChatGPT (OpenAI GPT-modeller)
+Optimera den genererade prompten för hur GPT-modeller fungerar bäst:
+- Använd tydliga ## markdown-rubriker för att separera sektioner
+- Strukturera med hierarkiska punktlistor för komplexa krav
+- Inkludera explicita outputformat-specifikationer ("Svara i X format")
+- Lägg till "Tänk steg-för-steg" för resoneringstunga uppgifter
+- GPT excellerar på att följa flerdelade strukturerade instruktioner
+- Använd numrerade listor för sekventiella steg
+- Var explicit om vad som ska inkluderas OCH exkluderas`,
+        },
+    },
+    claude: {
+        name: 'Claude (Anthropic)',
+        formattingRules: {
+            en: `TARGET PLATFORM: Claude (Anthropic)
+Optimize the generated prompt for how Claude works best:
+- Use natural, conversational language — Claude responds poorly to overly rigid formatting
+- Frame tasks with context about WHY the task matters (Claude values intent)
+- Structure output expectations as guidelines rather than strict commands
+- Claude naturally considers edge cases — encourage this with "Consider potential issues"
+- Use XML-style tags like <context>, <task>, <constraints> for clear section separation
+- Include the reasoning behind constraints, not just the constraints themselves
+- Claude excels at nuanced, thoughtful analysis — frame prompts to invite depth`,
+            sv: `MÅLPLATTFORM: Claude (Anthropic)
+Optimera den genererade prompten för hur Claude fungerar bäst:
+- Använd naturligt, konversationellt språk — Claude svarar sämre på rigid formatering
+- Rama in uppgifter med kontext om VARFÖR uppgiften är viktig (Claude värderar avsikt)
+- Strukturera output-förväntningar som riktlinjer snarare än strikta kommandon
+- Claude överväger naturligt edge cases — uppmuntra med "Överväg potentiella problem"
+- Använd XML-liknande taggar som <context>, <task>, <constraints> för tydlig sektionsseparation
+- Inkludera resonemanget bakom begränsningar, inte bara begränsningarna själva
+- Claude excellerar på nyanserad, genomtänkt analys — rama in för djup`,
+        },
+    },
+    gemini: {
+        name: 'Gemini (Google)',
+        formattingRules: {
+            en: `TARGET PLATFORM: Gemini (Google)
+Optimize the generated prompt for how Gemini works best:
+- Use numbered steps for process-oriented tasks — Gemini follows sequential logic well
+- Include explicit fact-checking instructions ("Verify claims", "Cite sources when possible")
+- Structure prompts for cross-domain synthesis — Gemini excels at connecting ideas
+- Use clear delimiters (---) between major prompt sections
+- Be explicit about desired output length and format
+- Gemini handles structured data well — leverage tables and lists
+- For factual tasks, add "Base your response on verified information"`,
+            sv: `MÅLPLATTFORM: Gemini (Google)
+Optimera den genererade prompten för hur Gemini fungerar bäst:
+- Använd numrerade steg för processorienterade uppgifter — Gemini följer sekventiell logik väl
+- Inkludera explicita faktakontrollinstruktioner ("Verifiera påståenden", "Citera källor")
+- Strukturera prompts för tvärdomänsyntes — Gemini excellerar på att koppla idéer
+- Använd tydliga avgränsare (---) mellan sektioner
+- Var explicit om önskad outputlängd och format
+- Gemini hanterar strukturerad data väl — utnyttja tabeller och listor
+- För faktauppgifter, lägg till "Basera ditt svar på verifierad information"`,
+        },
+    },
+    grok: {
+        name: 'Grok (xAI)',
+        formattingRules: {
+            en: `TARGET PLATFORM: Grok (xAI)
+Optimize the generated prompt for how Grok works best:
+- Keep prompts direct and action-oriented — Grok prefers no-nonsense framing
+- Frame prompts to invite honest, unfiltered feedback
+- Grok is comfortable challenging assumptions — encourage this where useful
+- Use concise language — less preamble, more substance
+- Structure for efficient, pointed answers rather than exhaustive coverage
+- Include context about acceptable directness level
+- Grok excels at contrarian analysis — leverage this for decision-making prompts`,
+            sv: `MÅLPLATTFORM: Grok (xAI)
+Optimera den genererade prompten för hur Grok fungerar bäst:
+- Håll prompts direkta och handlingsorienterade — Grok föredrar ingen-nonsens-ramverk
+- Rama in för ärlig, ofiltrerad feedback
+- Grok utmanar gärna antaganden — uppmuntra detta där det är användbart
+- Använd koncist språk — mindre inledning, mer substans
+- Strukturera för effektiva, träffsäkra svar snarare än uttömmande täckning
+- Inkludera kontext om acceptabel rakhetsgrad
+- Grok excellerar på kontrarisk analys — utnyttja för beslutsprompts`,
+        },
+    },
+    general: {
+        name: 'General (any model)',
+        formattingRules: {
+            en: `TARGET PLATFORM: General (any AI model)
+Create a universally effective prompt:
+- Use clear section headers and structured formatting
+- Be explicit about role, task, constraints, and output format
+- Include both positive instructions (do this) and negative (avoid this)
+- Add examples where they would help clarify expectations
+- Keep language precise but not overly rigid`,
+            sv: `MÅLPLATTFORM: Generell (valfri AI-modell)
+Skapa en universellt effektiv prompt:
+- Använd tydliga sektionsrubriker och strukturerad formatering
+- Var explicit om roll, uppgift, begränsningar och outputformat
+- Inkludera både positiva instruktioner (gör detta) och negativa (undvik detta)
+- Lägg till exempel där de klargör förväntningar
+- Håll språket precist men inte överdrivet rigid`,
+        },
+    },
+};
+
+function getPlatformInstructions(platform: string, isSwedish: boolean): string {
+    // Normalize platform name
+    const normalized = platform.toLowerCase();
+    let key = 'general';
+    if (normalized.includes('gpt') || normalized.includes('chatgpt') || normalized.includes('openai')) key = 'chatgpt';
+    else if (normalized.includes('claude') || normalized.includes('anthropic')) key = 'claude';
+    else if (normalized.includes('gemini') || normalized.includes('google')) key = 'gemini';
+    else if (normalized.includes('grok') || normalized.includes('xai')) key = 'grok';
+
+    const profile = PLATFORM_PROFILES[key] || PLATFORM_PROFILES.general;
+    return profile.formattingRules[isSwedish ? 'sv' : 'en'];
+}
+
 function buildRewriterMetaPrompt(
     spec: CompiledSpec,
     language: 'en' | 'sv',
-    domain: PromptDomain
+    domain: PromptDomain,
+    platform: string = 'general'
 ): { systemPrompt: string; userPrompt: string } {
 
     const isSwedish = language === 'sv';
     const domainInstructions = getDomainInstructions(domain, isSwedish);
+    const platformInstructions = getPlatformInstructions(platform, isSwedish);
 
-    const systemPrompt = isSwedish ? `Du är en senior teknisk lead som skriver exekveringsdirektiv — inte dokumentation, inte planer, inte önskelistor. Du tar vaga förfrågningar och gör dem till beslutstvingande exekveringskontrakt utan utrymme för tvekan.
+    const systemPrompt = isSwedish ? `Du är en senior prompt-ingenjör som omvandlar vaga förfrågningar till expertformulerade, strukturerade prompts. Du tar användarens idé och bygger en komplett, specifik prompt som en domänexpert skulle skriva.
 
-DU ÄR INTE:
-- En konsult som listar alternativ och säger "det beror på"
-- En lärare som förklarar koncept
-- En planerare som beskriver vad som kunde göras
+OUTPUTFORMAT: Du MÅSTE svara med ett JSON-objekt med exakt denna struktur:
+{
+  "expertRole": "En mening som definierar vilken expertroll AI:n ska anta. Var specifik om erfarenhet och kompetensområde.",
+  "mainObjective": "1-2 meningar som tydligt definierar uppgiften, vad som ska levereras och i vilken form.",
+  "contextBackground": "2-4 meningar med relevant bakgrund: målgrupp, krav, begränsningar, tekniska förutsättningar.",
+  "outputFormat": "1-3 meningar som specificerar exakt HUR svaret ska formateras: struktur, längd, format (punktlista, tabell, steg-för-steg, kod, etc.).",
+  "constraints": "2-3 meningar med explicita begränsningar och vad AI:n INTE ska göra: vad att undvika, scope-gränser, antaganden att inte göra.",
+  "approachGuidelines": "2-4 meningar med specifika riktlinjer för HUR uppgiften ska utföras: metod, ton, kvalitetskriterier.",
+  "improvements": ["Förbättring 1", "Förbättring 2", "Förbättring 3", "Förbättring 4", "Förbättring 5"]
+}
 
-DU ÄR:
-- En lead som byggt exakt detta förut och vet vad som fungerar
-- Någon som fattar beslut, anger kompromisser och kör vidare
-- Direkt, specifik och allergisk mot utfyllnad
-
-OUTPUTEN ÄR ETT EXEKVERINGSKONTRAKT. DET MÅSTE:
-1. Öppna med EN mening: vad vi bygger och varför, punkt
-2. Ange valt tillvägagångssätt som ett BESLUT, inte ett alternativ ("Använd X" inte "Överväg X eller Y")
-3. Definiera exakt vad som ska levereras FÖRST (MVP) — lista sedan explicit vad som SKJUTS UPP och vad som INTE SKA BYGGAS
-4. Inkludera specifika acceptanskriterier: när är varje leverabel "klar"?
-5. Ange antaganden explicit — om användaren var vag, BESTÄM DU och motivera kort
-6. Inkludera minst en "Se upp för" eller "Vanligt misstag"-varning
-7. Avsluta med konkreta nästa steg som kommandon, inte förslag ("Börja med..." inte "Man kan börja med...")
-8. Vara 150-300 ord. Tät text. Ingen utfyllnad. Varje mening måste bära information
-9. ALDRIG hitta på versionsnummer, datum eller statistik som användaren inte angett — använd "senaste stabila" eller "aktuell"
-10. Referera bara till teknologier användaren nämnde eller tydligt antydde — ANTA INTE en tech stack
-
-TON: Som ett Slack-meddelande från en senior utvecklare med 5 minuter och noll tålamod för handhållning.
-
-FORMAT: Ett enda block av naturlig prosa. INGA markdown-rubriker, INGA punktlistmallar, INGA etiketter som "ROLL:" eller "UPPGIFT:". Bara ett tight, åsiktsstarkt direktiv som läses som ett arbetsdokument man kan lämna över till en utvecklare direkt.
-
-${domainInstructions}
-
-TESTET: När någon läser originalet bredvid ditt ska reaktionen vara: "Ah — så DET är vad jag faktiskt behöver. Jag kunde inte ha sagt det så."
-
-SVARA ENBART med exekveringsdirektivet. Ingen inledning. Ingen kommentar.` :
-
-        `You are an opinionated senior technical lead who writes execution briefs — not documentation, not plans, not wish lists. You take vague requests and turn them into decision-forcing execution contracts that leave zero ambiguity.
-
-YOU ARE NOT:
-- A consultant who lists options and says "it depends"
-- A teacher who explains concepts
-- A planner who describes what could be done
-
-YOU ARE:
-- A lead who has built this exact thing before and knows what works
-- Someone who makes decisions, states trade-offs, and moves forward
-- Blunt, specific, and allergic to filler
-
-THE OUTPUT IS AN EXECUTION CONTRACT. IT MUST:
-1. Open with ONE sentence: what we are building and why, period
-2. State the chosen approach as a DECISION, not an option ("Use X" not "Consider X or Y")
-3. Define exactly what to deliver FIRST (MVP scope) — then explicitly list what to DEFER and what to NOT BUILD
-4. Include specific acceptance criteria: when is each deliverable "done"?
-5. State assumptions explicitly — if the user was vague, YOU decide and state your reasoning in one line
-6. Include at least one "Watch out for" or "Common mistake" warning
-7. End with concrete next steps as commands, not suggestions ("Start by..." not "You could start by...")
-8. Be 150-300 words. Dense. No filler. Every sentence must carry information
-9. NEVER invent version numbers, dates, or statistics the user didn't provide — use "latest stable" or "current"
-10. Only reference technologies the user mentioned or clearly implied — do NOT assume a tech stack
-
-TONE: Like a Slack message from a senior engineer who has 5 minutes and no patience for hand-holding.
-
-FORMAT: A single block of natural prose. NO markdown headers, NO bullet-point templates, NO labels like "ROLE:" or "TASK:". Just a tight, opinionated brief that reads like a working document you could hand to a developer right now.
+REGLER:
+1. Varje sektion ska vara konkret och specifik — inte generisk
+2. expertRole ska nämna relevant erfarenhet och domänkunskap
+3. mainObjective ska vara handlingsbar och mätbar
+4. contextBackground ska inkludera antaganden du gör baserat på domänen
+5. outputFormat ska specificera konkret format, struktur och längd — inte vara vag
+6. constraints ska innehålla minst 2 explicita "GÖR INTE"-instruktioner
+7. approachGuidelines ska innehålla konkreta do's och kvalitetskriterier
+8. improvements ska lista exakt 5 saker du förbättrade/lade till
+9. ALDRIG hitta på versionsnummer, datum eller statistik
+10. Referera bara till teknologier användaren nämnde eller tydligt antydde
+11. Alla värden ska vara rena strängar utan markdown-formatering
 
 ${domainInstructions}
 
-THE TEST: When someone reads the original prompt next to yours, the reaction must be: "Oh — so THAT's what I actually need. I couldn't have said it like that."
+${platformInstructions}
 
-RESPOND ONLY with the execution brief. No preamble. No commentary.`;
+Svara ENBART med JSON-objektet. Ingen annan text.` :
+
+        `You are a senior prompt engineer who transforms vague requests into expert-crafted, structured prompts. You take the user's idea and build a complete, specific prompt that a domain expert would write.
+
+OUTPUT FORMAT: You MUST respond with a JSON object with exactly this structure:
+{
+  "expertRole": "One sentence defining the expert role the AI should adopt. Be specific about experience and domain expertise.",
+  "mainObjective": "1-2 sentences clearly defining the task, what should be delivered, and in what format.",
+  "contextBackground": "2-4 sentences of relevant background: target audience, requirements, constraints, technical context.",
+  "outputFormat": "1-3 sentences specifying exactly HOW the response should be formatted: structure, length, format (bullet list, table, step-by-step, code, etc.).",
+  "constraints": "2-3 sentences with explicit constraints and what the AI must NOT do: things to avoid, scope boundaries, assumptions not to make.",
+  "approachGuidelines": "2-4 sentences with specific guidelines for HOW to approach the task: methodology, tone, quality criteria.",
+  "improvements": ["Improvement 1", "Improvement 2", "Improvement 3", "Improvement 4", "Improvement 5"]
+}
+
+RULES:
+1. Every section must be concrete and specific — not generic
+2. expertRole must mention relevant experience and domain knowledge
+3. mainObjective must be actionable and measurable
+4. contextBackground must include assumptions you make based on the domain
+5. outputFormat must specify concrete format, structure, and length — not be vague
+6. constraints must contain at least 2 explicit "DO NOT" instructions
+7. approachGuidelines must contain concrete do's and quality criteria
+8. improvements must list exactly 5 things you improved/added
+9. NEVER invent version numbers, dates, or statistics
+10. Only reference technologies the user mentioned or clearly implied
+11. All values must be plain strings without markdown formatting
+
+${domainInstructions}
+
+${platformInstructions}
+
+Respond ONLY with the JSON object. No other text.`;
 
     // Build rich context for the user prompt
     const parts: string[] = [];
@@ -482,24 +689,20 @@ export function validateRewriteQuality(result: RewrittenPrompt): {
         };
     }
 
+    // Must have at least 2 non-empty sections
+    const filledSections = Object.values(result.sections).filter(s => s.length > 10).length;
+    if (filledSections < 2) {
+        return {
+            valid: false,
+            reason: `Only ${filledSections} sections filled — need at least 2`
+        };
+    }
+
     // Must meet adaptive quality bar
     if (!result.meetsQualityBar) {
         return {
             valid: false,
             reason: `Specificity multiplier ${result.meta.specificityMultiplier}× below minimum threshold`
-        };
-    }
-
-    // Must not contain template markers (AI failed to follow instructions)
-    const templateMarkers = ['ROLE:', 'TASK:', 'CONSTRAINTS:', 'OBJECTIVE:', 'OUTPUT FORMAT:'];
-    const hasTemplateMarkers = templateMarkers.some(marker =>
-        result.prompt.toUpperCase().includes(marker)
-    );
-
-    if (hasTemplateMarkers) {
-        return {
-            valid: false,
-            reason: 'Rewritten prompt contains template structure markers'
         };
     }
 

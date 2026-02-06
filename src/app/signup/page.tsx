@@ -74,10 +74,11 @@ export default function SignupPage() {
             });
 
             if (result?.error) {
-                toast.success('Account created! Please sign in.');
-                router.push('/login');
+                toast.success('Account created! Please check your email to verify.');
+                router.push('/verify-pending');
             } else {
-                toast.success('Welcome to PRAXIS!');
+                toast.success('Account created! Please check your email to verify.');
+                router.push('/verify-pending');
                 router.push('/dashboard');
                 router.refresh();
             }

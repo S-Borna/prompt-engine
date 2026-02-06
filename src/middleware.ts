@@ -1,7 +1,32 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { auth } from '@/lib/auth';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+    const pathname = request.nextUrl.pathname;
+
+    // ─── AUTH CHECKS (for protected routes) ────────────────────────────
+    const protectedRoutes = ['/dashboard', '/api/ai'];
+    const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+
+    if (isProtectedRoute) {
+        const session = await auth();
+
+        // Require authentication
+        if (!session?.user) {
+            if (pathname.startsWith('/api/')) {
+                return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+            }
+            return NextResponse.redirect(new URL('/login', request.url));
+        }
+
+        // Require email verification (except for executives and demo users)
+        if (!session.user.emailVerified && pathname.startsWith('/dashboard')) {
+            return NextResponse.redirect(new URL('/verify-pending', request.url));
+        }
+    }
+
+    // ─── SECURITY HEADERS ───────────────────────────────────────────────
     const response = NextResponse.next();
 
     // ═══════════════════════════════════════════════════════════════════════════

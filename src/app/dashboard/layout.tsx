@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import {
     Wand2, FolderOpen, Clock, Settings, CreditCard,
     Search, ChevronDown, Sparkles, LogOut,
-    Menu, X, Plus, ChevronLeft
+    Menu, X, Plus, ChevronLeft, SlidersHorizontal
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -19,11 +19,18 @@ import {
 // Navigation structure — minimal, purposeful
 const mainNav = [
     {
-        name: 'Spark',
+        name: 'Improve Prompt',
         href: '/dashboard/spark',
         icon: Wand2,
         gradient: 'from-violet-500 to-indigo-600',
-        description: 'Enhance your prompts'
+        description: 'One-click prompt enhancement'
+    },
+    {
+        name: 'Refine Prompt',
+        href: '/dashboard/precision',
+        icon: SlidersHorizontal,
+        gradient: 'from-indigo-500 to-blue-600',
+        description: 'Guided step-by-step refinement'
     },
 ];
 

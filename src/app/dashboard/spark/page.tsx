@@ -1,21 +1,16 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Sparkles, Loader2, AlertCircle, Globe, Languages, Workflow } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, Languages } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usePromptStore } from '@/lib/prompt-store';
-import { EnhancedPromptOutput, EnhancedPromptResult } from '@/components/ui/EnhancedPromptOutput';
-import { PromptWizard } from '@/components/ui/PromptWizard';
+import { StructuredPromptOutput, type StructuredResult } from '@/components/ui/StructuredPromptOutput';
 import { ModelCardWithInsight } from '@/components/ui/ModelInsightPopover';
-import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
-import Image from 'next/image';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SPARK — Flagship Prompt Enhancement Experience
-// Premium, focused interface for the core product feature
+// SPARK — "Improve Prompt" — One-click prompt enhancement
 // ═══════════════════════════════════════════════════════════════════════════
 
-// AI Model definitions - 10 models
 const aiModels = [
     { id: 'gpt-5.2', name: 'GPT 5.2', family: 'OpenAI', logo: '/logos/openai.svg', color: '#10b981' },
     { id: 'gpt-5.1', name: 'GPT 5.1', family: 'OpenAI', logo: '/logos/openai.svg', color: '#10b981' },
@@ -25,11 +20,8 @@ const aiModels = [
     { id: 'gemini-2.5', name: 'Gemini 2.5', family: 'Google', logo: '/logos/gemini.svg', color: '#3b82f6' },
     { id: 'grok-3', name: 'Grok 3', family: 'xAI', logo: '/logos/xai.svg', color: '#94a3b8' },
     { id: 'grok-2', name: 'Grok 2', family: 'xAI', logo: '/logos/xai.svg', color: '#94a3b8' },
-    { id: 'nano-banana-pro', name: 'Banana Pro', family: 'Nano', logo: '/logos/banana.svg', color: '#eab308' },
-    { id: 'sora', name: 'Sora', family: 'OpenAI', logo: '/logos/sora.svg', color: '#ec4899' },
 ];
 
-// Language options
 const languageOptions = [
     { id: 'en', name: 'English', flag: '🇬🇧' },
     { id: 'sv', name: 'Svenska', flag: '🇸🇪' },
@@ -44,27 +36,17 @@ const examplePrompts = [
 
 export default function SparkPage() {
     const [input, setInput] = useState('');
-    const [enhancedPrompt, setEnhancedPrompt] = useState('');
-    const [rawOutput, setRawOutput] = useState('');
-    const [enhancedOutput, setEnhancedOutput] = useState('');
-    const [result, setResult] = useState<EnhancedPromptResult | null>(null);
+    const [structuredResult, setStructuredResult] = useState<StructuredResult | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [isRunningRaw, setIsRunningRaw] = useState(false);
-    const [isRunningEnhanced, setIsRunningEnhanced] = useState(false);
     const [selectedModel, setSelectedModel] = useState('gpt-5.2');
     const [selectedLanguage, setSelectedLanguage] = useState('en');
     const [error, setError] = useState<string | null>(null);
-    const [shouldAnimate, setShouldAnimate] = useState(false);
 
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const { addPrompt, addToHistory } = usePromptStore();
 
-    // Auto-focus input on mount
-    useEffect(() => {
-        inputRef.current?.focus();
-    }, []);
+    useEffect(() => { inputRef.current?.focus(); }, []);
 
-    // Check for replay input from history
     useEffect(() => {
         const replayInput = sessionStorage.getItem('replay-input');
         if (replayInput) {
@@ -75,42 +57,32 @@ export default function SparkPage() {
     }, []);
 
     const handleSpark = useCallback(async () => {
-        if (!input.trim()) {
-            toast.error('Please enter a prompt');
-            return;
-        }
+        if (!input.trim()) { toast.error('Please enter a prompt'); return; }
 
         setIsProcessing(true);
         setError(null);
-        setShouldAnimate(true);
-        setRawOutput('');
-        setEnhancedOutput('');
+        setStructuredResult(null);
+        const startTime = Date.now();
 
         const platformMap: Record<string, string> = {
             'gpt-5.2': 'chatgpt', 'gpt-5.1': 'chatgpt',
             'claude-opus-4.5': 'claude', 'claude-sonnet-4.5': 'claude',
             'gemini-3': 'gemini', 'gemini-2.5': 'gemini',
             'grok-3': 'grok', 'grok-2': 'grok',
-            'nano-banana-pro': 'general', 'sora': 'general',
         };
 
         const languageMap: Record<string, string> = {
-            'en': 'en',
-            'sv': 'sv',
-            'sv-en': 'sv-to-en',
+            'en': 'en', 'sv': 'sv', 'sv-en': 'sv-to-en',
         };
 
-        const TIMEOUT_MS = 25_000; // Hard 25s timeout — kill the magic after this
-
         try {
-            // ── Step 1: Enhance the prompt (with hard timeout) ──────────
-            const enhanceController = new AbortController();
-            const enhanceTimeout = setTimeout(() => enhanceController.abort(), TIMEOUT_MS);
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 30_000);
 
             const response = await fetch('/api/ai/enhance', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                signal: enhanceController.signal,
+                signal: controller.signal,
                 body: JSON.stringify({
                     prompt: input,
                     rawPrompt: input,
@@ -119,128 +91,88 @@ export default function SparkPage() {
                     outputLanguage: languageMap[selectedLanguage] || 'auto',
                 }),
             });
-            clearTimeout(enhanceTimeout);
+            clearTimeout(timeout);
 
             if (!response.ok) throw new Error('Enhancement failed');
 
             const data = await response.json();
-            const enhanced = data.enhanced || data.result || '';
-            if (!enhanced) throw new Error('No enhanced prompt returned');
+            const elapsed = Date.now() - startTime;
 
-            // ── Show enhanced prompt IMMEDIATELY (no waiting for A/B) ───
-            const promptResult: EnhancedPromptResult = {
-                originalPrompt: input,
-                enhancedPrompt: enhanced,
-                explanation: data.changes || data.insights || getDefaultExplanation(),
-                meta: {
-                    score: data.scores?.after || 85,
-                    model: selectedModel,
-                    mode: 'enhance',
-                },
+            const sections = data.sections || {
+                expertRole: '',
+                mainObjective: data.enhanced || '',
+                contextBackground: '',
+                outputFormat: '',
+                constraints: '',
+                approachGuidelines: '',
             };
-            setResult(promptResult);
-            setEnhancedPrompt(enhanced);
-            setIsProcessing(false); // Button is free — prompt is visible
+
+            const improvements = data.improvements || [
+                'Enhanced prompt clarity and structure',
+                'Added specific context and constraints',
+                'Defined expert role for better responses',
+            ];
+
+            setStructuredResult({
+                sections,
+                domain: (data.meta?.domain || 'general').toUpperCase(),
+                improvements,
+                targetPlatform: platformMap[selectedModel] || 'general',
+                meta: {
+                    tokensIn: data.meta?.tokensIn,
+                    tokensOut: data.meta?.tokensOut,
+                    timeMs: elapsed,
+                    model: platformMap[selectedModel] || selectedModel,
+                    score: data.quality?.score,
+                },
+            });
 
             addToHistory({
                 tool: 'spark',
-                action: 'Spark enhancement',
+                action: 'Prompt improved',
                 input: input.slice(0, 100) + (input.length > 100 ? '...' : ''),
-                output: enhanced.slice(0, 100) + '...',
+                output: (data.enhanced || '').slice(0, 100) + '...',
             });
-
-            // ── Step 2: A/B test (non-blocking, independent timeout) ────
-            setIsRunningRaw(true);
-            setIsRunningEnhanced(true);
-
-            const abController = new AbortController();
-            const abTimeout = setTimeout(() => abController.abort(), TIMEOUT_MS);
-
-            try {
-                const abResponse = await fetch('/api/ai/ab-test', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    signal: abController.signal,
-                    body: JSON.stringify({
-                        rawPrompt: input,
-                        proPrompt: enhanced,
-                        model: selectedModel,
-                        spec: data.spec,
-                    }),
-                });
-                clearTimeout(abTimeout);
-
-                if (abResponse.ok) {
-                    const abData = await abResponse.json();
-                    setRawOutput(abData.results?.outputA?.output || '');
-                    setEnhancedOutput(abData.results?.outputB?.output || '');
-                }
-            } catch (abErr) {
-                console.warn('[Spark] A/B test failed or timed out:', abErr);
-                // Don't reset existing enhanced prompt — it's already shown
-            } finally {
-                clearTimeout(abTimeout);
-                setIsRunningRaw(false);
-                setIsRunningEnhanced(false);
-            }
 
         } catch (err) {
-            console.error('[Spark] Enhancement failed, using local fallback:', err);
             const isTimeout = err instanceof DOMException && err.name === 'AbortError';
-            const enhanced = generateLocalEnhancement(input);
-            const promptResult: EnhancedPromptResult = {
-                originalPrompt: input,
-                enhancedPrompt: enhanced,
-                explanation: getDefaultExplanation(),
-                meta: { score: 55, model: selectedModel, mode: 'enhance' },
-            };
-            setResult(promptResult);
-            setEnhancedPrompt(enhanced);
             setError(isTimeout
-                ? 'Request timed out after 25s — showing local enhancement.'
-                : 'AI service unavailable — showing local enhancement.');
-            toast.error(isTimeout ? 'Timed out — local fallback' : 'AI offline — local fallback');
-            addToHistory({
-                tool: 'spark',
-                action: `Spark enhancement (${isTimeout ? 'timeout' : 'offline'})`,
-                input: input.slice(0, 100) + (input.length > 100 ? '...' : ''),
-                output: enhanced.slice(0, 100) + '...',
-            });
+                ? 'Request timed out. Try a shorter prompt or try again.'
+                : 'AI service unavailable. Please try again.');
+            toast.error(isTimeout ? 'Timed out' : 'Enhancement failed');
+        } finally {
             setIsProcessing(false);
         }
     }, [input, selectedModel, selectedLanguage, addToHistory]);
 
     const handleSave = useCallback(() => {
-        if (!result) return;
+        if (!structuredResult) return;
+        const { sections } = structuredResult;
+        const flatPrompt = [sections.expertRole, sections.mainObjective, sections.contextBackground, sections.outputFormat, sections.constraints, sections.approachGuidelines]
+            .filter(Boolean).join('\n\n');
+
         addPrompt({
             title: input.slice(0, 50) + (input.length > 50 ? '...' : ''),
-            content: result.originalPrompt,
-            enhancedContent: result.enhancedPrompt,
+            content: input,
+            enhancedContent: flatPrompt,
             tags: [selectedModel],
             folder: 'Personal',
             starred: false,
             tool: 'spark',
-            metadata: result.meta,
+            metadata: structuredResult.meta,
         });
         toast.success('Saved to Library!');
-    }, [input, result, selectedModel, addPrompt]);
+    }, [input, structuredResult, selectedModel, addPrompt]);
 
     const handleClear = () => {
         setInput('');
-        setResult(null);
-        setEnhancedPrompt('');
-        setRawOutput('');
-        setEnhancedOutput('');
+        setStructuredResult(null);
         setError(null);
-        setShouldAnimate(false);
     };
 
-    // Keyboard shortcut
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && input.trim() && !isProcessing) {
-                handleSpark();
-            }
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && input.trim() && !isProcessing) handleSpark();
         };
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
@@ -249,56 +181,46 @@ export default function SparkPage() {
     const selectedModelInfo = aiModels.find(m => m.id === selectedModel);
 
     return (
-        <div className="flex flex-col gap-6">
-            {/* ═══════════════════════════════════════════════════════════════
-                AI MODEL SELECTOR — All on one row
-            ═══════════════════════════════════════════════════════════════ */}
+        <div className="flex flex-col gap-6 max-w-4xl mx-auto">
+            {/* Header */}
+            <div>
+                <h1 className="text-2xl font-bold text-white">Improve Prompt</h1>
+                <p className="text-white/50 text-sm mt-1">
+                    Transform your prompts with one click. Get clearer, more effective prompts tailored for your target AI platform.
+                </p>
+            </div>
+
+            {/* Target Model */}
             <div>
                 <div className="flex items-center gap-3 mb-3">
-                    <span className="text-[11px] font-medium uppercase tracking-wider text-white/30">
-                        Target Model
-                    </span>
+                    <span className="text-[11px] font-medium uppercase tracking-wider text-white/30">Target Platform</span>
                     {selectedModelInfo && (
                         <span className="text-[11px] text-white/50 px-2 py-0.5 bg-white/[0.04] rounded-md">
                             {selectedModelInfo.family} · {selectedModelInfo.name}
                         </span>
                     )}
                 </div>
-
                 <div className="flex flex-wrap gap-1.5">
                     {aiModels.map((model) => (
-                        <ModelCardWithInsight
-                            key={model.id}
-                            model={model}
-                            isSelected={selectedModel === model.id}
-                            onSelect={() => setSelectedModel(model.id)}
-                        />
+                        <ModelCardWithInsight key={model.id} model={model} isSelected={selectedModel === model.id} onSelect={() => setSelectedModel(model.id)} />
                     ))}
                 </div>
             </div>
 
-            {/* ═══════════════════════════════════════════════════════════════
-                LANGUAGE TIP + SELECTOR
-            ═══════════════════════════════════════════════════════════════ */}
+            {/* Language */}
             <div className="flex items-center justify-between py-3 px-4 bg-gradient-to-r from-violet-500/[0.06] to-indigo-500/[0.06] border border-violet-500/10 rounded-xl">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
                         <Languages className="w-4 h-4 text-violet-400" />
                     </div>
                     <p className="text-sm text-white/60">
-                        <span className="text-white/80 font-medium">Pro tip:</span> AI models perform best with English prompts — we can translate for you
+                        <span className="text-white/80 font-medium">Pro tip:</span> AI models perform best with English prompts
                     </p>
                 </div>
-
                 <div className="flex items-center gap-1 bg-white/[0.04] rounded-lg p-0.5">
                     {languageOptions.map((lang) => (
-                        <button
-                            key={lang.id}
-                            onClick={() => setSelectedLanguage(lang.id)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${selectedLanguage === lang.id
-                                ? 'bg-white/[0.1] text-white'
-                                : 'text-white/40 hover:text-white/60'
-                                }`}
+                        <button key={lang.id} onClick={() => setSelectedLanguage(lang.id)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${selectedLanguage === lang.id ? 'bg-white/[0.1] text-white' : 'text-white/40 hover:text-white/60'}`}
                         >
                             <span>{lang.flag}</span>
                             <span className="hidden sm:inline">{lang.name}</span>
@@ -307,167 +229,64 @@ export default function SparkPage() {
                 </div>
             </div>
 
-            {/* ═══════════════════════════════════════════════════════════════
-                4-PANEL COMPARISON GRID
-            ═══════════════════════════════════════════════════════════════ */}
-            <div className="grid lg:grid-cols-2 gap-6">
-                {/* INPUT PANEL */}
-                <div className="flex flex-col">
-                    <div className="flex flex-col flex-1">
-                        {/* Textarea Container */}
-                        <div className="relative flex flex-col">
-                            <div className="absolute top-3 right-3 z-10">
-                                {input && (
-                                    <button
-                                        onClick={handleClear}
-                                        className="text-[11px] text-white/25 hover:text-white/50 transition-colors px-2 py-1 bg-white/[0.03] rounded hover:bg-white/[0.06]"
-                                    >
-                                        Clear
-                                    </button>
-                                )}
-                            </div>
-                            <textarea
-                                ref={inputRef}
-                                value={input}
-                                onChange={(e) => {
-                                    setInput(e.target.value);
-                                    // Auto-expand
-                                    e.target.style.height = 'auto';
-                                    e.target.style.height = Math.max(280, e.target.scrollHeight) + 'px';
-                                }}
-                                placeholder="Type or paste your prompt here..."
-                                className="w-full min-h-[280px] p-5 pr-16 bg-white/[0.015] border border-white/[0.06] rounded-t-xl text-white/90 placeholder-white/20 resize-none focus:outline-none focus:border-white/[0.12] focus:bg-white/[0.02] transition-all text-sm leading-relaxed overflow-hidden"
-                            />
-
-                            {!input && (
-                                <div className="absolute bottom-4 left-5 right-5">
-                                    <div className="flex flex-wrap gap-2">
-                                        {examplePrompts.map((example) => (
-                                            <button
-                                                key={example}
-                                                onClick={() => {
-                                                    setInput(example);
-                                                    inputRef.current?.focus();
-                                                }}
-                                                className="px-2.5 py-1 text-[11px] text-white/20 hover:text-white/40 bg-white/[0.02] hover:bg-white/[0.04] rounded-lg transition-colors"
-                                            >
-                                                {example}
-                                            </button>
-                                        ))}
-                                    </div>
+            {/* Input — hidden when result is showing */}
+            {!structuredResult && !isProcessing && (
+                <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden">
+                    <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
+                        <span className="text-sm font-medium text-white/50">Your Prompt</span>
+                        <span className="text-[11px] text-white/20">{input.length}/10 000</span>
+                    </div>
+                    <div className="relative">
+                        <textarea
+                            ref={inputRef}
+                            value={input}
+                            onChange={(e) => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.max(160, e.target.scrollHeight) + 'px'; }}
+                            placeholder="Enter the prompt you want to improve..."
+                            className="w-full min-h-[160px] p-6 bg-transparent text-white/90 placeholder-white/20 resize-none focus:outline-none text-sm leading-relaxed"
+                        />
+                        {!input && (
+                            <div className="absolute bottom-4 left-6 right-6">
+                                <div className="flex flex-wrap gap-2">
+                                    {examplePrompts.map((example) => (
+                                        <button key={example} onClick={() => { setInput(example); inputRef.current?.focus(); }}
+                                            className="px-2.5 py-1 text-[11px] text-white/20 hover:text-white/40 bg-white/[0.02] hover:bg-white/[0.04] rounded-lg transition-colors"
+                                        >{example}</button>
+                                    ))}
                                 </div>
-                            )}
-                        </div>
-
-                        {/* Spark Button */}
-                        <button
-                            onClick={handleSpark}
-                            disabled={!input.trim() || isProcessing}
-                            className="flex items-center justify-center gap-2.5 py-3.5 bg-gradient-to-r from-violet-500 to-indigo-500 text-white font-semibold rounded-b-xl shadow-lg shadow-violet-500/15 hover:shadow-xl hover:shadow-violet-500/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none transition-all"
+                            </div>
+                        )}
+                    </div>
+                    <div className="px-6 pb-6">
+                        <button onClick={handleSpark} disabled={!input.trim() || isProcessing}
+                            className="flex items-center justify-center gap-2.5 w-full py-3.5 bg-gradient-to-r from-violet-500 to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-violet-500/15 hover:shadow-xl hover:shadow-violet-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                         >
-                            {isProcessing ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                    <span>Enhancing...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles className="w-4 h-4" />
-                                    <span>Spark It</span>
-                                    <kbd className="hidden sm:inline ml-1.5 px-1.5 py-0.5 bg-white/10 rounded text-[10px] text-white/60">⌘↵</kbd>
-                                </>
-                            )}
+                            <Sparkles className="w-4 h-4" />
+                            <span>Improve Prompt</span>
+                            <kbd className="hidden sm:inline ml-1.5 px-1.5 py-0.5 bg-white/10 rounded text-[10px] text-white/60">⌘↵</kbd>
                         </button>
                     </div>
                 </div>
+            )}
 
-                {/* ENHANCED PROMPT PANEL */}
-                <div className="flex flex-col">
-                    <div className="flex flex-col h-full">
-                        <div className="flex items-center justify-between mb-3">
-                            <span className="text-[11px] font-medium uppercase tracking-wider text-white/30">
-                                Enhanced Prompt
-                            </span>
-                            {enhancedPrompt && (
-                                <button
-                                    onClick={handleSave}
-                                    className="text-[11px] text-emerald-400 hover:text-emerald-300 transition-colors px-2 py-1 bg-emerald-500/10 rounded hover:bg-emerald-500/20"
-                                >
-                                    Save
-                                </button>
-                            )}
-                        </div>
-                        <div className="flex-1 p-5 bg-white/[0.015] border border-white/[0.06] rounded-xl text-white/80 text-sm leading-relaxed overflow-auto min-h-[280px] max-h-[400px]">
-                            {isProcessing && !enhancedPrompt ? (
-                                <div className="flex items-center justify-center h-full">
-                                    <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
-                                </div>
-                            ) : enhancedPrompt ? (
-                                <pre className="whitespace-pre-wrap font-sans">{enhancedPrompt}</pre>
-                            ) : (
-                                <div className="flex items-center justify-center h-full text-white/20 text-sm">
-                                    Your enhanced prompt will appear here
-                                </div>
-                            )}
-                        </div>
-                    </div>
+            {/* Processing */}
+            {isProcessing && (
+                <div className="flex flex-col items-center justify-center py-16 gap-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+                    <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
+                    <span className="text-sm text-white/40">Analyzing and improving your prompt...</span>
                 </div>
-            </div>
+            )}
 
-            {/* ROW 2: OUTPUT COMPARISON */}
-            <div className="grid lg:grid-cols-2 gap-6">
-                {/* RAW OUTPUT PANEL */}
-                <div className="flex flex-col">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-[11px] font-medium uppercase tracking-wider text-white/30">
-                            Output · Original Prompt
-                        </span>
-                    </div>
-                    <div className="p-5 bg-white/[0.015] border border-white/[0.06] rounded-xl text-white/70 text-sm leading-relaxed overflow-auto min-h-[320px] max-h-[500px]">
-                        {isRunningRaw ? (
-                            <div className="flex items-center justify-center h-full min-h-[200px]">
-                                <div className="flex flex-col items-center gap-3">
-                                    <Loader2 className="w-6 h-6 animate-spin text-red-400" />
-                                    <span className="text-xs text-white/40">Running original prompt...</span>
-                                </div>
-                            </div>
-                        ) : rawOutput ? (
-                            <MarkdownRenderer content={rawOutput} />
-                        ) : (
-                            <div className="flex items-center justify-center h-full min-h-[200px] text-white/20 text-sm">
-                                Output from your original prompt will appear here
-                            </div>
-                        )}
-                    </div>
-                </div>
+            {/* Result */}
+            {structuredResult && !isProcessing && (
+                <StructuredPromptOutput
+                    result={structuredResult}
+                    onSave={handleSave}
+                    onRefineAnother={handleClear}
+                    actionLabel="Improve"
+                />
+            )}
 
-                {/* ENHANCED OUTPUT PANEL */}
-                <div className="flex flex-col">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-[11px] font-medium uppercase tracking-wider text-white/30">
-                            Output · Enhanced Prompt
-                        </span>
-                    </div>
-                    <div className="p-5 bg-white/[0.015] border border-emerald-500/[0.15] rounded-xl text-white/70 text-sm leading-relaxed overflow-auto min-h-[320px] max-h-[500px]">
-                        {isRunningEnhanced ? (
-                            <div className="flex items-center justify-center h-full min-h-[200px]">
-                                <div className="flex flex-col items-center gap-3">
-                                    <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
-                                    <span className="text-xs text-white/40">Running enhanced prompt...</span>
-                                </div>
-                            </div>
-                        ) : enhancedOutput ? (
-                            <MarkdownRenderer content={enhancedOutput} />
-                        ) : (
-                            <div className="flex items-center justify-center h-full min-h-[200px] text-white/20 text-sm">
-                                Output from your enhanced prompt will appear here
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Error Display */}
+            {/* Error */}
             {error && (
                 <div className="flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -476,43 +295,4 @@ export default function SparkPage() {
             )}
         </div>
     );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Helper Functions
-// ═══════════════════════════════════════════════════════════════════════════
-
-function getDefaultExplanation(): string[] {
-    return [
-        'Added clear context and scope',
-        'Specified desired output format',
-        'Included success criteria',
-        'Improved clarity and precision',
-    ];
-}
-
-function generateLocalEnhancement(input: string): string {
-    const inputLower = input.toLowerCase();
-    const trimmed = input.trim();
-
-    if (inputLower.includes('write') || inputLower.includes('create')) {
-        const subject = trimmed.replace(/^(write|create)\s+(a|an|the)?\s*/i, '').trim();
-        return `Write a well-structured ${subject} that is clear, engaging, and formatted with appropriate sections. Include relevant examples where helpful and maintain a consistent professional tone throughout.`;
-    }
-
-    if (inputLower.includes('explain') || inputLower.includes('what is')) {
-        const topic = trimmed.replace(/^(explain|what is|what are)\s+(a|an|the)?\s*/i, '').trim();
-        return `Explain ${topic} clearly, starting with a concise 2-3 sentence summary. Break down complex concepts into digestible parts, use real-world analogies, and conclude with the key takeaways.`;
-    }
-
-    if (inputLower.includes('code') || inputLower.includes('function') || inputLower.includes('program')) {
-        return `${trimmed}. Include clear comments explaining the logic, handle edge cases properly, follow language best practices, and provide a usage example.`;
-    }
-
-    if (inputLower.includes('email') || inputLower.includes('message') || inputLower.includes('letter')) {
-        const purpose = trimmed.replace(/^(write|create|draft)\s+(a|an|the)?\s*(email|message|letter)\s*/i, '').trim();
-        return `Draft a professional email about ${purpose || 'this topic'}. Open with a clear purpose statement, maintain an appropriate tone, include a specific call-to-action, and keep it concise.`;
-    }
-
-    return `${trimmed}. Provide a clear, well-organized response with specific actionable recommendations. Be comprehensive yet concise.`;
 }

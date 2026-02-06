@@ -2,11 +2,16 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import GitHub from 'next-auth/providers/github';
+import { createVerificationToken } from './verification';
+import { sendVerificationEmail } from './email';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRAXIS Auth Configuration
 // Demo mode: Works without database for Cloudflare Workers edge runtime
 // ═══════════════════════════════════════════════════════════════════════════
+
+// Executive accounts — unlimited access, no rate limits
+const EXECUTIVE_EMAILS = ['said@saidborna.com'];
 
 // Demo users for development/preview (in production, use Prisma Accelerate)
 const DEMO_USERS: Record<string, { id: string; email: string; name: string; password: string }> = {
@@ -14,9 +19,46 @@ const DEMO_USERS: Record<string, { id: string; email: string; name: string; pass
         id: 'demo_user_1',
         email: 'demo@praxis.app',
         name: 'Demo User',
-        password: 'demo123', // In demo mode, accept any password
+        password: 'demo123',
     },
 };
+
+// In-memory verified emails store (replace with database in production)
+const verifiedEmails = new Set<string>();
+
+/**
+ * Mark an email as verified
+ */
+export function markEmailVerified(email: string): void {
+    verifiedEmails.add(email.toLowerCase());
+}
+
+/**
+ * Check if an email is verified
+ */
+export function isEmailVerified(email: string | null | undefined): boolean {
+    if (!email) return false;
+    // Executive and demo emails are auto-verified
+    if (isExecutiveEmail(email) || DEMO_USERS[email.toLowerCase()]) return true;
+    return verifiedEmails.has(email.toLowerCase());
+}
+
+/**
+ * Check if an email belongs to an executive account
+ */
+export function isExecutiveEmail(email: string | null | undefined): boolean {
+    if (!email) return false;
+    return EXECUTIVE_EMAILS.includes(email.toLowerCase());
+}
+
+/**
+ * Get user role from email
+ */
+export function getUserRole(email: string | null | undefined): 'executive' | 'trial' | 'free' {
+    if (isExecutiveEmail(email)) return 'executive';
+    // Future: Check subscription status in database
+    return 'trial';
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     // No adapter = JWT-only sessions (works on edge)
@@ -63,6 +105,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                             };
                         }
 
+                        // For new signups, send verification email
+                        if (!isEmailVerified(email)) {
+                            const token = createVerificationToken(email);
+                            await sendVerificationEmail(email, token);
+                        }
+
                         // For any other email, create a demo session
                         return {
                             id: `user_${Date.now()}`,
@@ -104,8 +152,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 token.id = user.id;
                 token.email = user.email;
                 token.name = user.name;
-                // Demo mode defaults
-                token.tier = 'FREE';
+                // Role-based access
+                token.role = getUserRole(user.email);
+                token.tier = isExecutiveEmail(user.email) ? 'EXECUTIVE' : 'FREE';
+                token.emailVerified = isEmailVerified(user.email);
+                token.promptsUsed = token.promptsUsed || 0; // Persistent counter
                 token.xp = 0;
                 token.level = 1;
                 token.streak = 0;
@@ -117,7 +168,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         async session({ session, token }) {
             if (session.user) {
                 session.user.id = token.id as string;
+                session.user.role = (token.role as string) || 'trial';
                 session.user.tier = (token.tier as string) || 'FREE';
+                session.user.emailVerified = (token.emailVerified as boolean) || false;
+                session.user.promptsUsed = (token.promptsUsed as number) || 0;
                 session.user.xp = (token.xp as number) || 0;
                 session.user.level = (token.level as number) || 1;
                 session.user.streak = (token.streak as number) || 0;
@@ -144,7 +198,10 @@ declare module 'next-auth' {
             email: string;
             name?: string | null;
             image?: string | null;
+            role: string;
             tier: string;
+            emailVerified: boolean;
+            promptsUsed: number;
             xp: number;
             level: number;
             streak: number;
@@ -153,7 +210,10 @@ declare module 'next-auth' {
     }
 
     interface User {
+        role?: string;
         tier?: string;
+        emailVerified?: boolean;
+        promptsUsed?: number;
         xp?: number;
         level?: number;
         streak?: number;

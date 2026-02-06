@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Sparkles, Mail, Lock, Eye, EyeOff, ArrowRight, Github, AlertCircle, Loader2 } from 'lucide-react';
+import { Sparkles, Mail, Lock, Eye, EyeOff, ArrowRight, Github, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import toast from 'react-hot-toast';
 
@@ -23,11 +23,32 @@ const GoogleIcon = () => (
 
 export default function LoginPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+
+    // Check for URL parameters (verification success/errors)
+    useEffect(() => {
+        const verified = searchParams.get('verified');
+        const message = searchParams.get('message');
+        const errorParam = searchParams.get('error');
+
+        if (verified === 'true' && message) {
+            setSuccessMessage(message);
+            toast.success(message);
+        } else if (errorParam === 'invalid-or-expired-token') {
+            setError('Verification link is invalid or expired. Please sign up again.');
+            toast.error('Verification failed');
+        } else if (errorParam === 'missing-token') {
+            setError('Invalid verification link.');
+        } else if (errorParam === 'verification-failed') {
+            setError('Email verification failed. Please try again.');
+        }
+    }, [searchParams]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -134,6 +155,18 @@ export default function LoginPage() {
                         }}>
                             <AlertCircle style={{ width: '18px', height: '18px', color: '#f87171', flexShrink: 0 }} />
                             <span style={{ fontSize: '14px', color: '#fca5a5' }}>{error}</span>
+                        </div>
+                    )}
+
+                    {/* Success Alert */}
+                    {successMessage && (
+                        <div style={{
+                            marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px',
+                            padding: '14px 16px', backgroundColor: 'rgba(34,197,94,0.1)',
+                            border: '1px solid rgba(34,197,94,0.2)', borderRadius: '12px'
+                        }}>
+                            <CheckCircle style={{ width: '18px', height: '18px', color: '#4ade80', flexShrink: 0 }} />
+                            <span style={{ fontSize: '14px', color: '#86efac' }}>{successMessage}</span>
                         </div>
                     )}
 

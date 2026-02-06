@@ -14,6 +14,9 @@ import {
     type RewrittenPrompt,
 } from '@/lib/prompt-rewriter';
 import { rateLimit, RateLimitPresets } from '@/lib/rate-limit';
+import { auth } from '@/lib/auth';
+import { isExecutiveEmail } from '@/lib/auth';
+import { getPromptUsage, incrementPromptUsage, hasExceededTrialLimit } from '@/lib/usage-tracker';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRAXIS PROMPT ENGINE API
@@ -99,6 +102,42 @@ function mapOutputLanguage(lang: string | undefined): 'en' | 'sv' | 'auto' {
  *   spec               — (For stage=assemble) Compiled spec from Stage 1
  */
 export async function POST(request: NextRequest) {
+    // ─── AUTHENTICATION & VERIFICATION ──────────────────────────────
+    const session = await auth();
+
+    if (!session?.user) {
+        return NextResponse.json(
+            { error: 'Authentication required' },
+            { status: 401 }
+        );
+    }
+
+    // Check email verification (executives auto-verified)
+    if (!session.user.emailVerified && !isExecutiveEmail(session.user.email)) {
+        return NextResponse.json(
+            { error: 'Email verification required. Please check your inbox.' },
+            { status: 403 }
+        );
+    }
+
+    // Check 100-prompt trial limit (executives get unlimited)
+    if (
+        session.user.role === 'trial' &&
+        !isExecutiveEmail(session.user.email) &&
+        hasExceededTrialLimit(session.user.email, 100)
+    ) {
+        const currentUsage = getPromptUsage(session.user.email);
+        return NextResponse.json(
+            {
+                error: 'Trial limit reached',
+                message: 'You've used all 100 trial prompts. Upgrade to Standard ($9.99/mo) for unlimited access.',
+                promptsUsed: currentUsage,
+                upgradeUrl: '/dashboard/billing',
+            },
+            { status: 403 }
+        );
+    }
+
     // ─── RATE LIMITING ──────────────────────────────────────────────
     const rateLimitResult = await rateLimit(request, RateLimitPresets.AI_CALLS);
 
@@ -205,6 +244,7 @@ export async function POST(request: NextRequest) {
                 const result = await rewritePrompt({
                     spec,
                     language: resolvedLang,
+                    platform,
                     model: 'gpt-4o-mini',
                     // Slightly higher temperature on retry for variation
                     temperature: attempt === 1 ? 0.5 : 0.65,
@@ -263,9 +303,17 @@ export async function POST(request: NextRequest) {
         }
 
         // Step 4: Return the synthesized prompt
+        // Increment usage counter (except for executives)
+        if (!isExecutiveEmail(session.user.email)) {
+            const newUsage = incrementPromptUsage(session.user.email);
+            console.log(`✓ Prompt usage incremented for ${session.user.email}: ${newUsage}/100`);
+        }
+
         return NextResponse.json({
             success: true,
             enhanced: rewrittenResult.prompt,
+            sections: rewrittenResult.sections,
+            improvements: rewrittenResult.improvements,
             original: inputPrompt,
             platform,
             mode: 'ai-synthesized',
@@ -277,11 +325,21 @@ export async function POST(request: NextRequest) {
             },
             spec,
             meta: {
-                pipelineVersion: '4.0.0',
+                pipelineVersion: '5.0.0',
                 synthesizedAt: rewrittenResult.meta.synthesizedAt,
                 originalLength: rewrittenResult.meta.originalLength,
                 enhancedLength: rewrittenResult.meta.rewrittenLength,
+                domain: rewrittenResult.meta.domain,
+                tokensIn: rewrittenResult.meta.tokensIn,
+                tokensOut: rewrittenResult.meta.tokensOut,
             },
+            usage: !isExecutiveEmail(session.user.email)
+                ? {
+                    promptsUsed: getPromptUsage(session.user.email),
+                    promptsRemaining: Math.max(0, 100 - getPromptUsage(session.user.email)),
+                    isTrialUser: session.user.role === 'trial',
+                }
+                : undefined,
         });
 
     } catch (error) {
