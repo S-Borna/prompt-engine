@@ -12,7 +12,7 @@ import GitHub from 'next-auth/providers/github';
 // Middleware imports this file → top-level pg import = instant crash.
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Executive accounts — unlimited access, no rate limits
+// Executive/Creator accounts — unlimited access, no rate limits
 const EXECUTIVE_EMAILS = ['said@saidborna.com'];
 
 /**
@@ -60,8 +60,8 @@ export function isExecutiveEmail(email: string | null | undefined): boolean {
 /**
  * Get user role from email
  */
-export function getUserRole(email: string | null | undefined): 'executive' | 'trial' | 'free' {
-    if (isExecutiveEmail(email)) return 'executive';
+export function getUserRole(email: string | null | undefined): 'executive' | 'creator' | 'trial' | 'free' {
+    if (isExecutiveEmail(email)) return 'creator';
     return 'trial';
 }
 
@@ -179,7 +179,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 token.email = user.email;
                 token.name = user.name;
                 token.role = getUserRole(user.email);
-                token.tier = isExecutiveEmail(user.email) ? 'EXECUTIVE' : 'FREE';
+                token.tier = isExecutiveEmail(user.email) ? 'CREATOR' : 'FREE';
 
                 // Fetch verification status from DB (dynamic import)
                 try {

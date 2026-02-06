@@ -8,7 +8,8 @@ import toast from 'react-hot-toast';
 import {
     Wand2, FolderOpen, Clock, Settings, CreditCard,
     Search, ChevronDown, Sparkles, LogOut,
-    Menu, X, Plus, ChevronLeft, SlidersHorizontal
+    Menu, X, Plus, ChevronLeft, SlidersHorizontal,
+    Crown, Zap, AlertTriangle, ArrowUpRight
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -47,13 +48,14 @@ const settingsNav = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
-    const { data: session } = useSession();
+    const { data: session, update: updateSession } = useSession();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [isDesktop, setIsDesktop] = useState(false);
+    const [livePromptsUsed, setLivePromptsUsed] = useState<number | null>(null);
     const userMenuRef = useRef<HTMLDivElement>(null);
     const searchRef = useRef<HTMLInputElement>(null);
 
@@ -93,6 +95,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, []);
 
+    // Listen for real-time prompt usage updates from Spark/Precision
+    useEffect(() => {
+        const handleUsageUpdate = (e: CustomEvent) => {
+            if (e.detail?.promptsUsed !== undefined) {
+                setLivePromptsUsed(e.detail.promptsUsed);
+            }
+        };
+        window.addEventListener('praxis:usage-update', handleUsageUpdate as EventListener);
+        return () => window.removeEventListener('praxis:usage-update', handleUsageUpdate as EventListener);
+    }, []);
+
     const handleSignOut = async () => {
         try {
             await signOut({ redirect: false });
@@ -120,6 +133,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const userName = session?.user?.name || session?.user?.email?.split('@')[0] || 'User';
     const userEmail = session?.user?.email || 'user@example.com';
     const userInitial = userName.charAt(0).toUpperCase();
+    const userTier = (session?.user as Record<string, unknown>)?.tier as string || 'FREE';
+    const promptsUsed = livePromptsUsed ?? (Number((session?.user as Record<string, unknown>)?.promptsUsed) || 0);
+    const isCreator = userTier === 'CREATOR';
+    const isPaid = ['CREATOR', 'PRO', 'TEAM', 'ENTERPRISE'].includes(userTier);
+    const TRIAL_LIMIT = 100;
+    const promptsRemaining = isPaid ? Infinity : Math.max(0, TRIAL_LIMIT - promptsUsed);
+
+    // Tier display config
+    const tierConfig: Record<string, { label: string; gradient: string; icon: typeof Crown; glow: string }> = {
+        CREATOR: { label: 'Creator', gradient: 'from-amber-400 via-yellow-500 to-orange-500', icon: Crown, glow: 'shadow-amber-500/30' },
+        PRO: { label: 'Pro', gradient: 'from-violet-500 to-indigo-600', icon: Zap, glow: 'shadow-violet-500/20' },
+        TEAM: { label: 'Team', gradient: 'from-blue-500 to-cyan-500', icon: Zap, glow: 'shadow-blue-500/20' },
+        ENTERPRISE: { label: 'Enterprise', gradient: 'from-emerald-500 to-teal-600', icon: Crown, glow: 'shadow-emerald-500/20' },
+        FREE: { label: 'Free Trial', gradient: 'from-zinc-500 to-zinc-600', icon: Zap, glow: '' },
+    };
+    const tier = tierConfig[userTier] || tierConfig.FREE;
+    const TierIcon = tier.icon;
+
+    // Counter warning state
+    const counterWarning = promptsRemaining <= 3 ? 'critical' : promptsRemaining <= 10 ? 'warning' : promptsRemaining <= 20 ? 'notice' : 'normal';
 
     const currentTool = mainNav.find(item => pathname === item.href || pathname.startsWith(item.href + '/'));
 
@@ -269,14 +302,168 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
                 </nav>
 
-                {/* Collapse Toggle */}
-                <div className={`p-3 border-t border-white/[0.04] ${sidebarCollapsed ? 'flex justify-center' : ''}`}>
-                    <button
-                        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                        className="hidden lg:flex w-8 h-8 items-center justify-center rounded-lg bg-white/[0.03] hover:bg-white/[0.06] text-white/30 hover:text-white/50 transition-all"
-                    >
-                        <ChevronLeft className={`w-4 h-4 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} />
-                    </button>
+                {/* ═══════════════════════════════════════════════════════
+                    PROFILE CARD + PROMPT COUNTER — Sidebar bottom
+                ═══════════════════════════════════════════════════════ */}
+                <div className={`border-t border-white/[0.04] ${sidebarCollapsed ? 'p-2' : 'p-3'}`}>
+                    {/* Trial Prompt Counter — Only for free users */}
+                    {!isPaid && !sidebarCollapsed && (
+                        <div className={`mb-3 rounded-xl p-3 transition-all duration-500 ${
+                            counterWarning === 'critical'
+                                ? 'bg-red-500/10 border border-red-500/20 animate-pulse'
+                                : counterWarning === 'warning'
+                                ? 'bg-amber-500/10 border border-amber-500/15'
+                                : counterWarning === 'notice'
+                                ? 'bg-amber-500/[0.06] border border-amber-500/10'
+                                : 'bg-white/[0.02] border border-white/[0.04]'
+                        }`}>
+                            <div className="flex items-center justify-between mb-2">
+                                <span className={`text-[10px] font-semibold uppercase tracking-wider ${
+                                    counterWarning === 'critical' ? 'text-red-400' :
+                                    counterWarning === 'warning' ? 'text-amber-400' : 'text-white/40'
+                                }`}>
+                                    Prompts Remaining
+                                </span>
+                                <span className={`text-lg font-bold tabular-nums ${
+                                    counterWarning === 'critical' ? 'text-red-400' :
+                                    counterWarning === 'warning' ? 'text-amber-400' :
+                                    counterWarning === 'notice' ? 'text-amber-300' : 'text-white/80'
+                                }`}>
+                                    {promptsRemaining}
+                                </span>
+                            </div>
+                            {/* Progress bar */}
+                            <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden mb-2">
+                                <div
+                                    className={`h-full rounded-full transition-all duration-700 ease-out ${
+                                        counterWarning === 'critical' ? 'bg-gradient-to-r from-red-500 to-red-400' :
+                                        counterWarning === 'warning' ? 'bg-gradient-to-r from-amber-500 to-amber-400' :
+                                        counterWarning === 'notice' ? 'bg-gradient-to-r from-amber-500/70 to-yellow-400' :
+                                        'bg-gradient-to-r from-violet-500 to-indigo-500'
+                                    }`}
+                                    style={{ width: `${Math.max(2, (promptsRemaining / TRIAL_LIMIT) * 100)}%` }}
+                                />
+                            </div>
+                            {/* Warning messages */}
+                            {counterWarning === 'critical' && (
+                                <div className="flex items-start gap-1.5 mt-2">
+                                    <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" />
+                                    <p className="text-[11px] text-red-300/90 leading-snug">
+                                        Only <strong>{promptsRemaining}</strong> left! Upgrade now to keep creating.
+                                    </p>
+                                </div>
+                            )}
+                            {counterWarning === 'warning' && (
+                                <div className="flex items-start gap-1.5 mt-2">
+                                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
+                                    <p className="text-[11px] text-amber-300/80 leading-snug">
+                                        Running low — upgrade for unlimited prompts.
+                                    </p>
+                                </div>
+                            )}
+                            {counterWarning === 'notice' && (
+                                <p className="text-[11px] text-white/40 leading-snug">
+                                    Enjoying Praxis? Go Pro for unlimited access.
+                                </p>
+                            )}
+                            {(counterWarning === 'critical' || counterWarning === 'warning') && (
+                                <Link
+                                    href="/dashboard/billing"
+                                    className="mt-2 flex items-center justify-center gap-1.5 w-full py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-violet-500 to-indigo-500 text-white hover:shadow-lg hover:shadow-violet-500/20 transition-all"
+                                >
+                                    <ArrowUpRight className="w-3.5 h-3.5" />
+                                    Upgrade to Pro
+                                </Link>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Prompt counter — collapsed sidebar (minimal) */}
+                    {!isPaid && sidebarCollapsed && (
+                        <div className="mb-2 flex justify-center" title={`${promptsRemaining} prompts remaining`}>
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold tabular-nums ${
+                                counterWarning === 'critical' ? 'bg-red-500/15 text-red-400 animate-pulse' :
+                                counterWarning === 'warning' ? 'bg-amber-500/15 text-amber-400' :
+                                'bg-white/[0.04] text-white/50'
+                            }`}>
+                                {promptsRemaining}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Profile Card */}
+                    <div className={`rounded-xl transition-all duration-200 ${
+                        sidebarCollapsed 
+                            ? 'flex flex-col items-center gap-2'
+                            : `p-3 ${isCreator ? 'bg-gradient-to-br from-amber-500/[0.06] to-orange-500/[0.04] border border-amber-500/10' : 'bg-white/[0.02] border border-white/[0.04]'}`
+                    }`}>
+                        {/* Avatar + Info */}
+                        <div className={`flex items-center ${sidebarCollapsed ? 'flex-col' : 'gap-3'}`}>
+                            <div className={`relative flex-shrink-0 ${sidebarCollapsed ? '' : ''}`}>
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold ${
+                                    isCreator 
+                                        ? 'bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 text-white shadow-lg shadow-amber-500/20'
+                                        : `bg-gradient-to-br ${tier.gradient} text-white`
+                                }`}>
+                                    {userInitial}
+                                </div>
+                                {/* Tier badge dot */}
+                                {isPaid && (
+                                    <div className={`absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-gradient-to-br ${tier.gradient} flex items-center justify-center ring-2 ring-[#09090b]`}>
+                                        <TierIcon className="w-2 h-2 text-white" />
+                                    </div>
+                                )}
+                            </div>
+
+                            {!sidebarCollapsed && (
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-sm font-semibold text-white truncate">{userName}</span>
+                                        {isPaid && (
+                                            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-gradient-to-r ${tier.gradient} text-white shadow-sm ${tier.glow}`}>
+                                                <TierIcon className="w-2.5 h-2.5" />
+                                                {tier.label}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="text-[11px] text-white/35 truncate mt-0.5">{userEmail}</div>
+                                    {isCreator && (
+                                        <div className="text-[10px] text-amber-400/60 mt-0.5">Unlimited access</div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Quick Actions — expanded only */}
+                        {!sidebarCollapsed && (
+                            <div className="flex items-center gap-1 mt-2.5 pt-2.5 border-t border-white/[0.04]">
+                                <Link
+                                    href="/dashboard/settings"
+                                    className="flex-1 flex items-center justify-center gap-1 py-1 text-[11px] text-white/40 hover:text-white/60 hover:bg-white/[0.03] rounded-md transition-all"
+                                >
+                                    <Settings className="w-3 h-3" />
+                                    Settings
+                                </Link>
+                                <button
+                                    onClick={handleSignOut}
+                                    className="flex-1 flex items-center justify-center gap-1 py-1 text-[11px] text-white/40 hover:text-red-400 hover:bg-red-500/5 rounded-md transition-all"
+                                >
+                                    <LogOut className="w-3 h-3" />
+                                    Sign Out
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Collapse Toggle */}
+                    <div className={`mt-2 ${sidebarCollapsed ? 'flex justify-center' : ''}`}>
+                        <button
+                            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                            className="hidden lg:flex w-8 h-8 items-center justify-center rounded-lg bg-white/[0.03] hover:bg-white/[0.06] text-white/30 hover:text-white/50 transition-all"
+                        >
+                            <ChevronLeft className={`w-4 h-4 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} />
+                        </button>
+                    </div>
                 </div>
             </aside>
 
@@ -344,19 +531,82 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <div className="relative" ref={userMenuRef}>
                                 <button
                                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                                    className="flex items-center gap-2 p-1 hover:bg-white/[0.04] rounded-lg transition-colors"
+                                    className={`flex items-center gap-2 p-1 rounded-lg transition-all ${
+                                        isCreator ? 'hover:bg-amber-500/[0.06]' : 'hover:bg-white/[0.04]'
+                                    }`}
                                 >
-                                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-xs font-medium">
+                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-bold ${
+                                        isCreator
+                                            ? 'bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 shadow-md shadow-amber-500/20'
+                                            : `bg-gradient-to-br ${tier.gradient}`
+                                    }`}>
                                         {userInitial}
                                     </div>
+                                    {isPaid && (
+                                        <span className={`hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-gradient-to-r ${tier.gradient} text-white`}>
+                                            <TierIcon className="w-2.5 h-2.5" />
+                                            {tier.label}
+                                        </span>
+                                    )}
                                     <ChevronDown className={`w-3.5 h-3.5 text-white/40 hidden sm:block transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
                                 </button>
 
                                 {userMenuOpen && (
-                                    <div className="absolute right-0 mt-2 w-56 bg-[#0c0c0f] rounded-xl border border-white/[0.06] shadow-2xl py-1.5 z-50">
-                                        <div className="px-3 py-2 border-b border-white/[0.04]">
-                                            <div className="font-medium text-white text-sm">{userName}</div>
-                                            <div className="text-xs text-white/40 truncate">{userEmail}</div>
+                                    <div className={`absolute right-0 mt-2 w-64 rounded-xl border shadow-2xl py-1.5 z-50 ${
+                                        isCreator
+                                            ? 'bg-[#0c0c0f] border-amber-500/15'
+                                            : 'bg-[#0c0c0f] border-white/[0.06]'
+                                    }`}>
+                                        {/* Profile Header */}
+                                        <div className={`px-4 py-3 border-b ${isCreator ? 'border-amber-500/10' : 'border-white/[0.04]'}`}>
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold ${
+                                                    isCreator
+                                                        ? 'bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 text-white shadow-lg shadow-amber-500/20'
+                                                        : `bg-gradient-to-br ${tier.gradient} text-white`
+                                                }`}>
+                                                    {userInitial}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="font-semibold text-white text-sm truncate">{userName}</span>
+                                                        {isPaid && (
+                                                            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-gradient-to-r ${tier.gradient} text-white`}>
+                                                                <TierIcon className="w-2.5 h-2.5" />
+                                                                {tier.label}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-xs text-white/40 truncate">{userEmail}</div>
+                                                    {isCreator && (
+                                                        <div className="text-[10px] text-amber-400/60 mt-0.5">✦ Unlimited access — no limits</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {/* Prompt usage for free tier */}
+                                            {!isPaid && (
+                                                <div className="mt-3 p-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+                                                    <div className="flex items-center justify-between mb-1.5">
+                                                        <span className="text-[10px] font-medium uppercase tracking-wider text-white/40">Usage</span>
+                                                        <span className={`text-xs font-bold tabular-nums ${
+                                                            counterWarning === 'critical' ? 'text-red-400' :
+                                                            counterWarning === 'warning' ? 'text-amber-400' : 'text-white/60'
+                                                        }`}>
+                                                            {promptsUsed} / {TRIAL_LIMIT}
+                                                        </span>
+                                                    </div>
+                                                    <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                                                        <div
+                                                            className={`h-full rounded-full transition-all ${
+                                                                counterWarning === 'critical' ? 'bg-red-500' :
+                                                                counterWarning === 'warning' ? 'bg-amber-500' :
+                                                                'bg-violet-500'
+                                                            }`}
+                                                            style={{ width: `${Math.min(100, (promptsUsed / TRIAL_LIMIT) * 100)}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="py-1">
                                             <Link
@@ -373,7 +623,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                                 onClick={() => setUserMenuOpen(false)}
                                             >
                                                 <CreditCard className="w-4 h-4" />
-                                                Billing
+                                                Billing & Plans
                                             </Link>
                                         </div>
                                         <div className="border-t border-white/[0.04] pt-1">

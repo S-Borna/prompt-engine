@@ -92,6 +92,7 @@ model VerificationToken {
 
 enum UserTier {
   FREE
+  CREATOR
   PRO
   TEAM
   ENTERPRISE

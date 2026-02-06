@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getPrisma } from '@/lib/prisma';
+
+// CRITICAL: getPrisma loaded dynamically to avoid pg in Workers edge
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SAVE PROMPT — Persist enhanced prompts to user's library in Postgres
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        const { getPrisma } = await import('@/lib/prisma');
         const prisma = getPrisma();
         const email = session.user.email.toLowerCase();
 

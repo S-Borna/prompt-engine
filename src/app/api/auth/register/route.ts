@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import { getPrisma } from '@/lib/prisma';
-import { createVerificationToken } from '@/lib/verification';
-import { sendVerificationEmail } from '@/lib/email';
+
+// CRITICAL: All imports are DYNAMIC to avoid loading pg/bcrypt in Cloudflare Workers edge
 
 export async function POST(request: NextRequest) {
     try {
@@ -22,6 +20,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        const { getPrisma } = await import('@/lib/prisma');
+        const bcrypt = (await import('bcryptjs')).default;
         const prisma = getPrisma();
         const normalizedEmail = email.toLowerCase();
 
@@ -49,6 +49,8 @@ export async function POST(request: NextRequest) {
         });
 
         // Send verification email
+        const { createVerificationToken } = await import('@/lib/verification');
+        const { sendVerificationEmail } = await import('@/lib/email');
         const token = await createVerificationToken(normalizedEmail);
         await sendVerificationEmail(normalizedEmail, token);
 

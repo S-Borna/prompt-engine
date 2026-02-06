@@ -134,6 +134,13 @@ export default function SparkPage() {
                 output: (data.enhanced || '').slice(0, 100) + '...',
             });
 
+            // Dispatch real-time usage update for sidebar counter
+            if (data.usage?.promptsUsed !== undefined) {
+                window.dispatchEvent(new CustomEvent('praxis:usage-update', {
+                    detail: { promptsUsed: data.usage.promptsUsed, promptsRemaining: data.usage.promptsRemaining }
+                }));
+            }
+
         } catch (err) {
             const isTimeout = err instanceof DOMException && err.name === 'AbortError';
             setError(isTimeout

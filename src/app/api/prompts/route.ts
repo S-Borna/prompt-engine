@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getPrisma } from '@/lib/prisma';
+
+// CRITICAL: getPrisma loaded dynamically to avoid pg in Workers edge
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GET /api/prompts — Fetch user's saved prompts from Postgres
@@ -25,6 +26,7 @@ export async function GET(request: NextRequest) {
         const search = searchParams.get('search');
         const favorites = searchParams.get('favorites') === 'true';
 
+        const { getPrisma } = await import('@/lib/prisma');
         const prisma = getPrisma();
         const email = session.user.email.toLowerCase();
 

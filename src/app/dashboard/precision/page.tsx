@@ -159,6 +159,13 @@ export default function RefinePage() {
                 output: (data.enhanced || '').slice(0, 100) + '...',
             });
 
+            // Dispatch real-time usage update for sidebar counter
+            if (data.usage?.promptsUsed !== undefined) {
+                window.dispatchEvent(new CustomEvent('praxis:usage-update', {
+                    detail: { promptsUsed: data.usage.promptsUsed, promptsRemaining: data.usage.promptsRemaining }
+                }));
+            }
+
             setStep(3);
         } catch (err) {
             setError('Failed to generate refined prompt. Please try again.');

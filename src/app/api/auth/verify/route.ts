@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/verification';
-import { sendWelcomeEmail } from '@/lib/email';
-import { markEmailVerified } from '@/lib/auth';
+
+// CRITICAL: All imports are DYNAMIC to avoid loading pg in Cloudflare Workers edge
 
 export async function GET(request: NextRequest) {
     try {
@@ -13,6 +12,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Verify the token (Postgres lookup + delete)
+        const { verifyToken } = await import('@/lib/verification');
         const email = await verifyToken(token);
 
         if (!email) {
@@ -20,12 +20,14 @@ export async function GET(request: NextRequest) {
         }
 
         // Mark email as verified in Postgres
+        const { markEmailVerified } = await import('@/lib/auth');
         await markEmailVerified(email);
 
         // Extract name from email (before @)
         const name = email.split('@')[0];
 
         // Send welcome email
+        const { sendWelcomeEmail } = await import('@/lib/email');
         await sendWelcomeEmail(email, name);
 
         // Redirect to login with success message
