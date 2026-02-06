@@ -16,7 +16,7 @@
         el.focus();
         // Split on double newlines or period+space for readable paragraphs
         const paragraphs = text.split(/\n{2,}/).filter(p => p.trim());
-        
+
         if (el.getAttribute('contenteditable') === 'true') {
             el.innerHTML = '';
             paragraphs.forEach(para => {
