@@ -238,8 +238,8 @@ export default function RefinePage() {
                     <div key={s.id} className="flex items-center">
                         <div className="flex items-center gap-2.5">
                             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${step > s.id ? 'bg-emerald-500 text-white' :
-                                    step === s.id ? 'bg-violet-500/20 text-violet-300 ring-2 ring-violet-500/50' :
-                                        'bg-white/[0.06] text-white/30'
+                                step === s.id ? 'bg-violet-500/20 text-violet-300 ring-2 ring-violet-500/50' :
+                                    'bg-white/[0.06] text-white/30'
                                 }`}>
                                 {step > s.id ? <CheckCircle2 className="w-4 h-4" /> : s.id}
                             </div>
@@ -329,8 +329,8 @@ export default function RefinePage() {
                                             key={opt.id}
                                             onClick={() => handleSelectAnswer(q.id, opt.id)}
                                             className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${answers[q.id] === opt.id
-                                                    ? 'border-violet-500/40 bg-violet-500/10 text-white'
-                                                    : 'border-white/[0.06] bg-white/[0.02] text-white/60 hover:border-white/[0.12] hover:bg-white/[0.04]'
+                                                ? 'border-violet-500/40 bg-violet-500/10 text-white'
+                                                : 'border-white/[0.06] bg-white/[0.02] text-white/60 hover:border-white/[0.12] hover:bg-white/[0.04]'
                                                 }`}
                                         >
                                             <span className="text-sm">{opt.label}</span>
