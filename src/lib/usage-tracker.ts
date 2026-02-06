@@ -1,52 +1,62 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// USAGE TRACKING — In-memory prompt usage counter
-// Production: Replace with Redis or database
+// USAGE TRACKING — PostgreSQL-backed via Prisma
+// Uses User.promptsUsedToday in the users table
 // ═══════════════════════════════════════════════════════════════════════════
 
-interface UsageData {
-    email: string;
-    promptsUsed: number;
-    lastUpdated: number;
-}
-
-// In-memory usage store (replace with Redis/database in production)
-const usageStore = new Map<string, UsageData>();
+import { getPrisma } from './prisma';
 
 /**
- * Get prompt usage for a user
+ * Get prompt usage for a user (by email)
  */
-export function getPromptUsage(email: string): number {
-    const data = usageStore.get(email.toLowerCase());
-    return data?.promptsUsed || 0;
+export async function getPromptUsage(email: string): Promise<number> {
+    const prisma = getPrisma();
+    const user = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() },
+        select: { promptsUsedToday: true },
+    });
+    return user?.promptsUsedToday ?? 0;
 }
 
 /**
- * Increment prompt usage for a user
+ * Increment prompt usage for a user. Creates user row if missing.
  */
-export function incrementPromptUsage(email: string): number {
+export async function incrementPromptUsage(email: string): Promise<number> {
+    const prisma = getPrisma();
     const normalizedEmail = email.toLowerCase();
-    const currentUsage = getPromptUsage(normalizedEmail);
-    const newUsage = currentUsage + 1;
 
-    usageStore.set(normalizedEmail, {
-        email: normalizedEmail,
-        promptsUsed: newUsage,
-        lastUpdated: Date.now(),
+    const user = await prisma.user.upsert({
+        where: { email: normalizedEmail },
+        update: {
+            promptsUsedToday: { increment: 1 },
+            lastActiveAt: new Date(),
+        },
+        create: {
+            email: normalizedEmail,
+            name: normalizedEmail.split('@')[0],
+            promptsUsedToday: 1,
+            lastActiveAt: new Date(),
+        },
+        select: { promptsUsedToday: true },
     });
 
-    return newUsage;
+    return user.promptsUsedToday;
 }
 
 /**
- * Reset prompt usage for a user (for testing/admin purposes)
+ * Reset prompt usage for a user (admin / testing)
  */
-export function resetPromptUsage(email: string): void {
-    usageStore.delete(email.toLowerCase());
+export async function resetPromptUsage(email: string): Promise<void> {
+    const prisma = getPrisma();
+    await prisma.user.update({
+        where: { email: email.toLowerCase() },
+        data: { promptsUsedToday: 0, promptsResetAt: new Date() },
+    }).catch(() => { /* user may not exist yet */ });
 }
 
 /**
  * Check if user has exceeded trial limit
  */
-export function hasExceededTrialLimit(email: string, limit: number = 100): boolean {
-    return getPromptUsage(email) >= limit;
+export async function hasExceededTrialLimit(email: string, limit: number = 100): Promise<boolean> {
+    const usage = await getPromptUsage(email);
+    return usage >= limit;
 }

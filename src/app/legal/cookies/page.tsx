@@ -167,6 +167,21 @@ export default function CookiePolicy() {
                         </section>
 
                         <section>
+                            <h2 className="text-2xl font-semibold mb-4 text-white/90">4.1 Server-Side Data Collection</h2>
+                            <p className="text-white/60 leading-relaxed">
+                                Beyond cookies and local storage, PRAXIS collects and stores the following data on our servers when you use the Service:
+                            </p>
+                            <ul className="list-disc pl-6 mt-4 space-y-2 text-white/60">
+                                <li><strong>Prompt History:</strong> Your submitted prompts and enhanced outputs are stored in your account for your convenience and history</li>
+                                <li><strong>Usage Metrics:</strong> Number of prompts used, features accessed, and platform preferences</li>
+                                <li><strong>Quality Data:</strong> Prompt quality scores and enhancement statistics</li>
+                            </ul>
+                            <p className="text-white/60 leading-relaxed mt-4">
+                                This data is used to provide the Service, maintain your account history, and — in aggregated, anonymized form — to improve and develop the platform. See our <Link href="/legal/privacy" className="text-purple-400 hover:text-purple-300 underline">Privacy Policy</Link> for full details.
+                            </p>
+                        </section>
+
+                        <section>
                             <h2 className="text-2xl font-semibold mb-4 text-white/90">5. Your Choices and Control</h2>
 
                             <h3 className="text-xl font-medium mb-3 text-white/80">5.1 Cookie Consent</h3>

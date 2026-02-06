@@ -92,15 +92,22 @@ export default function PrivacyPolicy() {
                             <ul className="list-disc pl-6 mt-4 space-y-2 text-white/60">
                                 <li>Provide, maintain, and improve the Service</li>
                                 <li>Process your prompts and deliver enhanced outputs</li>
+                                <li>Store your prompt history so you can access it from your account</li>
                                 <li>Process payments and manage subscriptions</li>
                                 <li>Send transactional emails (account confirmation, password reset, billing)</li>
                                 <li>Respond to support requests and communications</li>
-                                <li>Analyze usage patterns to improve user experience</li>
+                                <li>Analyze usage patterns, prompt categories, and feature interactions to improve user experience and develop new features</li>
+                                <li>Generate aggregated, anonymized insights from usage data to improve the quality and accuracy of our prompt enhancement algorithms</li>
                                 <li>Detect, prevent, and address technical issues and security threats</li>
                                 <li>Comply with legal obligations</li>
                             </ul>
+
+                            <h3 className="text-xl font-medium mb-3 mt-6 text-white/80">5.2 Data Used for Service Improvement</h3>
+                            <p className="text-white/60 leading-relaxed">
+                                Your prompts, enhanced outputs, and interaction data (such as which features you use, prompt quality scores, and platform preferences) are stored in our database and may be used in aggregated, anonymized form to improve and develop the Service. This includes improving our prompt enhancement algorithms, identifying common usage patterns, and developing new features. We use this data based on our legitimate interest in providing and improving the Service.
+                            </p>
                             <p className="text-white/60 leading-relaxed mt-4">
-                                <strong>We do not:</strong> Sell your personal data, use your prompts to train AI models, or share your content with third parties for their marketing purposes.
+                                <strong>We do not:</strong> Sell your personal data, use your individual prompts to train third-party AI models, or share your content with third parties for their marketing purposes. Any data used for service improvement is aggregated and anonymized so that it cannot be traced back to individual users.
                             </p>
                         </section>
 

@@ -12,15 +12,15 @@ export async function GET(request: NextRequest) {
             return NextResponse.redirect(new URL('/login?error=missing-token', request.url));
         }
 
-        // Verify the token
-        const email = verifyToken(token);
+        // Verify the token (Postgres lookup + delete)
+        const email = await verifyToken(token);
 
         if (!email) {
             return NextResponse.redirect(new URL('/login?error=invalid-or-expired-token', request.url));
         }
 
-        // Mark email as verified
-        markEmailVerified(email);
+        // Mark email as verified in Postgres
+        await markEmailVerified(email);
 
         // Extract name from email (before @)
         const name = email.split('@')[0];

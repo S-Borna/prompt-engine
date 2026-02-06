@@ -91,7 +91,10 @@ export default function TermsOfService() {
                             </p>
                             <h3 className="text-xl font-medium mb-3 mt-6 text-white/80">5.2 User Content</h3>
                             <p className="text-white/60 leading-relaxed">
-                                You retain all rights to the prompts and content you create using the Service ("User Content"). By using the Service, you grant us a limited, non-exclusive license to process, transform, and store your User Content solely for the purpose of providing the Service to you.
+                                You retain all rights to the prompts and content you create using the Service ("User Content"). By using the Service, you grant us a limited, non-exclusive license to process, transform, and store your User Content for the purpose of providing and improving the Service.
+                            </p>
+                            <p className="text-white/60 leading-relaxed mt-4">
+                                We may use aggregated, anonymized data derived from User Content and usage patterns — such as prompt categories, feature usage frequency, and enhancement quality metrics — to analyze, develop, and improve the Service. This aggregated data cannot be used to identify individual users or reconstruct specific prompts.
                             </p>
                             <h3 className="text-xl font-medium mb-3 mt-6 text-white/80">5.3 Enhanced Prompts</h3>
                             <p className="text-white/60 leading-relaxed">

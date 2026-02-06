@@ -124,9 +124,9 @@ export async function POST(request: NextRequest) {
     if (
         session.user.role === 'trial' &&
         !isExecutiveEmail(session.user.email) &&
-        hasExceededTrialLimit(session.user.email, 100)
+        await hasExceededTrialLimit(session.user.email, 100)
     ) {
-        const currentUsage = getPromptUsage(session.user.email);
+        const currentUsage = await getPromptUsage(session.user.email);
         return NextResponse.json(
             {
                 error: 'Trial limit reached',
@@ -305,8 +305,35 @@ export async function POST(request: NextRequest) {
         // Step 4: Return the synthesized prompt
         // Increment usage counter (except for executives)
         if (!isExecutiveEmail(session.user.email)) {
-            const newUsage = incrementPromptUsage(session.user.email);
+            const newUsage = await incrementPromptUsage(session.user.email);
             console.log(`✓ Prompt usage incremented for ${session.user.email}: ${newUsage}/100`);
+        }
+
+        // Save prompt to database for user history
+        try {
+            const { getPrisma } = await import('@/lib/prisma');
+            const prisma = getPrisma();
+            const dbUser = await prisma.user.findUnique({
+                where: { email: session.user.email.toLowerCase() },
+                select: { id: true },
+            });
+            if (dbUser) {
+                await prisma.prompt.create({
+                    data: {
+                        userId: dbUser.id,
+                        fullPrompt: rewrittenResult.prompt,
+                        task: rewrittenResult.sections?.mainObjective || inputPrompt,
+                        role: rewrittenResult.sections?.expertRole || null,
+                        instructions: rewrittenResult.sections?.approachGuidelines || null,
+                        output: rewrittenResult.sections?.outputFormat || null,
+                        title: inputPrompt.slice(0, 80),
+                        tags: [platform],
+                    },
+                });
+            }
+        } catch (saveErr) {
+            // Non-critical — log but don't fail the response
+            console.warn('[enhance] Failed to save prompt to DB:', saveErr);
         }
 
         return NextResponse.json({
@@ -335,8 +362,8 @@ export async function POST(request: NextRequest) {
             },
             usage: !isExecutiveEmail(session.user.email)
                 ? {
-                    promptsUsed: getPromptUsage(session.user.email),
-                    promptsRemaining: Math.max(0, 100 - getPromptUsage(session.user.email)),
+                    promptsUsed: await getPromptUsage(session.user.email),
+                    promptsRemaining: Math.max(0, 100 - await getPromptUsage(session.user.email)),
                     isTrialUser: session.user.role === 'trial',
                 }
                 : undefined,

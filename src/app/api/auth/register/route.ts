@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-
-// Note: Prisma with pg adapter doesn't work on Cloudflare Workers edge runtime
-// For production, use Prisma Accelerate or a HTTP-based database connection
+import { getPrisma } from '@/lib/prisma';
+import { createVerificationToken } from '@/lib/verification';
+import { sendVerificationEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
     try {
         const { email, password, name } = await request.json();
 
-        // Validation
         if (!email || !password) {
             return NextResponse.json(
                 { error: 'Email and password are required' },
@@ -23,28 +22,47 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // For demo/development: Return success without database
-        // In production, connect to Prisma Accelerate or use Neon/PlanetScale HTTP
+        const prisma = getPrisma();
+        const normalizedEmail = email.toLowerCase();
 
-        // Hash password (for when DB is connected)
+        // Check if user already exists
+        const existing = await prisma.user.findUnique({
+            where: { email: normalizedEmail },
+        });
+
+        if (existing) {
+            return NextResponse.json(
+                { error: 'An account with this email already exists' },
+                { status: 409 }
+            );
+        }
+
+        // Hash password & create user in Postgres
         const hashedPassword = await bcrypt.hash(password, 12);
 
-        // Demo mode: simulate successful registration
-        const demoUser = {
-            id: `demo_${Date.now()}`,
-            email,
-            name: name || null,
-            tier: 'FREE',
-            createdAt: new Date().toISOString(),
-        };
+        const user = await prisma.user.create({
+            data: {
+                email: normalizedEmail,
+                name: name || normalizedEmail.split('@')[0],
+                password: hashedPassword,
+            },
+        });
+
+        // Send verification email
+        const token = await createVerificationToken(normalizedEmail);
+        await sendVerificationEmail(normalizedEmail, token);
 
         return NextResponse.json({
             success: true,
-            user: demoUser,
-            message: 'Account created! You can now sign in.',
-            demo: true, // Flag indicating demo mode
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                tier: user.tier,
+                createdAt: user.createdAt.toISOString(),
+            },
+            message: 'Account created! Check your email to verify your account.',
         });
-
     } catch (error: any) {
         console.error('Registration error:', error);
         return NextResponse.json(

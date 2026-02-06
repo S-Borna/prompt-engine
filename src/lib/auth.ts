@@ -2,45 +2,49 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import GitHub from 'next-auth/providers/github';
+import bcrypt from 'bcryptjs';
 import { createVerificationToken } from './verification';
 import { sendVerificationEmail } from './email';
+import { getPrisma } from './prisma';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRAXIS Auth Configuration
-// Demo mode: Works without database for Cloudflare Workers edge runtime
+// PostgreSQL-backed via Prisma — JWT sessions for Cloudflare Workers edge
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Executive accounts — unlimited access, no rate limits
 const EXECUTIVE_EMAILS = ['said@saidborna.com'];
 
-// Demo users for development/preview (in production, use Prisma Accelerate)
-const DEMO_USERS: Record<string, { id: string; email: string; name: string; password: string }> = {
-    'demo@praxis.app': {
-        id: 'demo_user_1',
-        email: 'demo@praxis.app',
-        name: 'Demo User',
-        password: 'demo123',
-    },
-};
-
-// In-memory verified emails store (replace with database in production)
-const verifiedEmails = new Set<string>();
-
 /**
- * Mark an email as verified
+ * Mark an email as verified in the database
  */
-export function markEmailVerified(email: string): void {
-    verifiedEmails.add(email.toLowerCase());
+export async function markEmailVerified(email: string): Promise<void> {
+    const prisma = getPrisma();
+    await prisma.user.upsert({
+        where: { email: email.toLowerCase() },
+        update: { emailVerified: new Date() },
+        create: {
+            email: email.toLowerCase(),
+            name: email.split('@')[0],
+            emailVerified: new Date(),
+        },
+    });
 }
 
 /**
- * Check if an email is verified
+ * Check if an email is verified (database lookup)
  */
-export function isEmailVerified(email: string | null | undefined): boolean {
+export async function isEmailVerified(email: string | null | undefined): Promise<boolean> {
     if (!email) return false;
-    // Executive and demo emails are auto-verified
-    if (isExecutiveEmail(email) || DEMO_USERS[email.toLowerCase()]) return true;
-    return verifiedEmails.has(email.toLowerCase());
+    if (isExecutiveEmail(email)) return true;
+
+    const prisma = getPrisma();
+    const user = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() },
+        select: { emailVerified: true },
+    });
+
+    return !!user?.emailVerified;
 }
 
 /**
@@ -56,13 +60,10 @@ export function isExecutiveEmail(email: string | null | undefined): boolean {
  */
 export function getUserRole(email: string | null | undefined): 'executive' | 'trial' | 'free' {
     if (isExecutiveEmail(email)) return 'executive';
-    // Future: Check subscription status in database
     return 'trial';
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-    // No adapter = JWT-only sessions (works on edge)
-
     session: {
         strategy: 'jwt',
         maxAge: 30 * 24 * 60 * 60, // 30 days
@@ -75,7 +76,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     providers: [
-        // Email/Password (Demo Mode)
         Credentials({
             name: 'credentials',
             credentials: {
@@ -84,42 +84,59 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
             async authorize(credentials) {
                 try {
-                    if (!credentials?.email || !credentials?.password) {
-                        return null;
-                    }
+                    if (!credentials?.email || !credentials?.password) return null;
 
-                    const email = credentials.email as string;
+                    const email = (credentials.email as string).toLowerCase();
                     const password = credentials.password as string;
 
-                    // Demo mode: Accept any valid-looking email
-                    // In production, verify against database
-                    if (email && password.length >= 1) {
-                        // Check if it's a known demo user
-                        const demoUser = DEMO_USERS[email.toLowerCase()];
+                    if (!email || password.length < 1) return null;
 
-                        if (demoUser) {
-                            return {
-                                id: demoUser.id,
-                                email: demoUser.email,
-                                name: demoUser.name,
-                            };
+                    const prisma = getPrisma();
+
+                    // Look up user in database
+                    const existingUser = await prisma.user.findUnique({
+                        where: { email },
+                    });
+
+                    if (existingUser) {
+                        // Existing user — verify password
+                        if (existingUser.password) {
+                            const valid = await bcrypt.compare(password, existingUser.password);
+                            if (!valid) return null;
                         }
+                        // Update last active
+                        await prisma.user.update({
+                            where: { email },
+                            data: { lastActiveAt: new Date() },
+                        });
 
-                        // For new signups, send verification email
-                        if (!isEmailVerified(email)) {
-                            const token = createVerificationToken(email);
-                            await sendVerificationEmail(email, token);
-                        }
-
-                        // For any other email, create a demo session
                         return {
-                            id: `user_${Date.now()}`,
-                            email: email,
-                            name: email.split('@')[0],
+                            id: existingUser.id,
+                            email: existingUser.email,
+                            name: existingUser.name,
                         };
                     }
 
-                    return null;
+                    // New user — create account + send verification email
+                    const hashedPassword = await bcrypt.hash(password, 12);
+                    const newUser = await prisma.user.create({
+                        data: {
+                            email,
+                            name: email.split('@')[0],
+                            password: hashedPassword,
+                            lastActiveAt: new Date(),
+                        },
+                    });
+
+                    // Send verification email
+                    const token = await createVerificationToken(email);
+                    await sendVerificationEmail(email, token);
+
+                    return {
+                        id: newUser.id,
+                        email: newUser.email,
+                        name: newUser.name,
+                    };
                 } catch (error) {
                     console.error('Auth error:', error);
                     return null;
@@ -127,7 +144,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
         }),
 
-        // Google OAuth (configure in Cloudflare dashboard)
         ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
             ? [Google({
                 clientId: process.env.GOOGLE_CLIENT_ID,
@@ -136,7 +152,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             })]
             : []),
 
-        // GitHub OAuth (configure in Cloudflare dashboard)
         ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
             ? [GitHub({
                 clientId: process.env.GITHUB_CLIENT_ID,
@@ -152,15 +167,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 token.id = user.id;
                 token.email = user.email;
                 token.name = user.name;
-                // Role-based access
                 token.role = getUserRole(user.email);
                 token.tier = isExecutiveEmail(user.email) ? 'EXECUTIVE' : 'FREE';
-                token.isVerified = isEmailVerified(user.email);
-                token.promptsUsed = token.promptsUsed || 0; // Persistent counter
-                token.xp = 0;
-                token.level = 1;
-                token.streak = 0;
-                token.promptsUsedToday = 0;
+
+                // Fetch verification status from DB
+                const prisma = getPrisma();
+                const dbUser = await prisma.user.findUnique({
+                    where: { email: (user.email as string).toLowerCase() },
+                    select: {
+                        emailVerified: true,
+                        promptsUsedToday: true,
+                        xp: true,
+                        level: true,
+                        streak: true,
+                        tier: true,
+                    },
+                });
+
+                token.isVerified = isExecutiveEmail(user.email) || !!dbUser?.emailVerified;
+                token.promptsUsed = dbUser?.promptsUsedToday ?? 0;
+                token.xp = dbUser?.xp ?? 0;
+                token.level = dbUser?.level ?? 1;
+                token.streak = dbUser?.streak ?? 0;
+                if (dbUser?.tier) token.tier = dbUser.tier;
             }
             return token;
         },
@@ -181,12 +210,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
 
         async signIn() {
-            // Allow all sign-ins in demo mode
             return true;
         },
     },
 
-    // Suppress errors in production
     debug: process.env.NODE_ENV === 'development',
 });
 
