@@ -20,9 +20,9 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { getPrisma } = await import('@/lib/prisma');
+        const { getPrismaAsync } = await import('@/lib/prisma');
         const bcrypt = (await import('bcryptjs')).default;
-        const prisma = getPrisma();
+        const prisma = await getPrismaAsync();
         const normalizedEmail = email.toLowerCase();
 
         // Check if user already exists

@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { getPrisma } = await import('@/lib/prisma');
-        const prisma = getPrisma();
+        const { getPrismaAsync } = await import('@/lib/prisma');
+        const prisma = await getPrismaAsync();
         const email = session.user.email.toLowerCase();
 
         // Find or create user

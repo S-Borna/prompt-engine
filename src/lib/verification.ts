@@ -3,13 +3,13 @@
 // Uses the VerificationToken model in schema.prisma
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { getPrisma } from './prisma';
+import { getPrismaAsync } from './prisma';
 
 /**
  * Generate a verification token for an email and persist it to Postgres
  */
 export async function createVerificationToken(email: string): Promise<string> {
-    const prisma = getPrisma();
+    const prisma = await getPrismaAsync();
 
     // Generate secure random token
     const token = Array.from({ length: 32 }, () =>
@@ -38,7 +38,7 @@ export async function createVerificationToken(email: string): Promise<string> {
  * Verify a token and return the associated email
  */
 export async function verifyToken(token: string): Promise<string | null> {
-    const prisma = getPrisma();
+    const prisma = await getPrismaAsync();
 
     const record = await prisma.verificationToken.findUnique({
         where: { token },
@@ -61,7 +61,7 @@ export async function verifyToken(token: string): Promise<string | null> {
  * Check if an email has a pending verification token
  */
 export async function hasPendingVerification(email: string): Promise<boolean> {
-    const prisma = getPrisma();
+    const prisma = await getPrismaAsync();
 
     const record = await prisma.verificationToken.findFirst({
         where: {

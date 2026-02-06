@@ -19,8 +19,8 @@ const EXECUTIVE_EMAILS = ['said@saidborna.com'];
  * Mark an email as verified in the database
  */
 export async function markEmailVerified(email: string): Promise<void> {
-    const { getPrisma } = await import('./prisma');
-    const prisma = getPrisma();
+    const { getPrismaAsync } = await import('./prisma');
+    const prisma = await getPrismaAsync();
     await prisma.user.upsert({
         where: { email: email.toLowerCase() },
         update: { emailVerified: new Date() },
@@ -39,8 +39,8 @@ export async function isEmailVerified(email: string | null | undefined): Promise
     if (!email) return false;
     if (isExecutiveEmail(email)) return true;
 
-    const { getPrisma } = await import('./prisma');
-    const prisma = getPrisma();
+    const { getPrismaAsync } = await import('./prisma');
+    const prisma = await getPrismaAsync();
     const user = await prisma.user.findUnique({
         where: { email: email.toLowerCase() },
         select: { emailVerified: true },
@@ -94,9 +94,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     if (!email || password.length < 1) return null;
 
                     // Dynamic imports to avoid loading pg/bcrypt in edge
-                    const { getPrisma } = await import('./prisma');
+                    const { getPrismaAsync } = await import('./prisma');
                     const bcrypt = (await import('bcryptjs')).default;
-                    const prisma = getPrisma();
+                    const prisma = await getPrismaAsync();
 
                     // Look up user in database
                     const existingUser = await prisma.user.findUnique({
@@ -183,8 +183,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                 // Fetch verification status from DB (dynamic import)
                 try {
-                    const { getPrisma } = await import('./prisma');
-                    const prisma = getPrisma();
+                    const { getPrismaAsync } = await import('./prisma');
+                    const prisma = await getPrismaAsync();
                     const dbUser = await prisma.user.findUnique({
                         where: { email: (user.email as string).toLowerCase() },
                         select: {

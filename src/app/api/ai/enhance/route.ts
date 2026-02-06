@@ -311,8 +311,8 @@ export async function POST(request: NextRequest) {
 
         // Save prompt to database for user history
         try {
-            const { getPrisma } = await import('@/lib/prisma');
-            const prisma = getPrisma();
+            const { getPrismaAsync } = await import('@/lib/prisma');
+            const prisma = await getPrismaAsync();
             const dbUser = await prisma.user.findUnique({
                 where: { email: session.user.email.toLowerCase() },
                 select: { id: true },

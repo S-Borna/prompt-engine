@@ -199,8 +199,8 @@ RULES:
 
             // Save refined prompt to database
             try {
-                const { getPrisma } = await import('@/lib/prisma');
-                const prisma = getPrisma();
+                const { getPrismaAsync } = await import('@/lib/prisma');
+                const prisma = await getPrismaAsync();
                 const dbUser = await prisma.user.findUnique({
                     where: { email: session.user.email.toLowerCase() },
                     select: { id: true },

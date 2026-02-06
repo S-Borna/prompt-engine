@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
         const search = searchParams.get('search');
         const favorites = searchParams.get('favorites') === 'true';
 
-        const { getPrisma } = await import('@/lib/prisma');
-        const prisma = getPrisma();
+        const { getPrismaAsync } = await import('@/lib/prisma');
+        const prisma = await getPrismaAsync();
         const email = session.user.email.toLowerCase();
 
         // Find the user

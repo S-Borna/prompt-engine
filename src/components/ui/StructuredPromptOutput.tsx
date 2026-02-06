@@ -59,6 +59,21 @@ function assembleUnifiedPrompt(sections: StructuredPromptSections): string {
     ].filter(Boolean).join('\n\n');
 }
 
+// Section color accents — visual enhancement WITHOUT labels
+const SECTION_COLORS = [
+    'border-violet-500/30',    // expertRole
+    'border-indigo-500/30',    // mainObjective
+    'border-blue-500/30',      // contextBackground
+    'border-cyan-500/30',      // outputFormat
+    'border-amber-500/30',     // constraints
+    'border-emerald-500/30',   // approachGuidelines
+];
+
+const SECTION_KEYS: (keyof StructuredPromptSections)[] = [
+    'expertRole', 'mainObjective', 'contextBackground',
+    'outputFormat', 'constraints', 'approachGuidelines',
+];
+
 export function StructuredPromptOutput({
     result,
     onSave,
@@ -167,16 +182,22 @@ export function StructuredPromptOutput({
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════
-                UNIFIED PROMPT — Single seamless block, NO section labels
-                This is the core IP protection: users see the result,
-                not the methodology blueprint.
+                UNIFIED PROMPT — Color-accented paragraphs, NO section labels
+                Each section gets a subtle colored left border for visual rhythm
+                but no titles or structural hints are exposed.
             ═══════════════════════════════════════════════════════════════ */}
-            <div className="p-6">
-                <div className="pl-4 border-l-2 border-violet-500/30">
-                    <p className="text-white/85 text-[15px] leading-[1.8] whitespace-pre-wrap font-sans">
-                        {unifiedPrompt}
-                    </p>
-                </div>
+            <div className="p-6 space-y-4">
+                {SECTION_KEYS.map((key, i) => {
+                    const content = sections[key];
+                    if (!content) return null;
+                    return (
+                        <div key={key} className={`pl-4 border-l-2 ${SECTION_COLORS[i]}`}>
+                            <p className="text-white/85 text-[15px] leading-[1.8] whitespace-pre-wrap font-sans">
+                                {content}
+                            </p>
+                        </div>
+                    );
+                })}
             </div>
 
             {/* What was improved */}

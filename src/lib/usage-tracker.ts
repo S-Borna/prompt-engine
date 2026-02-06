@@ -3,13 +3,13 @@
 // Uses User.promptsUsedToday in the users table
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { getPrisma } from './prisma';
+import { getPrismaAsync } from './prisma';
 
 /**
  * Get prompt usage for a user (by email)
  */
 export async function getPromptUsage(email: string): Promise<number> {
-    const prisma = getPrisma();
+    const prisma = await getPrismaAsync();
     const user = await prisma.user.findUnique({
         where: { email: email.toLowerCase() },
         select: { promptsUsedToday: true },
@@ -21,7 +21,7 @@ export async function getPromptUsage(email: string): Promise<number> {
  * Increment prompt usage for a user. Creates user row if missing.
  */
 export async function incrementPromptUsage(email: string): Promise<number> {
-    const prisma = getPrisma();
+    const prisma = await getPrismaAsync();
     const normalizedEmail = email.toLowerCase();
 
     const user = await prisma.user.upsert({
@@ -46,7 +46,7 @@ export async function incrementPromptUsage(email: string): Promise<number> {
  * Reset prompt usage for a user (admin / testing)
  */
 export async function resetPromptUsage(email: string): Promise<void> {
-    const prisma = getPrisma();
+    const prisma = await getPrismaAsync();
     await prisma.user.update({
         where: { email: email.toLowerCase() },
         data: { promptsUsedToday: 0, promptsResetAt: new Date() },
