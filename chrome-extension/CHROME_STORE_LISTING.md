@@ -1,11 +1,13 @@
 # PRAXIS — Chrome Web Store Listing
 
 ## Extension Name
+
 **PRAXIS — AI Prompt Enhancer**
 
 ---
 
 ## Short Description (132 characters max)
+
 Transform your AI prompts into expert-level instructions in one click. Works with ChatGPT, Claude, Gemini, and Grok.
 
 ---
@@ -21,6 +23,7 @@ Stop getting mediocre AI responses. Start getting exactly what you need.
 ### The Problem
 
 Most people write prompts like:
+
 - "Help me with marketing"
 - "Write some code for this"
 - "Explain quantum physics"
@@ -30,6 +33,7 @@ These vague prompts lead to generic, unhelpful responses.
 ### The Solution
 
 PRAXIS rewrites your prompt to include:
+
 - ✦ **Expert role definition** — "You are a senior marketing strategist with 15 years of experience..."
 - ✦ **Clear objectives** — Exactly what to deliver and in what format
 - ✦ **Relevant context** — Background information the AI needs
@@ -93,11 +97,12 @@ Receive actionable insights with next steps and resource requirements.
 
 ### Support
 
-Questions or feedback? Visit praxis.saidborna.com or email hello@saidborna.com
+Questions or feedback? Visit praxis.saidborna.com or email <hello@saidborna.com>
 
 ---
 
 ## Categories
+
 - **Primary:** Productivity
 - **Secondary:** Developer Tools
 
@@ -106,22 +111,27 @@ Questions or feedback? Visit praxis.saidborna.com or email hello@saidborna.com
 ## Screenshots Guide
 
 ### Screenshot 1: Hero / Before & After
+
 **Title:** Transform vague prompts into expert instructions
 **Show:** Split screen with original prompt on left, enhanced prompt on right, with annotation arrows showing what was added
 
 ### Screenshot 2: In-Action on ChatGPT
+
 **Title:** Works seamlessly inside ChatGPT
 **Show:** ChatGPT interface with Enhance button visible above text field, mid-enhancement
 
 ### Screenshot 3: Platform Support
+
 **Title:** Works on all major AI platforms
 **Show:** 4-panel grid showing PRAXIS working on ChatGPT, Claude, Gemini, Grok
 
 ### Screenshot 4: Extension Popup
+
 **Title:** Quick enhancements from anywhere
 **Show:** Extension popup with prompt input, platform selector, and Enhance button
 
 ### Screenshot 5: Quality Score & Insights
+
 **Title:** See what was improved
 **Show:** Enhanced prompt with quality score badge and list of improvements
 
@@ -130,11 +140,13 @@ Questions or feedback? Visit praxis.saidborna.com or email hello@saidborna.com
 ## Promotional Tiles (440x280)
 
 ### Small Tile
+
 - Purple gradient background (#8b5cf6 → #6366f1)
 - ⚡ PRAXIS logo centered
 - Tagline: "Better AI prompts, instantly"
 
 ### Large Tile
+
 - Before/After comparison
 - "Vague → Expert" headline
 - One-click enhancement demonstration
@@ -144,16 +156,17 @@ Questions or feedback? Visit praxis.saidborna.com or email hello@saidborna.com
 ## Developer Information
 
 **Developer:** Said Borna
-**Website:** https://praxis.saidborna.com
-**Privacy Policy:** https://praxis.saidborna.com/legal/privacy
-**Terms of Service:** https://praxis.saidborna.com/legal/terms
-**Support Email:** hello@saidborna.com
+**Website:** <https://praxis.saidborna.com>
+**Privacy Policy:** <https://praxis.saidborna.com/legal/privacy>
+**Terms of Service:** <https://praxis.saidborna.com/legal/terms>
+**Support Email:** <hello@saidborna.com>
 
 ---
 
 ## Version History
 
 ### Version 1.0.0 (Initial Release)
+
 - One-click prompt enhancement
 - Support for ChatGPT, Claude, Gemini, Grok
 - Platform-optimized rewriting

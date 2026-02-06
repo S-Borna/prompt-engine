@@ -32,7 +32,7 @@ const usageText = document.getElementById('usage-text');
 document.addEventListener('DOMContentLoaded', async () => {
     // Check if first-time user
     const { praxis_seen_welcome } = await chrome.storage.local.get('praxis_seen_welcome');
-    
+
     if (!praxis_seen_welcome) {
         // Show welcome modal for first-time users
         welcomeModal.classList.remove('hidden');
