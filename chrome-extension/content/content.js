@@ -14,18 +14,39 @@
     // ─── Helper: Insert text with paragraph breaks ──────────
     function setFormattedContent(el, text) {
         el.focus();
-        // Split on double newlines or period+space for readable paragraphs
-        const paragraphs = text.split(/\n{2,}/).filter(p => p.trim());
 
         if (el.getAttribute('contenteditable') === 'true') {
+            // Clear existing content
             el.innerHTML = '';
-            paragraphs.forEach(para => {
-                const p = document.createElement('p');
-                p.textContent = para.trim();
-                el.appendChild(p);
-            });
+
+            // Split on double-newlines for paragraph separation
+            const paragraphs = text.split(/\n{2,}/).filter(p => p.trim());
+
+            if (paragraphs.length <= 1) {
+                // Single block — still split on single newlines for line breaks
+                const lines = text.split(/\n/).filter(l => l.trim());
+                lines.forEach((line, i) => {
+                    const p = document.createElement('p');
+                    p.textContent = line.trim();
+                    el.appendChild(p);
+                });
+            } else {
+                paragraphs.forEach(para => {
+                    const p = document.createElement('p');
+                    p.textContent = para.trim();
+                    el.appendChild(p);
+                });
+            }
+
+            // Trigger input events so the platform registers the change
             el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+
+            // For ProseMirror-based editors (Claude, ChatGPT), also dispatch keyboard event
+            el.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Unidentified' }));
+            el.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Unidentified' }));
         } else if (el.tagName === 'TEXTAREA') {
+            // Use native setter to bypass React/framework controlled input
             const nativeSet = Object.getOwnPropertyDescriptor(
                 window.HTMLTextAreaElement.prototype, 'value'
             )?.set;
@@ -35,6 +56,7 @@
                 el.value = text;
             }
             el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
         } else {
             el.innerText = text;
             el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -44,9 +66,17 @@
     const PLATFORMS = {
         chatgpt: {
             match: () => location.hostname.includes('chatgpt.com') || location.hostname.includes('chat.openai.com'),
-            getTextarea: () => document.querySelector(
-                '#prompt-textarea, [id*="prompt"][contenteditable], div[contenteditable="true"][data-placeholder], textarea[placeholder]'
-            ),
+            getTextarea: () => {
+                // ChatGPT 5.2 uses ProseMirror — try multiple selectors from most specific to broadest
+                return document.querySelector('#prompt-textarea') ||
+                    document.querySelector('[id*="prompt-textarea"]') ||
+                    document.querySelector('div[contenteditable="true"].ProseMirror') ||
+                    document.querySelector('div[contenteditable="true"][data-placeholder]') ||
+                    document.querySelector('main div[contenteditable="true"]') ||
+                    document.querySelector('form div[contenteditable="true"]') ||
+                    document.querySelector('form textarea') ||
+                    document.querySelector('div[contenteditable="true"]');
+            },
             getTextContent: (el) => el.innerText || el.textContent || el.value || '',
             setTextContent: (el, text) => setFormattedContent(el, text),
             platform: 'chatgpt',
@@ -212,11 +242,23 @@
         const textarea = currentPlatform.getTextarea();
         if (textarea) {
             createEnhanceButton();
+            return true;
         }
+        return false;
     }
 
     // Initial attempt
-    tryInject();
+    if (!tryInject()) {
+        // Retry with increasing delays for SPAs like ChatGPT that render late
+        const retryDelays = [500, 1000, 2000, 3000, 5000, 8000];
+        retryDelays.forEach(delay => {
+            setTimeout(() => {
+                if (!enhanceBtn || !document.body.contains(enhanceBtn)) {
+                    tryInject();
+                }
+            }, delay);
+        });
+    }
 
     // MutationObserver for SPAs that load dynamically
     const observer = new MutationObserver(() => {

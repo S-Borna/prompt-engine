@@ -12,13 +12,15 @@
 | Dimension | Status |
 |-----------|--------|
 | Produkt | MVP live — Spark + Precision fungerar |
-| Auth | NextAuth + email-verifiering via SendGrid |
-| Databas | Railway Postgres (15 connection points) |
-| Hosting | Cloudflare Workers |
+| Auth | NextAuth 5 beta + email-verifiering via SendGrid |
+| Databas | Railway Postgres (Prisma 7 + @prisma/adapter-pg) |
+| Hosting | Cloudflare Workers (@opennextjs/cloudflare, webpack build) |
+| Chrome Extension | ✅ MVP klar — Claude, Gemini, Grok verifierade. Ej publicerad i Store |
 | Användare | < 10 (ingen aktiv marknadsföring) |
 | Revenue | $0 |
 | Tier-system | FREE / CREATOR / PRO / TEAM / ENTERPRISE (i schema) |
-| Trial | 100 prompts, sedan låst |
+| Trial | 7 dagars free trial + 100 prompts, sedan låst |
+| Domän | praxis.saidborna.com |
 
 ---
 
@@ -90,35 +92,39 @@
 **Prio:** 🔴 KRITISK — Primär distributionskanal
 **Tid:** 2-3 veckor
 **Utförare:** Copilot (kod) + Said (publicering)
+**Status:** ✅ MVP KLAR — väntar på Chrome Web Store publicering
 
 #### Saids uppgifter
 
-- [ ] Registrera Chrome Web Store Developer-konto ($5 engångsavgift)
-- [ ] Skapa ikoner (128x128, 48x48, 16x16) — kan använda PRAXIS-loggan
+- [ ] Registrera Chrome Web Store Developer-konto (**$25** engångsavgift — ej $5)
+- [x] Skapa ikoner (128x128, 48x48, 16x16) — PRAXIS-loggan
 - [ ] Skriv Store-listing (titel, beskrivning, screenshots)
 - [ ] Publicera extension efter godkänd review (~2-5 dagar)
 - [ ] Marknadsför: "Installera PRAXIS direkt i ChatGPT"
 
 #### Copilot bygger
 
-- [ ] Separat `/chrome-extension` mapp i repot
-- [ ] `manifest.json` (Manifest V3)
-- [ ] Content script som injicerar PRAXIS-knapp i:
-  - ChatGPT (chat.openai.com)
-  - Claude (claude.ai)
-  - Gemini (gemini.google.com)
-- [ ] Popup UI — snabb prompt-enhancement
-- [ ] API-anrop till `praxis.saidborna.com/api/ai/enhance`
-- [ ] Auth: Skicka JWT/API-key med requests
-- [ ] "Enhance" knapp bredvid textfält → förbättrar prompten inline
-- [ ] Free/Pro-gating (Free = 5/dag via extension också)
+- [x] Separat `/chrome-extension` mapp i repot
+- [x] `manifest.json` (Manifest V3)
+- [x] Content script som injicerar PRAXIS-knapp i:
+  - ChatGPT (chat.openai.com) — ⚠️ selektorer uppdaterade för v5.2, ej bekräftat
+  - Claude (claude.ai) — ✅ verifierad
+  - Gemini (gemini.google.com) — ✅ verifierad
+  - Grok (grok.com + x.com/i/grok) — ✅ verifierad (tillagd 2026-02-06)
+- [x] Popup UI — snabb prompt-enhancement
+- [x] API-anrop till `praxis.saidborna.com/api/extension/enhance`
+- [x] Auth: HMAC-SHA256 tokens via `/api/extension/auth` + `src/lib/extension-token.ts`
+- [x] "Enhance" knapp bredvid textfält → förbättrar prompten inline
+- [x] Free/Pro-gating (Free = 5/dag via extension också)
+- [x] Text-formatering: `setFormattedContent()` med paragrafuppdelning
 
 #### Definition of Done
 
-- [ ] Användaren installerar extension → ser PRAXIS-ikon i ChatGPT
-- [ ] Klickar → prompten förbättras → pastar tillbaka i ChatGPT-fältet
-- [ ] Fungerar på ChatGPT, Claude, Gemini
-- [ ] Pro-användare får obegränsat, Free-användare ser upgrade-prompt
+- [x] Användaren installerar extension → ser PRAXIS-ikon i ChatGPT/Claude/Gemini/Grok
+- [x] Klickar → prompten förbättras → pastar tillbaka i textfältet
+- [x] Fungerar på Claude, Gemini, Grok (ChatGPT ⚠️ selektorer uppdaterade)
+- [x] Pro-användare får obegränsat, Free-användare ser upgrade-prompt
+- [ ] Publicerad i Chrome Web Store
 
 ---
 

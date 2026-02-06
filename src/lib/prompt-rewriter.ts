@@ -541,7 +541,7 @@ function buildRewriterMetaPrompt(
 
 OUTPUTFORMAT: Du MÅSTE svara med ett JSON-objekt med exakt denna struktur:
 {
-  "expertRole": "En mening som definierar vilken expertroll AI:n ska anta. Var specifik om erfarenhet och kompetensområde.",
+  "expertRole": "En mening som definierar vilken expertroll AI:n ska anta. MÅSTE börja med 'Du är en/en erfaren/en senior...' — aldrig bara ett substantiv. Var specifik om erfarenhet och kompetensområde.",
   "mainObjective": "1-2 meningar som tydligt definierar uppgiften, vad som ska levereras och i vilken form.",
   "contextBackground": "2-4 meningar med relevant bakgrund: målgrupp, krav, begränsningar, tekniska förutsättningar.",
   "outputFormat": "1-3 meningar som specificerar exakt HUR svaret ska formateras: struktur, längd, format (punktlista, tabell, steg-för-steg, kod, etc.).",
@@ -562,6 +562,7 @@ REGLER:
 9. ALDRIG hitta på versionsnummer, datum eller statistik
 10. Referera bara till teknologier användaren nämnde eller tydligt antydde
 11. Alla värden ska vara rena strängar utan markdown-formatering
+12. expertRole MÅSTE börja med "Du är" — ALDRIG starta med bara "En" eller ett substantiv
 
 ${domainInstructions}
 
@@ -573,7 +574,7 @@ Svara ENBART med JSON-objektet. Ingen annan text.` :
 
 OUTPUT FORMAT: You MUST respond with a JSON object with exactly this structure:
 {
-  "expertRole": "One sentence defining the expert role the AI should adopt. Be specific about experience and domain expertise.",
+  "expertRole": "One sentence defining the expert role the AI should adopt. MUST start with 'You are a/an experienced/senior...' — never just a noun phrase. Be specific about experience and domain expertise.",
   "mainObjective": "1-2 sentences clearly defining the task, what should be delivered, and in what format.",
   "contextBackground": "2-4 sentences of relevant background: target audience, requirements, constraints, technical context.",
   "outputFormat": "1-3 sentences specifying exactly HOW the response should be formatted: structure, length, format (bullet list, table, step-by-step, code, etc.).",
@@ -594,6 +595,7 @@ RULES:
 9. NEVER invent version numbers, dates, or statistics
 10. Only reference technologies the user mentioned or clearly implied
 11. All values must be plain strings without markdown formatting
+12. expertRole MUST start with "You are" — NEVER start with just "A" or a bare noun phrase
 
 ${domainInstructions}
 

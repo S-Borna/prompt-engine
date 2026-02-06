@@ -38,15 +38,18 @@
         <div class="enhance-section">
             <textarea id="prompt-input" placeholder="Paste your prompt here..." rows="4"></textarea>
 
-            <div class="platform-row">
-                <select id="platform-select">
-                    <option value="general">Any AI</option>
-                    <option value="chatgpt">ChatGPT</option>
-                    <option value="claude">Claude</option>
-                    <option value="gemini">Gemini</option>
-                    <option value="grok">Grok</option>
-                </select>
-                <button id="enhance-btn" class="btn-primary">
+            <div class="controls-row">
+                <div class="model-selector">
+                    <label class="model-label" for="platform-select">Target AI</label>
+                    <select id="platform-select">
+                        <option value="general">Any AI</option>
+                        <option value="chatgpt">ChatGPT</option>
+                        <option value="claude">Claude</option>
+                        <option value="gemini">Gemini</option>
+                        <option value="grok">Grok</option>
+                    </select>
+                </div>
+                <button id="enhance-btn" class="btn-primary btn-enhance">
                     <span id="enhance-text">Enhance ⚡</span>
                     <span id="enhance-loading" class="hidden">Enhancing...</span>
                 </button>

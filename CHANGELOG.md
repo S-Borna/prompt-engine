@@ -28,6 +28,18 @@
 | 2026-02-04 | Login/Register pages skapade | Användare behöver kunna logga in | Fungerande auth-flöde ✅ |
 | 2026-02-04 | CHANGELOG.md skapad | Krav på kontinuerlig dokumentation | Denna fil – protokoll etablerat ✅ |
 | 2026-02-05 | **KRITISK BUGGFIX: Spark enhancement** | Enhanced prompt visade bara inställningar, konverterade ej prompt | Fixat: API-fältnamn mismatch (changes/insights vs improvements), plattform-mappning, validering ✅ |
+| 2026-02-06 | **KRITISK: pg-modul crash fix** | Turbopack externaliserade `pg` som hashad chunk `pg-587764f78a6c7a9c` → kraschade Cloudflare Workers | `buildCommand: "npx next build --webpack"` i `open-next.config.ts` (top-level). 0 pg-hash-referenser i output ✅ |
+| 2026-02-06 | **Extension token-funktioner extraherade** | Webpack striktare route-export-validering kraschade på inline-funktioner | Flyttat `verifyExtensionToken` + `createExtensionToken` till `src/lib/extension-token.ts` ✅ |
+| 2026-02-06 | **Creator-tier priority fix** | Sidebar visade FREE + 100 prompts remaining trots executive email | JWT callback: executive emails ALLTID CREATOR oavsett DB-värde ✅ |
+| 2026-02-06 | Topbar user-meny borttagen | Redundant med sidebar-profilen | Renare UI, färre state-variabler, inga click-outside handlers ✅ |
+| 2026-02-06 | API Keys-tab borttagen från Settings | Okopplad demo-feature (BYOK ej implementerad) | Settings: Profile, Notifications, Appearance, Security, Language ✅ |
+| 2026-02-06 | **7-dagars trial countdown** | Free-tier behöver urgency → konvertering | `trialEndsAt DateTime?` i Prisma User, auto-satt vid första login, synlig i sidebar ✅ |
+| 2026-02-06 | `prisma db push` — trialEndsAt fält | Nytt fält behövdes i Railway Postgres | Fält tillagt utan dataförlust ✅ |
+| 2026-02-06 | Chrome Extension testad & verifierad | Extension MVP behövde valideras i riktig miljö | Fungerar på Claude ✅, Gemini ✅, Grok ✅. ChatGPT ⚠️ selektorer uppdaterade |
+| 2026-02-06 | Grok-stöd tillagt i extension | Utöka plattformsräckvidd | `content.js` + `manifest.json` uppdaterade med grok.com + x.com/i/grok ✅ |
+| 2026-02-06 | Extension popup-skalning fixad | Popup klippte av innehåll | `min-height: 280px`, `overflow-x: hidden`, fast select-bredd ✅ |
+| 2026-02-06 | Extension text-formatering förbättrad | Enhanced text visades som ett enda textblock | `setFormattedContent()` delar på `\n{2,}` → separata `<p>`-element ✅ |
+| 2026-02-06 | ChatGPT 5.2 selektorer uppdaterade | Enhance-knapp syntes ej i ChatGPT | Bredare selektorer: `[id*="prompt"][contenteditable]`, `data-placeholder`, `textarea[placeholder]` ✅ |
 | 2026-02-04 | API Routes: Prompts CRUD | Användare ska kunna spara/hämta prompts | `/api/prompts` + `/api/prompts/[id]` ✅ |
 | 2026-02-04 | API Routes: User Stats/XP | Spåra XP, streak, certifieringar | `/api/user/stats` med XP-system ✅ |
 | 2026-02-04 | Dashboard kopplad till databas | Visa riktiga data istället för mock | Hämtar stats från API ✅ |
@@ -112,47 +124,66 @@ useE    useE    useE    useE...
 
 ---
 
-## Nuvarande Appstatus (2026-02-04)
+## Nuvarande Appstatus (2026-02-06)
 
-### Git-tillstånd
+### Deployment
 
-- **Branch:** main
-- **Commits:** 1 (`d058838 Initial PRAXIS MVP - Landing, Challenges, Optimizer`)
-- **Modified (ej staged):** 14 filer
-- **Deleted (ej staged):** 2 filer (`challenges/page.tsx`, `optimizer/page.tsx`)
-- **Untracked:** 13 filer/mappar (CHANGELOG, prisma, api, dashboard, login, signup, etc.)
+- **Hosting:** Cloudflare Workers (via @opennextjs/cloudflare 1.16.2)
+- **Build:** `npx next build --webpack` (INTE Turbopack)
+- **Domän:** `https://praxis.saidborna.com`
+- **Databas:** Railway Postgres (Prisma 7 + @prisma/adapter-pg)
+- **Status:** ✅ LIVE & FUNGERANDE
 
 ### Filstruktur
 
 ```
 src/app/
-├── api/               (Untracked)
-├── dashboard/         (Untracked, innehåller korrupta filer)
-├── login/             (Untracked)
-├── signup/            (Untracked)
-├── globals.css        (Modified, gammal "Electric Dreams" design)
-├── layout.tsx         (Modified)
-├── page.tsx           (Modified, gammal design – EJ premium)
-└── favicon.ico
+├── api/
+│   ├── ai/enhance/          (AI enhancement endpoint)
+│   ├── ai/ab-test/          (A/B test endpoint)
+│   ├── auth/[...nextauth]/  (NextAuth 5 beta)
+│   ├── auth/register/       (Registrering + SendGrid)
+│   └── extension/           (Chrome Extension auth + enhance)
+├── dashboard/
+│   ├── layout.tsx           (Sidebar + topbar, trial countdown)
+│   ├── spark/               (AI prompt enhancement)
+│   ├── precision/           (Precision prompt tool)
+│   ├── library/             (Prompt library)
+│   ├── history/             (Prompt history)
+│   ├── analytics/           (Analytics dashboard)
+│   ├── settings/            (Profile, Notifications, Appearance, Security, Language)
+│   ├── billing/             (Billing page)
+│   ├── mindmap/             (MindMap tool)
+│   ├── personas/            (AI personas)
+│   ├── code/                (Code tool)
+│   ├── fusion/              (Fusion tool)
+│   └── integrations/        (Integrations page)
+├── login/                   (Login page)
+├── signup/                  (Signup page)
+├── legal/                   (Privacy, Terms, Cookies)
+└── page.tsx                 (Landing page)
 ```
 
 ### Fungerande komponenter
 
-- ✅ Next.js 16.1.6 dev server (`npm run dev` fungerar)
-- ✅ Prisma schema och Railway Postgres-koppling
-- ✅ Grundläggande projektstruktur
-- ✅ Package dependencies installerade
+- ✅ Next.js 16.1.6 på Cloudflare Workers (webpack build)
+- ✅ Prisma 7 + Railway Postgres (alla tabeller + trialEndsAt)
+- ✅ NextAuth 5 beta med JWT strategy + email-verifiering (SendGrid)
+- ✅ AI Enhancement pipeline (Spark + Precision)
+- ✅ Creator-tier för executive emails (said@saidborna.com)
+- ✅ 7-dagars trial countdown med Postgres sync
+- ✅ Chrome Extension MVP (Claude, Gemini, Grok, ChatGPT)
+- ✅ Extension API endpoints (/api/extension/auth + /api/extension/enhance)
+- ✅ Dashboard med sidebar, profilkort, prompt-räknare
+- ✅ Landing page med features, testimonials, stats
+- ✅ Rate limiting + Security Shield (XSS/injection protection)
 
-### Trasiga/Korrupta komponenter
+### Chrome Extension status
 
-- ❌ `src/app/page.tsx` – Gammal design, möjligt korrupt
-- ❌ `src/app/globals.css` – Gammal design
-- ❌ `src/app/dashboard/` – Oklart tillstånd, filer skapades med korrupt heredoc
-
-### Design-status
-
-- **Nuvarande:** "Electric Dreams" beta-tema (violet/pink gradienter)
-- **Förväntad:** Apple/Lovable premium design (aldrig implementerad)
+- ✅ Manifest V3, popup UI, content scripts
+- ✅ Fungerar: Claude, Gemini, Grok
+- ⚠️ ChatGPT: Selektorer uppdaterade för v5.2 (ej bekräftat)
+- ❌ Ej publicerad i Chrome Web Store ($25 konto krävs)
 
 ---
 
@@ -166,13 +197,19 @@ src/app/
 | ✅ Klar | XP/Level-system med certifiering | Implementerat |
 | ✅ Klar | Koppla challenges-sidan till API | Implementerat |
 | ✅ Klar | PrimePrompt-funktioner | AI Enhancement + Library + History |
-| 🔴 Hög | Leaderboards | Nästa sprint |
-| 🔴 Hög | Certifikat PDF-generator | Nästa sprint |
-| 🔴 Hög | Prompt Duel multiplayer | Nästa sprint |
-| 🟡 Medium | Public profiles | Ej påbörjad |
-| 🟢 Låg | Chrome Extension | Framtida |
+| ✅ Klar | Chrome Extension MVP | Claude, Gemini, Grok, ChatGPT (selektorer) |
+| ✅ Klar | 7-dagars trial countdown | Postgres-synkad, sidebar-display |
+| ✅ Klar | Cloudflare Workers deploy | Webpack build fix, live på saidborna.com |
+| 🔴 Hög | Stripe-integration | Nästa sprint |
+| 🔴 Hög | Chrome Web Store publicering | Väntar på $25 konto |
+| 🔴 Hög | Prompt Templates Library | 50 templates i 5 kategorier |
+| 🟡 Medium | Onboarding Wow-Flow | 3-stegs modal |
+| 🟡 Medium | Prompt Score & Gamification | Scoring + badges |
+| 🟡 Medium | Team/Workspace | Enterprise-feature |
+| 🟢 Låg | API Access (public) | OpenAPI endpoint |
 | 🟢 Låg | Mobile App | Framtida |
-| ⏸️ Parkerad | Stripe/Betalningar | Väntar tills app är mogen |
+| ⏸️ Parkerad | Leaderboards | Ej prioriterat |
+| ⏸️ Parkerad | Certifikat PDF-generator | Ej prioriterat |
 
 ---
 
@@ -191,4 +228,4 @@ src/app/
 
 ---
 
-*Senast uppdaterad: 2026-02-04*
+*Senast uppdaterad: 2026-02-06*
