@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     Folder, Search, Star, Clock, Plus, Copy, Edit2, Trash2,
     FileText, Grid, List, Filter, Sparkles, MoreVertical,
-    ChevronRight, X, Save, Tag
+    ChevronRight, X, Save, Tag, Loader2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usePromptStore, SavedPrompt } from '@/lib/prompt-store';
@@ -25,6 +25,44 @@ export default function LibraryPage() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
     const [editingPrompt, setEditingPrompt] = useState<SavedPrompt | null>(null);
+    const [isLoadingDb, setIsLoadingDb] = useState(true);
+    const [dbSynced, setDbSynced] = useState(false);
+
+    // ── Sync Postgres prompts into local store on mount ─────────────
+    useEffect(() => {
+        if (dbSynced) return;
+        async function syncFromDb() {
+            try {
+                const res = await fetch('/api/prompts?limit=200');
+                if (!res.ok) return;
+                const data = await res.json();
+                const dbPrompts = data.prompts || [];
+
+                // Get existing local IDs to avoid duplicates
+                const localIds = new Set(prompts.map((p: SavedPrompt) => p.id));
+
+                for (const dbP of dbPrompts) {
+                    if (!localIds.has(dbP.id)) {
+                        addPrompt({
+                            title: dbP.title || 'Untitled',
+                            content: dbP.originalPrompt || '',
+                            enhancedContent: dbP.enhancedPrompt || '',
+                            tags: dbP.tags || [],
+                            folder: 'Personal',
+                            starred: dbP.isFavorite || false,
+                            tool: (dbP.tool || 'spark') as SavedPrompt['tool'],
+                        }, dbP.id); // Pass ID to prevent duplicates
+                    }
+                }
+                setDbSynced(true);
+            } catch (e) {
+                console.warn('Failed to sync prompts from DB:', e);
+            } finally {
+                setIsLoadingDb(false);
+            }
+        }
+        syncFromDb();
+    }, [dbSynced, addPrompt, prompts]);
 
     // Filter prompts
     const filteredPrompts = useMemo(() => {

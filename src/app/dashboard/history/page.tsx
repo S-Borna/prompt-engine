@@ -1,19 +1,37 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     History, Search, Calendar, Filter, Sparkles, Target,
     Code, Users, GitBranch, Zap, Clock, ChevronRight,
-    Copy, Star, Trash2, RotateCcw, FileText
+    Copy, Star, Trash2, RotateCcw, FileText, Loader2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usePromptStore, HistoryItem } from '@/lib/prompt-store';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// HISTORY - Activity Timeline
-// Dark theme unified with landing page
+// HISTORY - Activity Timeline (Postgres-backed + localStorage fallback)
 // ═══════════════════════════════════════════════════════════════════════════
+
+interface DbPrompt {
+    id: string;
+    title: string;
+    originalPrompt: string;
+    enhancedPrompt: string;
+    sections: {
+        expertRole: string;
+        mainObjective: string;
+        approachGuidelines: string;
+        outputFormat: string;
+    };
+    tags: string[];
+    tool: string;
+    platform: string | null;
+    isFavorite: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
 
 const toolConfig = {
     spark: { name: 'Spark', icon: Zap, gradient: 'from-violet-500 to-purple-600' },
@@ -32,15 +50,60 @@ export default function HistoryPage() {
     const [selectedTool, setSelectedTool] = useState<string | null>(null);
     const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
+    // ── Postgres-backed prompt history ──────────────────────────────
+    const [dbPrompts, setDbPrompts] = useState<DbPrompt[]>([]);
+    const [isLoadingDb, setIsLoadingDb] = useState(true);
+
+    useEffect(() => {
+        async function fetchPrompts() {
+            try {
+                const params = new URLSearchParams({ limit: '200' });
+                if (selectedTool) params.set('tool', selectedTool);
+                if (searchQuery) params.set('search', searchQuery);
+
+                const res = await fetch(`/api/prompts?${params}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setDbPrompts(data.prompts || []);
+                }
+            } catch (e) {
+                console.warn('Failed to fetch prompts from DB:', e);
+            } finally {
+                setIsLoadingDb(false);
+            }
+        }
+        fetchPrompts();
+    }, [selectedTool, searchQuery]);
+
+    // ── Merge DB prompts into timeline-style items ──────────────────
+    const dbAsHistory: HistoryItem[] = useMemo(() => {
+        return dbPrompts.map((p) => ({
+            id: p.id,
+            tool: p.tool || 'spark',
+            action: p.tool === 'precision' ? 'Prompt refined' : 'Prompt improved',
+            input: p.originalPrompt || p.title || '',
+            output: p.enhancedPrompt || '',
+            timestamp: p.createdAt,
+            metadata: { platform: p.platform || undefined },
+        }));
+    }, [dbPrompts]);
+
+    // Combine: DB prompts first (authoritative), then local-only history items
+    const mergedHistory = useMemo(() => {
+        const dbIds = new Set(dbAsHistory.map(i => i.id));
+        const localOnly = history.filter(item => !dbIds.has(item.id));
+        return [...dbAsHistory, ...localOnly];
+    }, [dbAsHistory, history]);
+
     const filteredHistory = useMemo(() => {
-        return history.filter(item => {
+        return mergedHistory.filter(item => {
             const matchesSearch = searchQuery === '' ||
                 item.input.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 item.output.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesTool = !selectedTool || item.tool === selectedTool;
             return matchesSearch && matchesTool;
         });
-    }, [history, searchQuery, selectedTool]);
+    }, [mergedHistory, searchQuery, selectedTool]);
 
     // Group by date
     const groupedHistory = useMemo(() => {
@@ -119,11 +182,11 @@ export default function HistoryPage() {
         }
     };
 
-    // Get unique tools from history for filter
+    // Get unique tools from merged history for filter
     const availableTools = useMemo(() => {
-        const tools = new Set(history.map(h => h.tool));
+        const tools = new Set(mergedHistory.map(h => h.tool));
         return Array.from(tools);
-    }, [history]);
+    }, [mergedHistory]);
 
     return (
         <div className="space-y-6">
@@ -132,7 +195,16 @@ export default function HistoryPage() {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-semibold text-white tracking-tight mb-1.5">History</h1>
-                        <p className="text-white/40 text-sm">{history.length} activities tracked</p>
+                        <p className="text-white/40 text-sm">
+                            {isLoadingDb ? (
+                                <span className="flex items-center gap-1.5">
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    Loading...
+                                </span>
+                            ) : (
+                                `${mergedHistory.length} activities tracked`
+                            )}
+                        </p>
                     </div>
                     <button
                         onClick={handleClearHistory}

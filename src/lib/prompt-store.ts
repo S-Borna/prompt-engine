@@ -95,7 +95,7 @@ interface PromptState {
     };
 
     // Actions - Prompts
-    addPrompt: (prompt: Omit<SavedPrompt, 'id' | 'createdAt' | 'updatedAt' | 'usageCount'>) => SavedPrompt;
+    addPrompt: (prompt: Omit<SavedPrompt, 'id' | 'createdAt' | 'updatedAt' | 'usageCount'>, externalId?: string) => SavedPrompt;
     updatePrompt: (id: string, updates: Partial<SavedPrompt>) => void;
     deletePrompt: (id: string) => void;
     toggleStar: (id: string) => void;
@@ -200,10 +200,15 @@ export const usePromptStore = create<PromptState>()(
             },
 
             // Prompt Actions
-            addPrompt: (prompt) => {
+            addPrompt: (prompt, externalId?) => {
+                const id = externalId || generateId();
+                // Skip if a prompt with this ID already exists
+                if (get().prompts.some(p => p.id === id)) {
+                    return get().prompts.find(p => p.id === id)!;
+                }
                 const newPrompt: SavedPrompt = {
                     ...prompt,
-                    id: generateId(),
+                    id,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
                     usageCount: 0,

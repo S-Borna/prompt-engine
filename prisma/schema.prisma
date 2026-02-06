@@ -110,7 +110,10 @@ model Prompt {
   id          String   @id @default(cuid())
   userId      String
 
-  // TRIPOD fields
+  // Original user input (before enhancement)
+  originalPrompt String? @db.Text
+
+  // TRIPOD fields (structured sections from enhancement)
   task        String?
   role        String?
   instructions String?
@@ -118,12 +121,14 @@ model Prompt {
   output      String?
   danger      String?
 
-  // Generated prompt
+  // Generated/enhanced prompt
   fullPrompt  String   @db.Text
 
   // Metadata
   title       String?
   tags        String[] @default([])
+  tool        String?  // 'spark' | 'precision' | 'manual'
+  platform    String?  // 'chatgpt' | 'claude' | 'gemini' | 'grok' etc.
   isPublic    Boolean  @default(false)
   isFavorite  Boolean  @default(false)
 
@@ -138,6 +143,34 @@ model Prompt {
   @@index([userId])
   @@index([createdAt])
   @@map("prompts")
+}
+
+// ============================================
+// PLATFORM ANALYTICS (Site-owned, separate from user data)
+// ============================================
+
+model PlatformUsage {
+  id            String   @id @default(cuid())
+  userId        String?  // Optional — tracks even if user is deleted
+  userEmail     String?
+  tool          String   // 'spark' | 'precision'
+  platform      String?  // 'chatgpt' | 'claude' | 'gemini' | 'grok'
+  originalPrompt String? @db.Text
+  enhancedPrompt String? @db.Text
+  domain        String?  // 'coding' | 'business' | 'general' etc.
+  qualityScore  Int?     // 0-100
+  tokensIn      Int?
+  tokensOut     Int?
+  responseTimeMs Int?
+  success       Boolean  @default(true)
+  errorMessage  String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([tool])
+  @@index([userId])
+  @@map("platform_usage")
 }
 
 model PromptAnalysis {

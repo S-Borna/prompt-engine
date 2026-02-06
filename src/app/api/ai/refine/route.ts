@@ -209,6 +209,7 @@ RULES:
                     await prisma.prompt.create({
                         data: {
                             userId: dbUser.id,
+                            originalPrompt: prompt,
                             fullPrompt: result.prompt,
                             task: result.sections?.mainObjective || prompt,
                             role: result.sections?.expertRole || null,
@@ -216,6 +217,26 @@ RULES:
                             output: result.sections?.outputFormat || null,
                             title: prompt.slice(0, 80),
                             tags: [platform || 'general', 'refined'],
+                            tool: 'precision',
+                            platform: platform || 'general',
+                        },
+                    });
+
+                    // Log to platform analytics (site-owned, separate from user data)
+                    await prisma.platformUsage.create({
+                        data: {
+                            userId: dbUser.id,
+                            userEmail: session.user.email.toLowerCase(),
+                            tool: 'precision',
+                            platform: platform || 'general',
+                            originalPrompt: prompt,
+                            enhancedPrompt: result.prompt,
+                            domain: result.meta.domain || 'general',
+                            qualityScore: result.qualityScore,
+                            tokensIn: result.meta.tokensIn,
+                            tokensOut: result.meta.tokensOut,
+                            responseTimeMs: elapsed,
+                            success: true,
                         },
                     });
                 }

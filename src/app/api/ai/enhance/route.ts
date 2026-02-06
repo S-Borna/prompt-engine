@@ -321,6 +321,7 @@ export async function POST(request: NextRequest) {
                 await prisma.prompt.create({
                     data: {
                         userId: dbUser.id,
+                        originalPrompt: inputPrompt,
                         fullPrompt: rewrittenResult.prompt,
                         task: rewrittenResult.sections?.mainObjective || inputPrompt,
                         role: rewrittenResult.sections?.expertRole || null,
@@ -328,6 +329,26 @@ export async function POST(request: NextRequest) {
                         output: rewrittenResult.sections?.outputFormat || null,
                         title: inputPrompt.slice(0, 80),
                         tags: [platform],
+                        tool: 'spark',
+                        platform: platform || 'general',
+                    },
+                });
+
+                // Log to platform analytics (site-owned, separate from user data)
+                await prisma.platformUsage.create({
+                    data: {
+                        userId: dbUser.id,
+                        userEmail: session.user.email.toLowerCase(),
+                        tool: 'spark',
+                        platform: platform || 'general',
+                        originalPrompt: inputPrompt,
+                        enhancedPrompt: rewrittenResult.prompt,
+                        domain: rewrittenResult.meta.domain || 'general',
+                        qualityScore: rewrittenResult.qualityScore,
+                        tokensIn: rewrittenResult.meta.tokensIn,
+                        tokensOut: rewrittenResult.meta.tokensOut,
+                        responseTimeMs: Date.now() - (Date.now() - (rewrittenResult.meta.tokensIn ? 1 : 0)),
+                        success: true,
                     },
                 });
             }

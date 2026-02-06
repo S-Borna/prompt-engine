@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
             enhancedPrompt,
             tags = [],
             tool = 'spark',
+            platform,
             sections,
             isFavorite = false,
         } = body;
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
         const prompt = await prisma.prompt.create({
             data: {
                 userId: user.id,
+                originalPrompt: originalPrompt || null,
                 fullPrompt: enhancedPrompt,
                 task: sections?.mainObjective || originalPrompt?.slice(0, 200) || null,
                 role: sections?.expertRole || null,
@@ -61,6 +63,8 @@ export async function POST(request: NextRequest) {
                 output: sections?.outputFormat || null,
                 title: title || originalPrompt?.slice(0, 80) || 'Untitled Prompt',
                 tags: Array.isArray(tags) ? tags : [tags],
+                tool: tool || 'spark',
+                platform: platform || null,
                 isFavorite,
             },
         });
