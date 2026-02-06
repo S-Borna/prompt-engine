@@ -308,39 +308,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className={`border-t border-white/[0.04] ${sidebarCollapsed ? 'p-2' : 'p-3'}`}>
                     {/* Trial Prompt Counter — Only for free users */}
                     {!isPaid && !sidebarCollapsed && (
-                        <div className={`mb-3 rounded-xl p-3 transition-all duration-500 ${
-                            counterWarning === 'critical'
+                        <div className={`mb-3 rounded-xl p-3 transition-all duration-500 ${counterWarning === 'critical'
                                 ? 'bg-red-500/10 border border-red-500/20 animate-pulse'
                                 : counterWarning === 'warning'
-                                ? 'bg-amber-500/10 border border-amber-500/15'
-                                : counterWarning === 'notice'
-                                ? 'bg-amber-500/[0.06] border border-amber-500/10'
-                                : 'bg-white/[0.02] border border-white/[0.04]'
-                        }`}>
+                                    ? 'bg-amber-500/10 border border-amber-500/15'
+                                    : counterWarning === 'notice'
+                                        ? 'bg-amber-500/[0.06] border border-amber-500/10'
+                                        : 'bg-white/[0.02] border border-white/[0.04]'
+                            }`}>
                             <div className="flex items-center justify-between mb-2">
-                                <span className={`text-[10px] font-semibold uppercase tracking-wider ${
-                                    counterWarning === 'critical' ? 'text-red-400' :
-                                    counterWarning === 'warning' ? 'text-amber-400' : 'text-white/40'
-                                }`}>
+                                <span className={`text-[10px] font-semibold uppercase tracking-wider ${counterWarning === 'critical' ? 'text-red-400' :
+                                        counterWarning === 'warning' ? 'text-amber-400' : 'text-white/40'
+                                    }`}>
                                     Prompts Remaining
                                 </span>
-                                <span className={`text-lg font-bold tabular-nums ${
-                                    counterWarning === 'critical' ? 'text-red-400' :
-                                    counterWarning === 'warning' ? 'text-amber-400' :
-                                    counterWarning === 'notice' ? 'text-amber-300' : 'text-white/80'
-                                }`}>
+                                <span className={`text-lg font-bold tabular-nums ${counterWarning === 'critical' ? 'text-red-400' :
+                                        counterWarning === 'warning' ? 'text-amber-400' :
+                                            counterWarning === 'notice' ? 'text-amber-300' : 'text-white/80'
+                                    }`}>
                                     {promptsRemaining}
                                 </span>
                             </div>
                             {/* Progress bar */}
                             <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden mb-2">
                                 <div
-                                    className={`h-full rounded-full transition-all duration-700 ease-out ${
-                                        counterWarning === 'critical' ? 'bg-gradient-to-r from-red-500 to-red-400' :
-                                        counterWarning === 'warning' ? 'bg-gradient-to-r from-amber-500 to-amber-400' :
-                                        counterWarning === 'notice' ? 'bg-gradient-to-r from-amber-500/70 to-yellow-400' :
-                                        'bg-gradient-to-r from-violet-500 to-indigo-500'
-                                    }`}
+                                    className={`h-full rounded-full transition-all duration-700 ease-out ${counterWarning === 'critical' ? 'bg-gradient-to-r from-red-500 to-red-400' :
+                                            counterWarning === 'warning' ? 'bg-gradient-to-r from-amber-500 to-amber-400' :
+                                                counterWarning === 'notice' ? 'bg-gradient-to-r from-amber-500/70 to-yellow-400' :
+                                                    'bg-gradient-to-r from-violet-500 to-indigo-500'
+                                        }`}
                                     style={{ width: `${Math.max(2, (promptsRemaining / TRIAL_LIMIT) * 100)}%` }}
                                 />
                             </div>
@@ -381,30 +377,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {/* Prompt counter — collapsed sidebar (minimal) */}
                     {!isPaid && sidebarCollapsed && (
                         <div className="mb-2 flex justify-center" title={`${promptsRemaining} prompts remaining`}>
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold tabular-nums ${
-                                counterWarning === 'critical' ? 'bg-red-500/15 text-red-400 animate-pulse' :
-                                counterWarning === 'warning' ? 'bg-amber-500/15 text-amber-400' :
-                                'bg-white/[0.04] text-white/50'
-                            }`}>
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold tabular-nums ${counterWarning === 'critical' ? 'bg-red-500/15 text-red-400 animate-pulse' :
+                                    counterWarning === 'warning' ? 'bg-amber-500/15 text-amber-400' :
+                                        'bg-white/[0.04] text-white/50'
+                                }`}>
                                 {promptsRemaining}
                             </div>
                         </div>
                     )}
 
                     {/* Profile Card */}
-                    <div className={`rounded-xl transition-all duration-200 ${
-                        sidebarCollapsed 
+                    <div className={`rounded-xl transition-all duration-200 ${sidebarCollapsed
                             ? 'flex flex-col items-center gap-2'
                             : `p-3 ${isCreator ? 'bg-gradient-to-br from-amber-500/[0.06] to-orange-500/[0.04] border border-amber-500/10' : 'bg-white/[0.02] border border-white/[0.04]'}`
-                    }`}>
+                        }`}>
                         {/* Avatar + Info */}
                         <div className={`flex items-center ${sidebarCollapsed ? 'flex-col' : 'gap-3'}`}>
                             <div className={`relative flex-shrink-0 ${sidebarCollapsed ? '' : ''}`}>
-                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold ${
-                                    isCreator 
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold ${isCreator
                                         ? 'bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 text-white shadow-lg shadow-amber-500/20'
                                         : `bg-gradient-to-br ${tier.gradient} text-white`
-                                }`}>
+                                    }`}>
                                     {userInitial}
                                 </div>
                                 {/* Tier badge dot */}
@@ -531,15 +524,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <div className="relative" ref={userMenuRef}>
                                 <button
                                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                                    className={`flex items-center gap-2 p-1 rounded-lg transition-all ${
-                                        isCreator ? 'hover:bg-amber-500/[0.06]' : 'hover:bg-white/[0.04]'
-                                    }`}
+                                    className={`flex items-center gap-2 p-1 rounded-lg transition-all ${isCreator ? 'hover:bg-amber-500/[0.06]' : 'hover:bg-white/[0.04]'
+                                        }`}
                                 >
-                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-bold ${
-                                        isCreator
+                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-bold ${isCreator
                                             ? 'bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 shadow-md shadow-amber-500/20'
                                             : `bg-gradient-to-br ${tier.gradient}`
-                                    }`}>
+                                        }`}>
                                         {userInitial}
                                     </div>
                                     {isPaid && (
@@ -552,19 +543,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 </button>
 
                                 {userMenuOpen && (
-                                    <div className={`absolute right-0 mt-2 w-64 rounded-xl border shadow-2xl py-1.5 z-50 ${
-                                        isCreator
+                                    <div className={`absolute right-0 mt-2 w-64 rounded-xl border shadow-2xl py-1.5 z-50 ${isCreator
                                             ? 'bg-[#0c0c0f] border-amber-500/15'
                                             : 'bg-[#0c0c0f] border-white/[0.06]'
-                                    }`}>
+                                        }`}>
                                         {/* Profile Header */}
                                         <div className={`px-4 py-3 border-b ${isCreator ? 'border-amber-500/10' : 'border-white/[0.04]'}`}>
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold ${
-                                                    isCreator
+                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold ${isCreator
                                                         ? 'bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 text-white shadow-lg shadow-amber-500/20'
                                                         : `bg-gradient-to-br ${tier.gradient} text-white`
-                                                }`}>
+                                                    }`}>
                                                     {userInitial}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
@@ -588,20 +577,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                                 <div className="mt-3 p-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
                                                     <div className="flex items-center justify-between mb-1.5">
                                                         <span className="text-[10px] font-medium uppercase tracking-wider text-white/40">Usage</span>
-                                                        <span className={`text-xs font-bold tabular-nums ${
-                                                            counterWarning === 'critical' ? 'text-red-400' :
-                                                            counterWarning === 'warning' ? 'text-amber-400' : 'text-white/60'
-                                                        }`}>
+                                                        <span className={`text-xs font-bold tabular-nums ${counterWarning === 'critical' ? 'text-red-400' :
+                                                                counterWarning === 'warning' ? 'text-amber-400' : 'text-white/60'
+                                                            }`}>
                                                             {promptsUsed} / {TRIAL_LIMIT}
                                                         </span>
                                                     </div>
                                                     <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
                                                         <div
-                                                            className={`h-full rounded-full transition-all ${
-                                                                counterWarning === 'critical' ? 'bg-red-500' :
-                                                                counterWarning === 'warning' ? 'bg-amber-500' :
-                                                                'bg-violet-500'
-                                                            }`}
+                                                            className={`h-full rounded-full transition-all ${counterWarning === 'critical' ? 'bg-red-500' :
+                                                                    counterWarning === 'warning' ? 'bg-amber-500' :
+                                                                        'bg-violet-500'
+                                                                }`}
                                                             style={{ width: `${Math.min(100, (promptsUsed / TRIAL_LIMIT) * 100)}%` }}
                                                         />
                                                     </div>
