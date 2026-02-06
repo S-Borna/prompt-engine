@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Copy, Check, Save, ChevronDown, CheckCircle2, Cpu } from 'lucide-react';
+import { Copy, Check, Save, ChevronDown, CheckCircle2, Cpu, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STRUCTURED PROMPT OUTPUT — Prime-style sectioned display
+// STRUCTURED PROMPT OUTPUT — Unified display (IP-protected)
 // ═══════════════════════════════════════════════════════════════════════════
 //
-// Displays enhanced prompts in 6 labeled sections with left-border accents.
-// Shows "What was improved" checklist. Copy/Save actions.
+// Displays enhanced prompts as a single, seamless block.
+// Sections are kept INTERNALLY for storage/scoring but NEVER exposed
+// visually with labels. This protects our methodology from being
+// reverse-engineered from a single screenshot.
 //
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -45,14 +47,17 @@ interface StructuredPromptOutputProps {
     actionLabel?: string;
 }
 
-const SECTION_CONFIG = [
-    { key: 'expertRole' as const, label: 'EXPERT ROLE', color: 'border-violet-500/40' },
-    { key: 'mainObjective' as const, label: 'MAIN OBJECTIVE', color: 'border-indigo-500/40' },
-    { key: 'contextBackground' as const, label: 'CONTEXT & BACKGROUND', color: 'border-blue-500/40' },
-    { key: 'outputFormat' as const, label: 'OUTPUT FORMAT', color: 'border-cyan-500/40' },
-    { key: 'constraints' as const, label: 'CONSTRAINTS', color: 'border-amber-500/40' },
-    { key: 'approachGuidelines' as const, label: 'APPROACH & GUIDELINES', color: 'border-emerald-500/40' },
-];
+// Assemble a single seamless prompt from sections — NO labels
+function assembleUnifiedPrompt(sections: StructuredPromptSections): string {
+    return [
+        sections.expertRole,
+        sections.mainObjective,
+        sections.contextBackground,
+        sections.outputFormat,
+        sections.constraints,
+        sections.approachGuidelines,
+    ].filter(Boolean).join('\n\n');
+}
 
 export function StructuredPromptOutput({
     result,
@@ -63,24 +68,11 @@ export function StructuredPromptOutput({
     actionLabel = 'Improve',
 }: StructuredPromptOutputProps) {
     const [copied, setCopied] = useState(false);
-    const [showImprovements, setShowImprovements] = useState(true);
+    const [showImprovements, setShowImprovements] = useState(false);
 
     const handleCopy = useCallback(() => {
         if (!result) return;
-        const { sections } = result;
-        const text = [
-            sections.expertRole,
-            '',
-            sections.mainObjective,
-            '',
-            sections.contextBackground,
-            '',
-            sections.outputFormat,
-            '',
-            sections.constraints,
-            '',
-            sections.approachGuidelines,
-        ].filter(Boolean).join('\n');
+        const text = assembleUnifiedPrompt(result.sections);
         navigator.clipboard.writeText(text);
         setCopied(true);
         toast.success('Copied to clipboard');
@@ -103,6 +95,7 @@ export function StructuredPromptOutput({
     }
 
     const { sections, domain, improvements, meta, targetPlatform } = result;
+    const unifiedPrompt = assembleUnifiedPrompt(sections);
 
     // Platform display mapping
     const platformDisplayMap: Record<string, { label: string; color: string }> = {
@@ -113,6 +106,14 @@ export function StructuredPromptOutput({
         'general': { label: 'Universal Prompt', color: 'text-violet-400' },
     };
     const platformInfo = platformDisplayMap[targetPlatform || ''] || platformDisplayMap['general'];
+
+    // Quality indicator
+    const qualityLevel = (meta?.score ?? 0) >= 80 ? 'excellent' : (meta?.score ?? 0) >= 60 ? 'good' : 'enhanced';
+    const qualityConfig = {
+        excellent: { label: 'Excellent', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+        good: { label: 'Strong', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+        enhanced: { label: 'Enhanced', color: 'text-violet-400', bg: 'bg-violet-500/10' },
+    }[qualityLevel];
 
     return (
         <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden">
@@ -139,7 +140,12 @@ export function StructuredPromptOutput({
                     <span className="text-[11px] font-medium text-white/30 uppercase tracking-wider bg-white/[0.04] px-2.5 py-1 rounded-md">
                         {domain}
                     </span>
-                    <span className="text-[11px] text-white/25">Fully structured</span>
+                    {meta?.score && (
+                        <span className={`text-[11px] font-medium px-2.5 py-1 rounded-md ${qualityConfig.bg} ${qualityConfig.color}`}>
+                            <Sparkles className="w-3 h-3 inline mr-1" />
+                            {qualityConfig.label}
+                        </span>
+                    )}
                     {/* Copy & Save */}
                     <button
                         onClick={handleCopy}
@@ -160,22 +166,17 @@ export function StructuredPromptOutput({
                 </div>
             </div>
 
-            {/* Sections */}
-            <div className="p-6 space-y-6">
-                {SECTION_CONFIG.map(({ key, label, color }) => {
-                    const content = sections[key];
-                    if (!content) return null;
-                    return (
-                        <div key={key} className={`pl-4 border-l-2 ${color}`}>
-                            <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/30 mb-2">
-                                {label}
-                            </div>
-                            <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">
-                                {content}
-                            </p>
-                        </div>
-                    );
-                })}
+            {/* ═══════════════════════════════════════════════════════════════
+                UNIFIED PROMPT — Single seamless block, NO section labels
+                This is the core IP protection: users see the result,
+                not the methodology blueprint.
+            ═══════════════════════════════════════════════════════════════ */}
+            <div className="p-6">
+                <div className="pl-4 border-l-2 border-violet-500/30">
+                    <p className="text-white/85 text-[15px] leading-[1.8] whitespace-pre-wrap font-sans">
+                        {unifiedPrompt}
+                    </p>
+                </div>
             </div>
 
             {/* What was improved */}
