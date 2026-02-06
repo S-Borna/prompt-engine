@@ -170,7 +170,7 @@ src/app/
 - ✅ Prisma 7 + Railway Postgres (alla tabeller + trialEndsAt)
 - ✅ NextAuth 5 beta med JWT strategy + email-verifiering (SendGrid)
 - ✅ AI Enhancement pipeline (Spark + Precision)
-- ✅ Creator-tier för executive emails (said@saidborna.com)
+- ✅ Creator-tier för executive emails (<said@saidborna.com>)
 - ✅ 7-dagars trial countdown med Postgres sync
 - ✅ Chrome Extension MVP (Claude, Gemini, Grok, ChatGPT)
 - ✅ Extension API endpoints (/api/extension/auth + /api/extension/enhance)
