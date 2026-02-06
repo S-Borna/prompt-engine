@@ -55,36 +55,23 @@ export async function POST(request: NextRequest) {
         ]);
 
         // ═══════════════════════════════════════════════════════════════════
-        // DEMO PARITY GUARANTEE — Block if enhanced isn't better
+        // PARITY CHECK — Log only, never block the user
         // ═══════════════════════════════════════════════════════════════════
 
         const parityCheck = validateDemoParity(originalResult, enhancedResult);
-
         if (!parityCheck.valid) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: parityCheck.error,
-                    debug: {
-                        originalMetrics: originalResult.metrics,
-                        enhancedMetrics: enhancedResult.metrics,
-                        originalLength: originalResult.output.length,
-                        enhancedLength: enhancedResult.output.length,
-                    },
-                },
-                { status: 422 }
-            );
+            console.warn(`[A/B parity] ${parityCheck.error}`);
         }
 
         // ═══════════════════════════════════════════════════════════════════
-        // SUCCESS — Return differentiated results
+        // ALWAYS RETURN BOTH OUTPUTS — let the user judge
         // ═══════════════════════════════════════════════════════════════════
 
-        // Calculate improvement metrics
         const improvement = {
-            lengthFactor: (enhancedResult.output.length / originalResult.output.length).toFixed(2),
             structureGain: enhancedResult.metrics.structureScore - originalResult.metrics.structureScore,
             specificityGain: enhancedResult.metrics.specificityScore - originalResult.metrics.specificityScore,
+            originalWords: originalResult.output.split(/\s+/).length,
+            enhancedWords: enhancedResult.output.split(/\s+/).length,
         };
 
         return NextResponse.json({

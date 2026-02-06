@@ -372,30 +372,48 @@ export async function runEnhanced(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// METRICS CALCULATION
+// METRICS CALCULATION — Rewards density & decisions, not volume
 // ═══════════════════════════════════════════════════════════════════════════
 
 function calculateMetrics(output: string): ExecutionResult['metrics'] {
-    const hasHeaders = (output.match(/^#{1,3}\s/gm) || []).length;
-    const hasBullets = (output.match(/^[\s]*[-*]\s/gm) || []).length;
-    const hasNumbering = (output.match(/^\d+\.\s/gm) || []).length;
-    const hasCodeBlocks = (output.match(/```/g) || []).length;
-    const hasTables = (output.match(/\|.+\|/g) || []).length;
-    const hasCheckboxes = (output.match(/\[[ x]\]/g) || []).length;
+    // --- STRUCTURE: headers, formatting, organized sections ---
+    const headers = (output.match(/^#{1,3}\s/gm) || []).length;
+    const bullets = (output.match(/^[\s]*[-*]\s/gm) || []).length;
+    const numberedSteps = (output.match(/^\d+\.\s/gm) || []).length;
+    const codeBlocks = (output.match(/```/g) || []).length / 2; // pairs
+    const tables = (output.match(/\|.+\|/g) || []).length;
+    const boldDecisions = (output.match(/\*\*[^*]+\*\*/g) || []).length;
 
     const structureScore = Math.min(100,
-        hasHeaders * 10 +
-        hasBullets * 3 +
-        hasNumbering * 3 +
-        hasCodeBlocks * 10 +
-        hasTables * 15 +
-        hasCheckboxes * 5
+        headers * 12 +
+        Math.min(bullets, 10) * 2 +      // cap bullets — more isn't better
+        numberedSteps * 4 +
+        codeBlocks * 12 +
+        Math.min(tables, 3) * 10 +
+        boldDecisions * 3
     );
 
-    const technicalTerms = (output.match(/\b(API|database|schema|endpoint|module|component|TypeScript|function|class|interface|implementation|architecture|deployment|testing|framework|server|client)\b/gi) || []).length;
+    // --- SPECIFICITY: decisions, action verbs, concrete artifacts ---
+    // Decision markers (opinionated language)
+    const decisionPhrases = (output.match(/\b(decision|verdict|build now|defer|don't build|rejected alternative|done when|acceptance criter|watch out|next step|use .+ for|choose .+ because|start with)\b/gi) || []).length;
+
+    // Concrete artifacts (commands, file paths, specific tech)
+    const commands = (output.match(/`[^`]{3,}`/g) || []).length;
+    const techTerms = (output.match(/\b(API|database|schema|endpoint|module|component|TypeScript|function|class|interface|architecture|deployment|framework|server|client|React|Node|Express|Prisma|Postgres|MongoDB|Redis|Docker|AWS|Expo|Flutter|Swift|Kotlin)\b/gi) || []).length;
+
+    // Anti-waffle: penalize vague filler phrases
+    const wafflePhrases = (output.match(/\b(it depends|you might consider|there are several|it's important to note|you could also|another option|one approach|keep in mind|worth noting)\b/gi) || []).length;
+
+    // Density: decisions per 100 words (reward saying more with less)
+    const wordCount = output.split(/\s+/).length;
+    const decisionDensity = wordCount > 0 ? (decisionPhrases / wordCount) * 100 : 0;
+
     const specificityScore = Math.min(100,
-        Math.floor(output.length / 50) +
-        technicalTerms * 5
+        decisionPhrases * 8 +
+        commands * 6 +
+        Math.min(techTerms, 15) * 3 +     // cap tech terms
+        Math.floor(decisionDensity * 20) + // bonus for dense, decisive writing
+        -(wafflePhrases * 10)              // penalty for vague language
     );
 
     return {
@@ -416,27 +434,27 @@ export function validateDemoParity(
     const o = originalResult.metrics;
     const e = enhancedResult.metrics;
 
-    const lengthImprovement = e.responseLength / Math.max(1, o.responseLength);
     const structureImprovement = e.structureScore - o.structureScore;
     const specificityImprovement = e.specificityScore - o.specificityScore;
 
-    const isLonger = lengthImprovement >= 1.2;
-    const isMoreStructured = structureImprovement >= 10;
+    // Enhanced should be more structured OR more specific (or both)
+    // Length is irrelevant — dense > verbose
+    const isMoreStructured = structureImprovement >= 5;
     const isMoreSpecific = specificityImprovement >= 10;
+    const isDifferent = originalResult.output !== enhancedResult.output;
 
-    // Pass if ANY two of three criteria are met (not all three)
-    const passCount = [isLonger, isMoreStructured, isMoreSpecific].filter(Boolean).length;
-    if (passCount < 2) {
-        return {
-            valid: false,
-            error: `Enhanced output did not improve sufficiently. Metrics: length=${lengthImprovement.toFixed(2)}x, structure=+${structureImprovement}, specificity=+${specificityImprovement}`,
-        };
-    }
-
-    if (originalResult.output === enhancedResult.output) {
+    if (!isDifferent) {
         return {
             valid: false,
             error: 'Enhanced output is identical to original.',
+        };
+    }
+
+    // Pass if either structure or specificity improved
+    if (!isMoreStructured && !isMoreSpecific) {
+        return {
+            valid: false,
+            error: `Enhanced output did not improve sufficiently. Metrics: structure=+${structureImprovement}, specificity=+${specificityImprovement}`,
         };
     }
 
