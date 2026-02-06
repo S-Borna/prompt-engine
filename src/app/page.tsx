@@ -508,7 +508,7 @@ export default function LandingPage() {
                 <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
                   Simple, transparent pricing
                 </h2>
-                <p className="text-base text-white/40 text-center">
+                <p className="text-base text-white/40 max-w-lg mx-auto text-center">
                   Start free. Upgrade when you need more.
                 </p>
               </div>
@@ -634,8 +634,7 @@ export default function LandingPage() {
                 <span className="bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">better engineering</span>
               </h2>
               <p className="text-base text-white/40 mb-10 max-w-md mx-auto text-center">
-                Stop feeding AI models vague instructions and hoping for the best.
-                Start with structure. Start with PRAXIS.
+                Stop feeding AI models vague instructions and hoping for the best. Start with structure. Start with PRAXIS.
               </p>
               <Link
                 href="/signup"
