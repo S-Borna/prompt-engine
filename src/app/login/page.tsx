@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Sparkles, Mail, Lock, Eye, EyeOff, ArrowRight, Github, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
@@ -22,6 +22,18 @@ const GoogleIcon = () => (
 );
 
 export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div style={{ minHeight: '100vh', backgroundColor: '#0a0a0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Loader2 style={{ width: '24px', height: '24px', color: '#8b5cf6', animation: 'spin 1s linear infinite' }} />
+            </div>
+        }>
+            <LoginContent />
+        </Suspense>
+    );
+}
+
+function LoginContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [email, setEmail] = useState('');

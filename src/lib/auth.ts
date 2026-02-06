@@ -155,7 +155,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 // Role-based access
                 token.role = getUserRole(user.email);
                 token.tier = isExecutiveEmail(user.email) ? 'EXECUTIVE' : 'FREE';
-                token.emailVerified = isEmailVerified(user.email);
+                token.isVerified = isEmailVerified(user.email);
                 token.promptsUsed = token.promptsUsed || 0; // Persistent counter
                 token.xp = 0;
                 token.level = 1;
@@ -170,7 +170,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 session.user.id = token.id as string;
                 session.user.role = (token.role as string) || 'trial';
                 session.user.tier = (token.tier as string) || 'FREE';
-                session.user.emailVerified = (token.emailVerified as boolean) || false;
+                session.user.isVerified = (token.isVerified as boolean) || false;
                 session.user.promptsUsed = (token.promptsUsed as number) || 0;
                 session.user.xp = (token.xp as number) || 0;
                 session.user.level = (token.level as number) || 1;
@@ -200,7 +200,7 @@ declare module 'next-auth' {
             image?: string | null;
             role: string;
             tier: string;
-            emailVerified: boolean;
+            isVerified: boolean;
             promptsUsed: number;
             xp: number;
             level: number;
@@ -212,7 +212,7 @@ declare module 'next-auth' {
     interface User {
         role?: string;
         tier?: string;
-        emailVerified?: boolean;
+        isVerified?: boolean;
         promptsUsed?: number;
         xp?: number;
         level?: number;

@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check email verification (executives auto-verified)
-    if (!session.user.emailVerified && !isExecutiveEmail(session.user.email)) {
+    if (!session.user.isVerified && !isExecutiveEmail(session.user.email)) {
         return NextResponse.json(
             { error: 'Email verification required. Please check your inbox.' },
             { status: 403 }
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
             {
                 error: 'Trial limit reached',
-                message: 'You've used all 100 trial prompts.Upgrade to Standard($9.99/ mo) for unlimited access.',
+                message: "You've used all 100 trial prompts. Upgrade to Standard ($9.99/mo) for unlimited access.",
                 promptsUsed: currentUsage,
                 upgradeUrl: '/dashboard/billing',
             },

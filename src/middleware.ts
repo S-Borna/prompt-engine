@@ -21,7 +21,7 @@ export async function middleware(request: NextRequest) {
         }
 
         // Require email verification (except for executives and demo users)
-        if (!session.user.emailVerified && pathname.startsWith('/dashboard')) {
+        if (!session.user.isVerified && pathname.startsWith('/dashboard')) {
             return NextResponse.redirect(new URL('/verify-pending', request.url));
         }
     }
