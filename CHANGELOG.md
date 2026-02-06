@@ -40,6 +40,16 @@
 | 2026-02-06 | Extension popup-skalning fixad | Popup klippte av innehåll | `min-height: 280px`, `overflow-x: hidden`, fast select-bredd ✅ |
 | 2026-02-06 | Extension text-formatering förbättrad | Enhanced text visades som ett enda textblock | `setFormattedContent()` delar på `\n{2,}` → separata `<p>`-element ✅ |
 | 2026-02-06 | ChatGPT 5.2 selektorer uppdaterade | Enhance-knapp syntes ej i ChatGPT | Bredare selektorer: `[id*="prompt"][contenteditable]`, `data-placeholder`, `textarea[placeholder]` ✅ |
+| 2026-02-06 | **Landing page centreringsbuggen fixad** | Innehåll off-center — `mx-auto` fungerade inte på block-level `<p>`-element | Löst med `flex flex-col items-center` på alla parent-divs (commit `c05e256`) ✅ |
+| 2026-02-06 | **Landing page totalomdesign (SortMeOut-inspirerad)** | Befintlig sida kändes "tech bro" — ville ha enterprise-clean, mjuk känsla som sortmeout.pages.dev | Fullständig rewrite: section badges (pill-labels), frosted-glass nav, gradient emphasis, staggered RevealSection entrance-animationer, 3-col feature grid, pricing med `scale-[1.02]` featured card, footer. Deployed v`a4d87387` ✅ |
+| 2026-02-06 | StructuredPromptOutput — IP-skyddad rendering | Sektionsetiketter exponerade prompt-engineering-metodik i screenshots | Visar sektioner med color-accented left borders UTAN synliga labels. Metodiken skyddas ✅ |
+| 2026-02-06 | ModelInsightPopover — Premium hover experience | Användare behöver förstå AI-modellernas styrkor/svagheter | Spring-entrance popover (scale+fade+Y-lift), glasmorfism med model-tinted accents, 200ms hover intent delay, position-aware placement. 10 modeller dokumenterade ✅ |
+| 2026-02-06 | Chrome Extension onboarding förbättrad | Ny extension-användare behöver guidning | Tooltip vid första enhance, welcome modal, Chrome Web Store listing copy ✅ |
+| 2026-02-06 | Prompt saving till Postgres | Prompts sparades bara lokalt i localStorage | Spark + Precision sparar till `/api/prompts/save`. Library synkar från DB vid mount ✅ |
+| 2026-02-06 | History — Postgres-backed timeline | Historik gick förlorad vid browser-clear | Hämtar från `/api/prompts`, mergar med localStorage, grupperar per datum ✅ |
+| 2026-02-06 | Replay-funktion i History | Användare ville köra om gamla prompts | `sessionStorage.setItem('replay-input')` → navigerar till rätt tool med input ifyllt ✅ |
+| 2026-02-06 | Språkväljare i Spark (EN/SV/SV→EN) | Svenska användare, AI presterar bäst på engelska | Tre lägen: English, Svenska, Sve→Eng auto-översättning ✅ |
+| 2026-02-06 | DESIGN-SPEC.md skapad | Extremt detaljerad designspecifikation behövdes för framtida projekt | Komplett spec: alla animationer, hover states, modell-popover, design tokens, responsiv layout, komponent-arkitektur ✅ |
 | 2026-02-04 | API Routes: Prompts CRUD | Användare ska kunna spara/hämta prompts | `/api/prompts` + `/api/prompts/[id]` ✅ |
 | 2026-02-04 | API Routes: User Stats/XP | Spåra XP, streak, certifieringar | `/api/user/stats` med XP-system ✅ |
 | 2026-02-04 | Dashboard kopplad till databas | Visa riktiga data istället för mock | Hämtar stats från API ✅ |
@@ -228,4 +238,4 @@ src/app/
 
 ---
 
-*Senast uppdaterad: 2026-02-06*
+*Senast uppdaterad: 2026-02-06 (kväll – post SortMeOut redesign)*
