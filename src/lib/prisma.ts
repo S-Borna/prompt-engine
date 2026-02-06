@@ -1,9 +1,9 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 // Prisma 7 med PostgreSQL Adapter
-// CRITICAL: pg och @prisma/adapter-pg importeras DYNAMISKT inuti funktionen
-// för att undvika att Cloudflare Workers bundlar 'pg' som top-level extern
-// modul (ger "Failed to load external module pg-xxx" runtime-krasch).
+// PrismaPg@7.3+ tar { connectionString } direkt — skapar Pool internt.
+// nodejs_compat + compatibility_date 2026-02-03 ger net/tls stöd i Workers.
 
 const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined;
@@ -17,12 +17,8 @@ async function createPrismaClient(): Promise<PrismaClient> {
         return new PrismaClient();
     }
 
-    // Dynamic imports — keeps pg out of the Cloudflare Workers bundle
-    const { Pool } = await import('pg');
-    const { PrismaPg } = await import('@prisma/adapter-pg');
-
-    const pool = new Pool({ connectionString });
-    const adapter = new PrismaPg(pool);
+    // PrismaPg handles Pool creation internally — no manual pg import needed
+    const adapter = new PrismaPg({ connectionString });
 
     return new PrismaClient({ adapter });
 }
